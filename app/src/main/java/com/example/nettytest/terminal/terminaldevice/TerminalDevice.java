@@ -6,18 +6,20 @@ import com.example.nettytest.userinterface.PhoneParam;
 
 public class TerminalDevice extends NetDevice {
     NettyTestClient client;
+    boolean isActive;
 
     public TerminalDevice(String id){
         super(id);
+        isActive = true;
     }
 
     public void Start(){
 //        client = new NettyTestClient(id,PhoneParam.CALL_SERVER_PORT);
-        client = new NettyTestClient(id,PhoneParam.CALL_SERVER_ADDRESS,PhoneParam.CALL_SERVER_PORT);
+        client = new NettyTestClient(id,PhoneParam.callServerAddress,PhoneParam.callServerPort);
         new Thread(){
             @Override
             public void run() {
-                while(true) {
+                while(isActive) {
                     client.run();
                     try {
                         Thread.sleep(5000);

@@ -9,6 +9,7 @@ import com.example.nettytest.backend.backendphone.BackEndPhoneManager;
 import com.example.nettytest.backend.backendtranscation.BackEndTransactionMgr;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.transaction.Transaction;
+import com.example.nettytest.pub.transaction.TransactionInfo;
 import com.example.nettytest.terminal.terminaldevice.TerminalDevManager;
 import com.example.nettytest.terminal.terminaldevice.TerminalDevice;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
@@ -48,6 +49,14 @@ public class HandlerMgr {
 
     static public void PhoneProcessPacket(ProtocolPacket packet){
         terminalTransMgr.ProcessPacket(packet);
+    }
+
+    static public void TerminalPhoneTransactionTick(){
+        terminalTransMgr.TransTimerProcess();
+    }
+
+    static public ArrayList<byte[]> GetTerminalTransInfo(){
+        return terminalTransMgr.GetTransactionDetail(SystemSnap.SNAP_TERMINAL_TRANS_RES);
     }
 
 // for terminal Phone
@@ -113,13 +122,16 @@ public class HandlerMgr {
         backEndTransMgr.ProcessPacket(packet);
     }
 
+    static public void BackEndTransactionTick(){
+        backEndTransMgr.TransTimerProcess();
+    }
 
 
 // for backend phone
     static public BackEndPhone GetBackEndPhone(String ID) {
         return backEndPhoneMgr.GetDevice(ID);
     }
-
+       
 
     static public void PostBackEndPhoneMsg(Message msg){
         backEndPhoneMgr.PostBackEndPhoneMessage(msg);
@@ -135,6 +147,11 @@ public class HandlerMgr {
 // get listen phone
     static public ArrayList<BackEndPhone> GetBackEndListenDevices(){
         return backEndPhoneMgr.GetListenDevices();
+    }
+
+    public static ArrayList<byte[]> GetBackEndTransInfo(){
+        ArrayList<byte[]> res = backEndTransMgr.GetTransactionDetail(SystemSnap.SNAP_BACKEND_TRANS_RES);
+        return res;
     }
 
 }

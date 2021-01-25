@@ -4,6 +4,7 @@ public class UserMessage {
     public final static int MESSAGE_CALL_INFO = 1;
     public final static int MESSAGE_REG_INFO = 2;
     public final static int MESSAGE_DEVICES_INFO = 3;
+    public final static int MESSAGE_TEST_TICK = 4;
 
     public final static int REGISTER_MESSAGE_SUCC = 1;
     public final static int REGISTER_MESSAGE_FAIL = 2;
@@ -49,6 +50,22 @@ public class UserMessage {
             case CALL_MESSAGE_ANSWERED:
                 msgName = "Call Answered";
                 break;
+            case CALL_MESSAGE_FAIL:
+                msgName = "Call Fail";
+                break;
+            case CALL_MESSAGE_INVITE_FAIL:
+                msgName = "Invite Fail";
+                break;
+            case CALL_MESSAGE_ANSWER_FAIL:
+                msgName = "Answer Fail";
+                break;
+            case CALL_MESSAGE_END_FAIL:
+                msgName = "End Fail";
+                break;
+            case CALL_MESSAGE_UPDATE_FAIL:
+                msgName = "Update Fail";
+                break;
+
             case CALL_MESSAGE_UNKONWQ:
                 msgName = "Message Unknow";
                 break;

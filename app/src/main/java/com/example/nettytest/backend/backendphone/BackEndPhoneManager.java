@@ -5,9 +5,9 @@ import android.os.Looper;
 import android.os.Message;
 
 import com.example.nettytest.backend.backendcall.BackEndCallConvergenceManager;
-import com.example.nettytest.backend.backenddevice.BackEndDevManager;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
+import com.example.nettytest.pub.SystemSnap;
 import com.example.nettytest.pub.commondevice.PhoneDevice;
 import com.example.nettytest.pub.protocol.DevQueryReqPack;
 import com.example.nettytest.pub.protocol.DevQueryResPack;
@@ -15,7 +15,15 @@ import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.protocol.RegReqPack;
 import com.example.nettytest.pub.protocol.RegResPack;
 import com.example.nettytest.pub.transaction.Transaction;
+import com.example.nettytest.userinterface.PhoneParam;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
@@ -26,6 +34,7 @@ public class BackEndPhoneManager {
 
     public static final int MSG_NEW_PACKET = 1;
     public static final int MSG_SECOND_TICK = 2;
+    public static final int MSG_REQ_TIMEOVER = 3;
 
     private final HashMap<String, BackEndPhone> serverPhoneLists;
     Handler msgHandler=null;
@@ -45,8 +54,55 @@ public class BackEndPhoneManager {
                 phonemsg.obj = "";
                 HandlerMgr.PostBackEndPhoneMsg(phonemsg);
 
+                HandlerMgr.BackEndTransactionTick();
+
             }
         },0,1000);
+
+        new Thread(() -> {
+            try {
+                byte[] recvBuf = new byte[1024];
+                DatagramPacket recvPack;
+                DatagramSocket testSocket;
+                ArrayList<byte[]> resList;
+                testSocket = new DatagramSocket(SystemSnap.SNAP_BACKEND_PORT);
+                DatagramPacket resPack;
+                while (!testSocket.isClosed()) {
+                    recvPack = new DatagramPacket(recvBuf, recvBuf.length);
+                    try {
+                        testSocket.receive(recvPack);
+                        if (recvPack.getLength() > 0) {
+                            if(PhoneParam.serverActive) {
+                                String recv = new String(recvBuf, "UTF-8");
+                                JSONObject json = new JSONObject(recv);
+                                int type = json.optInt("type");
+                                synchronized (BackEndPhoneManager.class) {
+                                    if (type == SystemSnap.SNAP_BACKEND_CALL_REQ) {
+                                        resList = backEndCallConvergencyMgr.MakeCallConvergenceSnap();
+                                        for (byte[] data : resList) {
+                                            resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
+                                            testSocket.send(resPack);
+                                        }
+                                    } else if (type == SystemSnap.SNAP_BACKEND_TRANS_REQ) {
+                                        resList = HandlerMgr.GetBackEndTransInfo();
+                                        for (byte[] data : resList) {
+                                            resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
+                                            testSocket.send(resPack);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } catch (SocketException e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     public BackEndPhone GetDevice(String id){
@@ -77,7 +133,7 @@ public class BackEndPhoneManager {
     public void AddPhone(String id, int t){
         BackEndPhone matchedPhone;
 
-        synchronized (serverPhoneLists) {
+        synchronized (BackEndPhoneManager.class) {
             matchedPhone = serverPhoneLists.get(id);
             if (matchedPhone == null) {
                 matchedPhone = new BackEndPhone(id,t);
@@ -147,22 +203,33 @@ public class BackEndPhoneManager {
         }
     }
 
+    private void PacketTimeOverProcess(ProtocolPacket packet){
+        CallConvergencyProcessTimeOver(packet);
+    }
+
     private class BackEndPhoneThread extends Thread{
         @Override
         public void run() {
             Looper.prepare();
             msgHandler = new Handler(msg -> {
                 int type = msg.arg1;
-                synchronized (serverPhoneLists) {
+                ProtocolPacket packet;
+                synchronized (BackEndPhoneManager.class) {
                     switch (type) {
                         case MSG_NEW_PACKET:
-                            ProtocolPacket packet = (ProtocolPacket) msg.obj;
+                            packet = (ProtocolPacket) msg.obj;
                             PacketRecvProcess(packet);
                             break;
                         case MSG_SECOND_TICK:
                             CallConvergencySecondTick();
                             UpdatePhonesRegTick();
                             break;
+                        case MSG_REQ_TIMEOVER:
+                            packet = (ProtocolPacket) msg.obj;
+                            PacketTimeOverProcess(packet);
+                            break;
+                        default:
+                            throw new IllegalStateException("Unexpected value: " + type);
                     }
                 }
                 return false;
@@ -185,6 +252,16 @@ public class BackEndPhoneManager {
         backEndCallConvergencyMgr.ProcessSecondTick();
     }
 
+    
+    private void CallConvergencyProcessTimeOver(ProtocolPacket packet){
+        switch(packet.type){
+            case ProtocolPacket.CALL_REQ:
+            case ProtocolPacket.ANSWER_REQ:
+            case ProtocolPacket.END_REQ:
+                backEndCallConvergencyMgr.ProcessTimeOver(packet);
+                break;
+        }
+    }
 
     private void GetDeviceList(ArrayList<PhoneDevice> list){
         PhoneDevice dev;

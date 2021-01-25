@@ -14,10 +14,10 @@ public class CommonCall {
     public final static int CALL_TYPE_BROADCAST = 3;
 
     public final static int CALL_STATE_DIALING = 1;
-    public final static int CALL_STATE_INCOMING = 2;
-    public final static int CALL_STATE_RINGING = 3;
+    public final static int CALL_STATE_RINGING = 2;
+    public final static int CALL_STATE_INCOMING = 3;
     public final static int CALL_STATE_CONNECTED = 4;
-    public final static int CALL_STATE_DISCONNECTED = 6;
+    public final static int CALL_STATE_DISCONNECTED =5;
 
     public final static int UPDATE_INTERVAL = Transaction.TRANSCATION_RESEND_INTERVAL*2;
 

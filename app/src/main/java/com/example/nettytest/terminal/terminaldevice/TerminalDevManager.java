@@ -11,7 +11,7 @@ public class TerminalDevManager extends NetDeviceManager {
     public void AddDevice(String id, TerminalDevice device){
         TerminalDevice matchedDev;
 
-        synchronized (this) {
+        synchronized (NetDeviceManager.class) {
             matchedDev = (TerminalDevice)devLists.get(id);
             if(matchedDev==null)
                 devLists.put(id,device);

@@ -9,9 +9,9 @@ public class UniqueIDManager {
         String msgID="";
         synchronized (UniqueIDManager.class){
             if(type == MSG_UNIQUE_ID)
-                msgID = String.format("M%s%X%X",devID,System.currentTimeMillis(),seq++);
+                msgID = String.format("M-%s-%X-%04X",devID,System.currentTimeMillis(),seq++);
             else if(type==CALL_UNIQUE_ID)
-                msgID = String.format("C%s%X%X",devID,System.currentTimeMillis(),seq++);
+                msgID = String.format("C-%s-%X-%04X",devID,System.currentTimeMillis(),seq++);
         }
         return msgID;
     }

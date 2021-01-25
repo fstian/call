@@ -19,12 +19,12 @@ public class LogWork {
 
     public final static int DEBUG_MODULE = 301;
 
-    public final static int LOG_VERBOSE = 1;
-    public final static int LOG_DEBUG = 2;
-    public final static int LOG_INFO = 3;
-    public final static int LOG_WARN = 4;
-    public final static int LOG_ERROR = 5;
-    public final static int LOG_FATAL = 6;
+    public final static int LOG_VERBOSE = 1;    // for verbose
+    public final static int LOG_DEBUG = 2;      // for debug
+    public final static int LOG_INFO = 3;       // for important
+    public final static int LOG_WARN = 4;       // for reasonable error
+    public final static int LOG_ERROR = 5;      // for unreasonable error
+    public final static int LOG_FATAL = 6;      // for fatal
 
     public static int Print(int module,int degLevel,String buf){
         return Print(module,degLevel,buf,"");
@@ -34,17 +34,17 @@ public class LogWork {
         boolean isPrint = false;
         String tag = "";
         if (degLevel >= LOG_VERBOSE) {
-            boolean terminalPhoneModuleLogEnable = true;
-            boolean terminalDeviceModuleLogEnable = true;
-            boolean terminalNetModuleLogEnable = true;
-            boolean terminalCallModuleLogEnable = true;
-            boolean terminalUserModuleLogEnable = true;
-            boolean backEndPhoneModuleLogEnable = true;
-            boolean backEndDeviceModuleLogEnable = true;
-            boolean backEndCallModuleLogEnable = true;
-            boolean backEndNetModuleLogEnable = true;
-            boolean transactionModuleLogEnable = true;
-            boolean debugModuleLogEnable = true;
+            boolean terminalPhoneModuleLogEnable = false;
+            boolean terminalDeviceModuleLogEnable = false;
+            boolean terminalNetModuleLogEnable = false;
+            boolean terminalCallModuleLogEnable = false;
+            boolean terminalUserModuleLogEnable = false;
+            boolean backEndPhoneModuleLogEnable = false;
+            boolean backEndDeviceModuleLogEnable = false;
+            boolean backEndCallModuleLogEnable = false;
+            boolean backEndNetModuleLogEnable = false;
+            boolean transactionModuleLogEnable = false;
+            boolean debugModuleLogEnable = false;
             switch (module) {
                 case TERMINAL_PHONE_MODULE:
                     isPrint = terminalPhoneModuleLogEnable;

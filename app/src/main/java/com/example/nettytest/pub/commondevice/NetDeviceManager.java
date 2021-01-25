@@ -1,7 +1,5 @@
 package com.example.nettytest.pub.commondevice;
 
-import com.example.nettytest.pub.LogWork;
-
 import java.util.HashMap;
 
 import io.netty.buffer.ByteBuf;
@@ -18,7 +16,7 @@ public class NetDeviceManager {
 
         public void DevSendBuf(String id, ByteBuf buf){
                 NetDevice matchedDev;
-                synchronized (devLists) {
+                synchronized (NetDeviceManager.class) {
                         matchedDev = devLists.get(id);
                         if(matchedDev!=null){
                                 matchedDev.SendBuffer(buf);
@@ -28,7 +26,7 @@ public class NetDeviceManager {
 
         public void UpdateDevChannel(String id, Channel ch){
                 NetDevice matchedDev;
-                synchronized (devLists) {
+                synchronized (NetDeviceManager.class) {
                         matchedDev = devLists.get(id);
                         if (matchedDev != null) {
                                 matchedDev.UpdateChannel(ch);

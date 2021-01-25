@@ -24,4 +24,12 @@ public class DevQueryResPack extends ProtocolPacket {
         result = ProtocolPacket.GetResString(status);
         phoneList = new ArrayList<>();
     }
+
+    @Override
+    public void Release() {
+        super.Release();
+        if(phoneList!=null){
+            phoneList.clear();
+        }
+    }
 }

@@ -22,7 +22,7 @@ public class UserInterface {
     public static DemoServer callServer=null;
 
     public static void StartServer(){
-        callServer = new DemoServer(PhoneParam.CALL_SERVER_PORT);
+        callServer = new DemoServer(PhoneParam.callServerPort);
     }
 
     public static OperationResult AddDeviceOnServer(String id,int type){
@@ -158,7 +158,7 @@ public class UserInterface {
                 name = "door";
                 break;
             case CALL_NURSER_DEVICE:
-                name = "Nurser";
+                name = "nurser";
                 break;
             case CALL_TV_DEVICE:
                 name = "TV";
@@ -166,5 +166,17 @@ public class UserInterface {
         }
 
         return name;
+    }
+
+    public static int GetDeviceType(String name){
+        int type = CALL_BED_DEVICE;
+
+        if(name.compareToIgnoreCase("door")==0)
+            type = CALL_DOOR_DEVICE;
+        else if(name.compareToIgnoreCase("nurser")==0)
+            type = CALL_NURSER_DEVICE;
+        else if(name.compareToIgnoreCase("TV")==0)
+            type = CALL_TV_DEVICE;
+        return type;
     }
 }

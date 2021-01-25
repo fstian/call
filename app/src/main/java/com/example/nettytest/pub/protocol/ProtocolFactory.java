@@ -146,7 +146,6 @@ public class ProtocolFactory {
                     p = updateResP;
                     break;
             }
-
         }catch (JSONException e){
             e.printStackTrace();
         }

@@ -22,9 +22,6 @@ import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.userinterface.UserMessage;
 import com.example.nettytest.userinterface.UserRegMessage;
 
-import java.util.Timer;
-import java.util.TimerTask;
-
 public class TerminalPhone extends PhoneDevice {
 
     int regWaitCount;
@@ -113,7 +110,7 @@ public class TerminalPhone extends PhoneDevice {
     }
 
     public void UpdateCalTimeOver(ProtocolPacket packet){
-        callManager.UpdateTimeOver(packet);
+        callManager.UpdateTimeOver(id,packet);
     }
 
     public void RecvIncomingCall(InviteReqPack packet){
@@ -141,6 +138,12 @@ public class TerminalPhone extends PhoneDevice {
         }
     }
 
+    public byte[] MakeCallSnap(){
+        byte[] res;
+        res = callManager.MakeCallSnap(id,isReg);
+        return res;
+    }
+
     public void SetMessageHandler(Handler h){
         msgHandler = h;
     }
@@ -162,7 +165,7 @@ public class TerminalPhone extends PhoneDevice {
         regPack.type = ProtocolPacket.REG_REQ;
         regPack.msgID = UniqueIDManager.GetUniqueID(devid,UniqueIDManager.MSG_UNIQUE_ID);
 
-        regPack.address = PhoneParam.LOCAL_ADDRESS;
+        regPack.address = PhoneParam.GetLocalAddress();
         regPack.devID = devid;
         regPack.devType = type;
         regPack.expireTime = PhoneParam.CLIENT_REG_EXPIRE;

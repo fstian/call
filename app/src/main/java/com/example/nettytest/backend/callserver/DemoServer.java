@@ -22,11 +22,7 @@ public class DemoServer {
 
         serverThread.start();
 
-        new Thread(){
-            @Override
-            public void run() {
-            }
-        }.start();
+
 
     }
 

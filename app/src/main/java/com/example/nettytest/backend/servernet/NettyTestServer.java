@@ -29,7 +29,7 @@ public class NettyTestServer {
             ServerBootstrap server = new ServerBootstrap();
             server.group(leader, coder).channel(NioServerSocketChannel.class).childHandler(new ChannelInitializer<SocketChannel>() {
                 @Override
-                protected void initChannel(SocketChannel socketChannel)  {
+                protected void initChannel(SocketChannel socketChannel) {
                     socketChannel.pipeline().addLast(new LineBasedFrameDecoder(0x10000));
                     socketChannel.pipeline().addLast(new NettyTestServerHandler());
                 }

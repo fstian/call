@@ -9,8 +9,8 @@ public class Transaction {
     public final static int TRANSCATION_STATE_FINISHED = 4;
     public final static int TRANSCATION_STATE_INITIALZE = 0;
 
-    public final static int TRANSCATION_REQUIRING_TIME = 10;
-    public final static int TRANSCATION_RESPONDING_TIME = 90;
+    public final static int TRANSCATION_REQUIRING_TIME = 20;
+    public final static int TRANSCATION_RESPONDING_TIME =30;
     public final static int TRANSCATION_RESEND_INTERVAL = 5;
 
     public final static int TRANSCATION_DIRECTION_C2S = 1;

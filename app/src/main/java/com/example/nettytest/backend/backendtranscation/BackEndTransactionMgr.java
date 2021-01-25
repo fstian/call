@@ -13,6 +13,10 @@ public class BackEndTransactionMgr extends TransManager {
 
     @Override
     public void TransactionTimeOver(ProtocolPacket packet) {
+        Message phonemsg = new Message();
+        phonemsg.arg1 = BackEndPhoneManager.MSG_REQ_TIMEOVER;
+        phonemsg.obj = packet;
+        HandlerMgr.PostBackEndPhoneMsg(phonemsg);
     }
 
     @Override
@@ -35,4 +39,5 @@ public class BackEndTransactionMgr extends TransManager {
     public void SendTransactionBuf(String ID,ByteBuf buf) {
         HandlerMgr.BackEndDevSendBuf(ID,buf);
     }
+
 }

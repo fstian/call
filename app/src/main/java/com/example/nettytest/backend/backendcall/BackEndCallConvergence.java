@@ -5,6 +5,7 @@ import android.os.Message;
 import com.example.nettytest.backend.backendphone.BackEndPhone;
 import com.example.nettytest.backend.backendphone.BackEndPhoneManager;
 import com.example.nettytest.pub.LogWork;
+import com.example.nettytest.pub.SystemSnap;
 import com.example.nettytest.pub.protocol.UpdateReqPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.userinterface.PhoneParam;
@@ -19,6 +20,10 @@ import com.example.nettytest.pub.protocol.InviteReqPack;
 import com.example.nettytest.pub.protocol.InviteResPack;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.transaction.Transaction;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 
@@ -217,6 +222,13 @@ public class BackEndCallConvergence {
         inviteCall.state = CommonCall.CALL_STATE_CONNECTED;
     }
 
+    private void StopCall(){
+        Message phonemsg = new Message();
+        phonemsg.arg1 = BackEndPhoneManager.MSG_NEW_PACKET;
+        phonemsg.obj = new EndReqPack(inviteCall.callID);
+        HandlerMgr.PostBackEndPhoneMsg(phonemsg);
+    }
+
     public void ProcessSecondTick(){
         inviteCall.callerWaitUpdateCount++;
         if(inviteCall.answer.isEmpty()){
@@ -236,11 +248,15 @@ public class BackEndCallConvergence {
                 LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"BackEnd End Call %s for Miss Update of Callee DEV %s ",inviteCall.callID,inviteCall.callee);
             if(inviteCall.answerWaitUpdateCount>CommonCall.UPDATE_INTERVAL*2+5)
                 LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"BackEnd End Call %s for Miss Update of Answer DEV %s ",inviteCall.callID,inviteCall.answer);
-            Message phonemsg = new Message();
-            phonemsg.arg1 = BackEndPhoneManager.MSG_NEW_PACKET;
-            phonemsg.obj = new EndReqPack(inviteCall.callID);
-            HandlerMgr.PostBackEndPhoneMsg(phonemsg);
+            StopCall();
+        }
+    }
 
+    public void InviteTimeOver(String devid){
+
+        if(devid.compareToIgnoreCase(inviteCall.callee)==0){
+            LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Send Call Req to Callee Dev %s TimeOver for Call %s, End This Call",devid,inviteCall.callID);
+            StopCall();
         }
     }
 
@@ -385,4 +401,39 @@ public class BackEndCallConvergence {
 
         return result;
     }
+
+    public void Release(){
+        if(listenCallList!=null)
+            listenCallList.clear();
+    }
+
+    public byte[] MakeSnap(){
+        byte[] data = null;
+
+        JSONObject json = new JSONObject();
+
+        try {
+            json.putOpt(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_BACKEND_CALL_RES);
+            json.putOpt(SystemSnap.SNAP_CALLER_NAME,inviteCall.caller);
+            json.putOpt(SystemSnap.SNAP_CALLEE_NAME,inviteCall.callee);
+            json.putOpt(SystemSnap.SNAP_ANSWERER_NAME,inviteCall.answer);
+            json.putOpt(SystemSnap.SNAP_CALLID_NAME,inviteCall.callID);
+            json.putOpt(SystemSnap.SNAP_CALLSTATUS_NAME,inviteCall.state);
+
+            JSONArray listener = new JSONArray();
+            for(BackEndCall call:listenCallList){
+                JSONObject listenCall = new JSONObject();
+                listenCall.putOpt(SystemSnap.SNAP_CALLSTATUS_NAME,call.state);
+                listenCall.putOpt(SystemSnap.SNAP_LISTENER_NAME,call.devID);
+                listener.put(listenCall);
+            }
+            json.putOpt(SystemSnap.SNAP_LISTENS_NAME,listener);
+            data = json.toString().getBytes();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return data;
+    }
+
 }

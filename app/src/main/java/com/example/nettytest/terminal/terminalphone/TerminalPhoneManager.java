@@ -7,6 +7,7 @@ import android.os.Message;
 
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
+import com.example.nettytest.pub.SystemSnap;
 import com.example.nettytest.pub.protocol.AnswerReqPack;
 import com.example.nettytest.pub.protocol.DevQueryResPack;
 import com.example.nettytest.pub.protocol.EndReqPack;
@@ -16,9 +17,16 @@ import com.example.nettytest.pub.protocol.InviteResPack;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.protocol.RegResPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
+import com.example.nettytest.userinterface.UserMessage;
 
-import org.jetbrains.annotations.NotNull;
+import org.json.JSONException;
+import org.json.JSONObject;
 
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -43,20 +51,70 @@ public class TerminalPhoneManager {
                 phonemsg.arg1 = TerminalPhoneManager.MSG_SECOND_TICK;
                 phonemsg.obj = "";
                 HandlerMgr.PostTerminalPhoneMsg(phonemsg);
+
+                Message userMsg = new Message();
+                userMsg.arg1 = UserMessage.MESSAGE_TEST_TICK;
+                HandlerMgr.SendMessageToUser(userMsg);
+
+                HandlerMgr.TerminalPhoneTransactionTick();
             }
         },0,1000);
+
+        new Thread(() -> {
+            try {
+                byte[] recvBuf = new byte[1024];
+                DatagramPacket recvPack;
+                DatagramSocket testSocket;
+                ArrayList<byte[]> resList;
+                testSocket = new DatagramSocket(SystemSnap.SNAP_TERMINAL_PORT);
+                DatagramPacket resPack;
+                while (!testSocket.isClosed()) {
+                    recvPack = new DatagramPacket(recvBuf, recvBuf.length);
+                    try {
+                        testSocket.receive(recvPack);
+                        if (recvPack.getLength() > 0) {
+                            String recv = new String(recvBuf, "UTF-8");
+                            JSONObject json = new JSONObject(recv);
+                            int type = json.optInt(SystemSnap.SNAP_CMD_TYPE_NAME);
+                            synchronized (TerminalPhoneManager.class) {
+                                if (type == SystemSnap.SNAP_TERMINAL_CALL_REQ) {
+                                    resList = MakeCallsSnap();
+                                    for (byte[] data : resList) {
+                                        resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
+                                        testSocket.send(resPack);
+                                    }
+                                } else if (type == SystemSnap.SNAP_TERMINAL_TRANS_REQ) {
+                                    resList = HandlerMgr.GetTerminalTransInfo();
+                                    for (byte[] data : resList) {
+                                        resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
+                                        testSocket.send(resPack);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } catch (SocketException e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     public void AddDevice(TerminalPhone phone){
         TerminalPhone matchedDev;
 
-        synchronized (this) {
+        synchronized (TerminalPhoneManager.class) {
             matchedDev = clientPhoneLists.get(phone.id);
             if(matchedDev==null)
                 clientPhoneLists.put(phone.id,phone);
         }
 
     }
+
     public void SetMessageHandler(Handler h){
             userMsgHandler = h;
             for (TerminalPhone phone : clientPhoneLists.values()) {
@@ -89,7 +147,7 @@ public class TerminalPhoneManager {
         String callid = null;
         TerminalPhone matchedDev;
 
-        synchronized (this) {
+        synchronized (TerminalPhoneManager.class) {
             matchedDev = clientPhoneLists.get(caller);
             if(matchedDev!=null){
                 callid = matchedDev.MakeOutGoingCall(callee,callType);
@@ -103,7 +161,7 @@ public class TerminalPhoneManager {
         int result = ProtocolPacket.STATUS_NOTFOUND;
         TerminalPhone matchedDev;
 
-        synchronized (this) {
+        synchronized (TerminalPhoneManager.class) {
             matchedDev = clientPhoneLists.get(devid);
             if(matchedDev!=null){
                 result = matchedDev.EndCall(callID);
@@ -115,7 +173,7 @@ public class TerminalPhoneManager {
     public int AnswerCall(String devid,String callID){
         int result = ProtocolPacket.STATUS_NOTFOUND;
         TerminalPhone matchedDev;
-        synchronized (this) {
+        synchronized (TerminalPhoneManager.class) {
             matchedDev = clientPhoneLists.get(devid);
             if(matchedDev!=null){
                 result = matchedDev.AnswerCall(callID);
@@ -127,7 +185,7 @@ public class TerminalPhoneManager {
     public int QueryDevs(String devid){
         int result = ProtocolPacket.STATUS_NOTFOUND;
         TerminalPhone phone;
-        synchronized (this){
+        synchronized (TerminalPhoneManager.class){
             phone = clientPhoneLists.get(devid);
             if(phone!=null){
                 result = phone.QueryDevs();
@@ -143,6 +201,7 @@ public class TerminalPhoneManager {
             switch(packet.type){
                 case ProtocolPacket.REG_RES:
                     RegResPack resP = (RegResPack)packet;
+                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Reg Res",resP.receiver);
                     phone.UpdateRegStatus(resP.status);
                     break;
                 case ProtocolPacket.CALL_RES:
@@ -206,35 +265,44 @@ public class TerminalPhoneManager {
         @Override
         public void run() {
             Looper.prepare();
-            phoneManagerMsgHandler = new Handler(new Handler.Callback() {
-                @Override
-                public boolean handleMessage(@NotNull Message msg) {
-                    ProtocolPacket packet;
-                    int type = msg.arg1;
-                    synchronized (this) {
-                        switch (type) {
-                            case MSG_NEW_PACKET:
-                                packet = (ProtocolPacket) msg.obj;
-                                PacketRecvProcess(packet);
-                                break;
-                            case MSG_SECOND_TICK:
-                                for (TerminalPhone phone : clientPhoneLists.values()) {
-                                    phone.UpdateSecondTick();
-                                }
-                                break;
-                            case MSG_REQ_TIMEOVER:
-                                packet = (ProtocolPacket) msg.obj;
-                                PacketTimeOverProcess(packet);
-                                break;
-                            default:
-                                throw new IllegalStateException("Unexpected value: " + type);
-                        }
+            phoneManagerMsgHandler = new Handler(msg -> {
+                ProtocolPacket packet;
+                int type = msg.arg1;
+                synchronized (TerminalPhoneManager.class) {
+                    switch (type) {
+                        case MSG_NEW_PACKET:
+                            packet = (ProtocolPacket) msg.obj;
+                            PacketRecvProcess(packet);
+                            break;
+                        case MSG_SECOND_TICK:
+                            for (TerminalPhone phone : clientPhoneLists.values()) {
+                                phone.UpdateSecondTick();
+                            }
+                            break;
+                        case MSG_REQ_TIMEOVER:
+                            packet = (ProtocolPacket) msg.obj;
+                            PacketTimeOverProcess(packet);
+                            break;
+                        default:
+                            throw new IllegalStateException("Unexpected value: " + type);
                     }
-                    return false;
                 }
+                return false;
             });
             Looper.loop();
         }
     }
+
+    private ArrayList<byte[]> MakeCallsSnap(){
+        ArrayList<byte[]> snapList = new ArrayList<>();
+        synchronized (TerminalPhoneManager.class) {
+            for (TerminalPhone phone : clientPhoneLists.values()) {
+                byte[] callInfo = phone.MakeCallSnap();
+                snapList.add(callInfo);
+            }
+        }
+        return snapList;
+    }
+
 
 }

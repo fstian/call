@@ -126,7 +126,7 @@ public class TerminalCall extends CommonCall {
             state = CommonCall.CALL_STATE_RINGING;
             callMsg.type = UserCallMessage.CALL_MESSAGE_RINGING;
         }else {
-            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv %d(%s) for Invite in Call %s! ",devID,packet.status,ProtocolPacket.GetResString(packet.status),callID);
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_INFO,"Phone %s Recv %d(%s) for Invite in Call %s! ",devID,packet.status,ProtocolPacket.GetResString(packet.status),callID);
             state = CommonCall.CALL_STATE_DISCONNECTED;
             callMsg.type = UserCallMessage.CALL_MESSAGE_DISCONNECT;
             callMsg.reason = FailReason.FAIL_REASON_UNKNOW;
@@ -145,7 +145,7 @@ public class TerminalCall extends CommonCall {
         callMsg.callId = pack.callid;
 
         if(pack.status!=ProtocolPacket.STATUS_OK){
-            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv %d(%s) for Update in Call %s! ",devID,pack.status,ProtocolPacket.GetResString(pack.status),callID);
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone %s Recv %d(%s) for Update in Call %s!",devID,pack.status,ProtocolPacket.GetResString(pack.status),callID);
             state = CommonCall.CALL_STATE_DISCONNECTED;
             callMsg.type = UserCallMessage.CALL_MESSAGE_DISCONNECT;
             callMsg.reason = FailReason.FAIL_REASON_TIMEOVER;
@@ -258,7 +258,7 @@ public class TerminalCall extends CommonCall {
         invitePack.codec = audioCodec;
         invitePack.pTime = rtpTime;
 
-        invitePack.callerRtpIP = PhoneParam.LOCAL_ADDRESS;
+        invitePack.callerRtpIP = PhoneParam.GetLocalAddress();
         invitePack.callerRtpPort = localRtpPort;
         invitePack.broadcastIP = PhoneParam.BROAD_ADDRESS;
         invitePack.broadcastPort = PhoneParam.CALL_RTP_PORT;
@@ -291,7 +291,7 @@ public class TerminalCall extends CommonCall {
         answerReqPack.callID = callID;
 
         answerReqPack.answererRtpPort = localRtpPort;
-        answerReqPack.answererRtpIP = PhoneParam.LOCAL_ADDRESS;
+        answerReqPack.answererRtpIP = PhoneParam.GetLocalAddress();
 
         answerReqPack.codec = audioCodec;
         answerReqPack.pTime = rtpTime;

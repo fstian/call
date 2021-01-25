@@ -13,18 +13,13 @@ import io.netty.handler.codec.LineBasedFrameDecoder;
 
 public class NettyTestClient {
     private int port;
-    private String host= "127.0.0.1";
+    private String host;
     private String devID;
 
     public NettyTestClient(String devID,String h,int p){
         host = h;
         port = p;
         this.devID = devID;
-    }
-
-    public NettyTestClient(String ID,int p){
-        this.devID = ID;
-        port = p;
     }
 
     public void run() {
@@ -34,7 +29,7 @@ public class NettyTestClient {
             Bootstrap bootstrap = new Bootstrap();
             bootstrap.group(clientWorker).channel(NioSocketChannel.class).handler(new ChannelInitializer<SocketChannel>() {
                 @Override
-                protected void initChannel(SocketChannel socketChannel)  {
+                protected void initChannel(SocketChannel socketChannel) {
                     socketChannel.pipeline().addLast(new LineBasedFrameDecoder(0x10000));
                     socketChannel.pipeline().addLast(new NettyTestClientInHandler(devID));
 //                    socketChannel.pipeline().addLast(new NettyTestClientOutHandler());

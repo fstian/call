@@ -5,4 +5,8 @@ public class UserDevice {
     public String devid;
     public boolean isReg;
 
+    public UserDevice(){
+        devid = "";
+        isReg = false;
+    }
 }

@@ -7,7 +7,7 @@ public class BackEndDevManager extends NetDeviceManager {
     public void AddDevice(String id){
         BackEndDevice matchedDev;
 
-        synchronized (this) {
+        synchronized (NetDeviceManager.class) {
             matchedDev = (BackEndDevice)devLists.get(id);
             if (matchedDev == null) {
                 matchedDev = new BackEndDevice(id);

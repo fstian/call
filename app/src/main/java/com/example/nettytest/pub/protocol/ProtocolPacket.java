@@ -167,4 +167,8 @@ public class ProtocolPacket {
         }
         return packetTypeName;
     }
+
+    public void Release(){
+
+    }
 }
