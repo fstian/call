@@ -9,6 +9,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 
+import com.android.webrtc.audio.MobileAEC;
+import com.android.webrtc.audio.MobileAEC.SamplingFrequency;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.UniqueIDManager;
 import com.witted.ptt.JitterBuffer;
@@ -55,8 +57,11 @@ public class AudioDevice {
     public String id;
     public String devId;
 
+    MobileAEC aec;
+
     static{
         System.loadLibrary("JitterBuffer");
+        System.loadLibrary("webrtc_aecm");
     }
 
     public AudioDevice(String devId,int src,int dst,String address,int sample,int ptime,int codec,int mode){
@@ -168,31 +173,10 @@ public class AudioDevice {
         jb.initJb();
         jbIndex = jb.openJb(codec,ptime,sample);
 
+        aec =new MobileAEC(new SamplingFrequency(sample));
+        aec.setAecmMode(MobileAEC.AggressiveMode.MOST_AGGRESSIVE).prepare();
+
         packSize = sample*ptime/1000;
-        int audioInBufSize = AudioRecord.getMinBufferSize(sample,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT);
-
-        int audioOutBufSize = AudioTrack.getMinBufferSize(sample,
-                AudioFormat.CHANNEL_OUT_MONO,
-                AudioFormat.ENCODING_PCM_16BIT);
-
-        recorder = new AudioRecord(MediaRecorder.AudioSource.MIC,sample,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                packSize);
-
-        recorder.startRecording();
-
-        player = new AudioTrack(AudioManager.STREAM_MUSIC, sample,
-                AudioFormat.CHANNEL_OUT_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                packSize,
-                AudioTrack.MODE_STREAM);
-
-        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"AudioInBufSize=%d, AudioOutBufSize=%d",audioInBufSize,audioOutBufSize);
-
-        player.play();
 
         audioWriteThread = new AudioWriteThread();
         audioWriteThread.start();
@@ -232,11 +216,8 @@ public class AudioDevice {
         jb.closeJb(jbIndex);
         jb.deInitJb();
 
-        player.stop();
-        player.release();
+        aec.close();
 
-        recorder.stop();
-        recorder.release();
         audioOpenCount--;
         LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"After CloseAudio Count =%d",audioOpenCount);
     }
@@ -289,6 +270,18 @@ public class AudioDevice {
             short[] aecData = new short[packSize];
             int readNum;
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Audio AudioReadThread");
+
+            int audioInBufSize = AudioRecord.getMinBufferSize(sample,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT);
+
+            recorder = new AudioRecord(MediaRecorder.AudioSource.MIC,sample,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT,
+                    packSize);
+
+            recorder.startRecording();
+
             while (!isInterrupted()) {
                 jbDataLen = jb.getPackage(jbIndex, jbData, packSize);
                 if (jbDataLen > 0) {
@@ -305,10 +298,15 @@ public class AudioDevice {
                     readNum = recorder.read(audioReadData, 0, packSize);
 //                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Read %d sample from Audio device, Return =%d",packSize,readNum);
 
-                    //aec and send
-
+                    //aec process
+                    try {
+                        aec.farendBuffer(pcmData,pcmData.length);
+                        aec.echoCancellation(audioReadData,null,aecData,(short)packSize,(short)100);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     // rtp packet and send
-                    rtpData = Rtp.EncloureRtp(audioReadData, codec);
+                    rtpData = Rtp.EncloureRtp(aecData, codec);
                     DatagramPacket dp = new DatagramPacket(rtpData, rtpData.length);
                     try {
                         dp.setAddress(InetAddress.getByName(dstAddress));
@@ -332,13 +330,32 @@ public class AudioDevice {
                 }
             }
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Exit Audio AudioReadThread");
+
+            recorder.stop();
+            recorder.release();
         }
     }
 
+    // audio play
     class AudioWriteThread extends Thread{
         @Override
         public void run() {
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Audio AudioWriteThread");
+
+            int audioOutBufSize = AudioTrack.getMinBufferSize(sample,
+                    AudioFormat.CHANNEL_OUT_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT);
+
+
+            player = new AudioTrack(AudioManager.STREAM_MUSIC, sample,
+                    AudioFormat.CHANNEL_OUT_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT,
+                    packSize,
+                    AudioTrack.MODE_STREAM);
+
+
+            player.play();
+
             Looper.prepare();
             audioWriteHandler = new Handler(message -> {
                 if(message.arg1 == AUDIO_PLAY_MSG){
@@ -352,7 +369,12 @@ public class AudioDevice {
             audioWriteHandlerEnabled = true;
 
             Looper.loop();
+
+            player.stop();
+            player.release();
+
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Exit Audio AudioWriteThread");
+
         }
     }
 }
