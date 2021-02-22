@@ -12,10 +12,12 @@ public class DemoServer {
             @Override
             public void run() {
                 NettyTestServer testServer = new NettyTestServer(port);
-                try {
-                    testServer.run();
-                } catch (Exception e) {
-                    e.printStackTrace();
+                while(!isInterrupted()) {
+                    try {
+                        testServer.run();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         };
@@ -28,6 +30,10 @@ public class DemoServer {
 
     public boolean AddBackEndPhone(String id,int type){
         return HandlerMgr.AddBackEndPhone(id,type);
+    }
+
+    public void StopServer(){
+        serverThread.interrupt();
     }
 
 }

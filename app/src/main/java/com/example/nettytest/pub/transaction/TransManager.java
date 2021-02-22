@@ -76,6 +76,14 @@ public class TransManager {
         transLists = new HashMap<>();
     }
 
+    public int GetTransCount(){
+        int count;
+        synchronized (TransManager.class){
+            count = transLists.size();
+        }
+        return count;
+    }
+
 
     public boolean AddTransaction(String msgID, Transaction tran){
         synchronized (TransManager.class) {

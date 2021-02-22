@@ -9,6 +9,7 @@ public class LogWork {
     public final static int TERMINAL_CALL_MODULE = 3;
     public final static int TERMINAL_NET_MODULE = 4;
     public final static int TERMINAL_USER_MODULE = 5;
+    public final static int TERMINAL_AUDIO_MODULE = 6;
 
     public final static int BACKEND_PHONE_MODULE = 101;
     public final static int BACKEND_DEVICE_MODULE = 102;
@@ -19,12 +20,27 @@ public class LogWork {
 
     public final static int DEBUG_MODULE = 301;
 
+    public static boolean terminalPhoneModuleLogEnable = false;
+    public static boolean terminalDeviceModuleLogEnable = false;
+    public static boolean terminalNetModuleLogEnable = false;
+    public static boolean terminalCallModuleLogEnable = false;
+    public static boolean terminalUserModuleLogEnable = false;
+    public static boolean terminalAudioModuleLogEnable = false;
+    public static boolean backEndPhoneModuleLogEnable = false;
+    public static boolean backEndDeviceModuleLogEnable = false;
+    public static boolean backEndCallModuleLogEnable = false;
+    public static boolean backEndNetModuleLogEnable = false;
+    public static boolean transactionModuleLogEnable = false;
+    public static boolean debugModuleLogEnable = true;
+
     public final static int LOG_VERBOSE = 1;    // for verbose
     public final static int LOG_DEBUG = 2;      // for debug
     public final static int LOG_INFO = 3;       // for important
     public final static int LOG_WARN = 4;       // for reasonable error
     public final static int LOG_ERROR = 5;      // for unreasonable error
     public final static int LOG_FATAL = 6;      // for fatal
+
+    public static int dbgLevel = LOG_DEBUG;
 
     public static int Print(int module,int degLevel,String buf){
         return Print(module,degLevel,buf,"");
@@ -33,18 +49,7 @@ public class LogWork {
     public static int Print(int module,int degLevel,String format,Object...param){
         boolean isPrint = false;
         String tag = "";
-        if (degLevel >= LOG_VERBOSE) {
-            boolean terminalPhoneModuleLogEnable = false;
-            boolean terminalDeviceModuleLogEnable = false;
-            boolean terminalNetModuleLogEnable = false;
-            boolean terminalCallModuleLogEnable = false;
-            boolean terminalUserModuleLogEnable = false;
-            boolean backEndPhoneModuleLogEnable = false;
-            boolean backEndDeviceModuleLogEnable = false;
-            boolean backEndCallModuleLogEnable = false;
-            boolean backEndNetModuleLogEnable = false;
-            boolean transactionModuleLogEnable = false;
-            boolean debugModuleLogEnable = false;
+        if (degLevel >= dbgLevel) {
             switch (module) {
                 case TERMINAL_PHONE_MODULE:
                     isPrint = terminalPhoneModuleLogEnable;
@@ -65,6 +70,10 @@ public class LogWork {
                 case TERMINAL_USER_MODULE:
                     isPrint = terminalUserModuleLogEnable;
                     tag = "HT500_TERMINAL_USER";
+                    break;
+                case TERMINAL_AUDIO_MODULE:
+                    isPrint = terminalAudioModuleLogEnable;
+                    tag = "HT500_TERMINAL_AUDIO";
                     break;
                 case BACKEND_PHONE_MODULE:
                     isPrint = backEndPhoneModuleLogEnable;

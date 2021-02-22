@@ -27,14 +27,14 @@ public class TerminalPhone extends PhoneDevice {
     int regWaitCount;
 
     TerminalCallManager callManager;
-    Handler msgHandler;
+//    Handler msgHandler;
 
     public TerminalPhone(final String devid, final int t,Handler handler){
         this.id = devid;
         type = t;
         isReg = false;
         regWaitCount = 0;
-        msgHandler = handler;
+//        msgHandler = handler;
 
         callManager = new TerminalCallManager(type);
     }
@@ -50,12 +50,13 @@ public class TerminalPhone extends PhoneDevice {
         return result;
     }
 
+    public int GetCallCount(){
+        return callManager.GetCallCount();
+    }
+
     public void UpdateRegStatus(int status){
         UserRegMessage regMsg = new UserRegMessage();
-        Message msg = new Message();
 
-        msg.arg1 = UserMessage.MESSAGE_REG_INFO;
-        msg.obj = regMsg;
         regMsg.devId = id;
 
         if(status ==ProtocolPacket.STATUS_OK){
@@ -80,15 +81,12 @@ public class TerminalPhone extends PhoneDevice {
             regMsg.reason = FailReason.FAIL_REASON_UNKNOW;
         }
 
-        HandlerMgr.SendMessageToUser(msg);
+        HandlerMgr.SendMessageToUser(UserMessage.MESSAGE_REG_INFO,regMsg);
     }
 
     public void UpdateDevLists(DevQueryResPack p){
         UserDevsMessage devsMsg = new UserDevsMessage();
-        Message msg = new Message();
 
-        msg.arg1 = UserMessage.MESSAGE_DEVICES_INFO;
-        msg.obj = devsMsg;
         devsMsg.type = UserMessage.DEV_MESSAGE_LIST;
         devsMsg.devId = id;
         for(int iTmp=0;iTmp<p.phoneList.size();iTmp++){
@@ -101,8 +99,7 @@ public class TerminalPhone extends PhoneDevice {
                 devsMsg.deviceList.add(tDevice);
             }
         }
-
-        HandlerMgr.SendMessageToUser(msg);
+        HandlerMgr.SendMessageToUser(UserMessage.MESSAGE_DEVICES_INFO,devsMsg);
     }
 
     public void UpdateCallStatus(ProtocolPacket packet){
@@ -145,7 +142,7 @@ public class TerminalPhone extends PhoneDevice {
     }
 
     public void SetMessageHandler(Handler h){
-        msgHandler = h;
+        //msgHandler = h;
     }
 
     public int EndCall(String callid){

@@ -32,6 +32,10 @@ public class TerminalCallManager {
         callLists = new HashMap<>();
     }
 
+    public int GetCallCount(){
+        return callLists.size();
+    }
+
     public byte[] MakeCallSnap(String devId,boolean isReg){
         JSONObject json = new JSONObject();
         try {

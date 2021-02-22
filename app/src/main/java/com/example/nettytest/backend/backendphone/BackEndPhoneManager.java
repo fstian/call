@@ -114,6 +114,10 @@ public class BackEndPhoneManager {
 
     }
 
+    public int GetCallCount(){
+        return backEndCallConvergencyMgr.GetCallCount();
+    }
+
     public ArrayList<BackEndPhone> GetListenDevices(){
         ArrayList<BackEndPhone> devices = new ArrayList<>();
             for(String devid:serverPhoneLists.keySet()){

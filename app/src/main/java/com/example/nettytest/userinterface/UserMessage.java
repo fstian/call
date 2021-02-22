@@ -13,12 +13,12 @@ public class UserMessage {
     public final static int CALL_MESSAGE_DISCONNECT = 5;
     public final static int CALL_MESSAGE_RINGING = 6;
     public final static int CALL_MESSAGE_ANSWERED = 7;
-    public final static int CALL_MESSAGE_FAIL = 8;
-    public final static int CALL_MESSAGE_INVITE_FAIL = 9;
-    public final static int CALL_MESSAGE_ANSWER_FAIL = 10;
-    public final static int CALL_MESSAGE_END_FAIL = 11;
-    public final static int CALL_MESSAGE_UPDATE_FAIL = 12;
-    public final static int DEV_MESSAGE_LIST =100;
+    public final static int CALL_MESSAGE_INVITE_FAIL = 101;
+    public final static int CALL_MESSAGE_ANSWER_FAIL = 102;
+    public final static int CALL_MESSAGE_END_FAIL = 103;
+    public final static int CALL_MESSAGE_UPDATE_FAIL = 104;
+    public final static int CALL_MESSAGE_UNKNOWFAIL = 199;
+    public final static int DEV_MESSAGE_LIST =200;
     public final static int CALL_MESSAGE_UNKONWQ = 0xffff;
 
     public int type;
@@ -50,7 +50,7 @@ public class UserMessage {
             case CALL_MESSAGE_ANSWERED:
                 msgName = "Call Answered";
                 break;
-            case CALL_MESSAGE_FAIL:
+            case CALL_MESSAGE_UNKNOWFAIL:
                 msgName = "Call Fail";
                 break;
             case CALL_MESSAGE_INVITE_FAIL:

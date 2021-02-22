@@ -10,6 +10,7 @@ public class AnswerReqPack extends ProtocolPacket{
 
     public int codec;
     public int pTime;
+    public int sample;
 
     public String answererRtpIP;
     public int answererRtpPort;
@@ -23,6 +24,7 @@ public class AnswerReqPack extends ProtocolPacket{
 
         codec = ans.codec;
         pTime = ans.pTime;
+        sample = ans.sample;
 
         answererRtpIP = ans.answererRtpIP;
         answererRtpPort = ans.answererRtpPort;
@@ -42,7 +44,6 @@ public class AnswerReqPack extends ProtocolPacket{
 
     public AnswerReqPack(AnswerReqPack pack,String id){
         CopyAnswerData(pack);
-        answerer = id;
         msgID = UniqueIDManager.GetUniqueID(id,UniqueIDManager.MSG_UNIQUE_ID);
         receiver = id;
     }

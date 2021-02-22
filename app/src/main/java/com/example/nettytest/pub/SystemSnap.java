@@ -20,6 +20,9 @@ public class SystemSnap {
     public static final int SNAP_MMI_CALL_REQ = 6;
     public static final int SNAP_MMI_CALL_RES = 106;
 
+    public static final int LOG_CONFIG_REQ_CMD = 7;
+    public static final int LOG_CONFIG_REQ_RES = 107;
+
     public static final int SNAP_MMI_PORT = 11005;
     public static final int SNAP_TERMINAL_PORT = 11006;
     public static final int SNAP_BACKEND_PORT = 11007;
@@ -48,5 +51,20 @@ public class SystemSnap {
     public static final String SNAP_LISTENS_NAME = "listens";
     public static final String SNAP_LISTENER_NAME = "listener";
     public static final String SNAP_CALLSTATUS_NAME = "status";
+
+    public static final String LOG_BACKEND_NET_NAME  = "backEndNetLog";
+    public static final String LOG_BACKEND_DEVICE_NAME = "backEndDeviceLog";
+    public static final String LOG_BACKEND_CALL_NAME = "backEndCallLog";
+    public static final String LOG_BACKEND_PHONE_NAME  ="backEndPhoneLog";
+    public static final String LOG_TERMINAL_NET_NAME = "terminalNetLog";
+    public static final String LOG_TERMINAL_DEVICE_NAME = "terminalDeviceLog";
+    public static final String LOG_TERMINAL_CALL_NAME = "terminalCallLog";
+    public static final String LOG_TERMINAL_PHONE_NAME = "terminalPhoneLog";
+    public static final String LOG_TERMINAL_USER_NAME = "terminalUserLog";
+    public static final String LOG_TERMINAL_AUDIO_NAME = "terminalAudioLog";
+    public static final String LOG_TRANSACTION_NAME = "transactionLog";
+    public static final String LOG_DEBUG_NAME = "debugLog";
+    public static final String LOG_DBG_LEVEL_NAME = "dbgLevel";
+
 
 }

@@ -20,8 +20,10 @@ public class ProtocolPacket {
     public final static String PACKET_CALLDIRECT_NAME = "callDirect";
     public final static String PACKET_CODEC_NAME = "codec";
     public final static String PACKET_PTIME_NAME = "ptime";
+    public final static String PACKET_SAMPLE_NAME = "sample";
     public final static String PACKET_CALLER_NAME = "caller";
     public final static String PACKET_CALLEE_NAME = "callee";
+    public final static String PACKET_ANSWERER_NAME = "answerer";
     public final static String PACKET_BEDID_NAME = "bedID";
     public final static String PACKET_CALLERIP_MAME = "callerIP";
     public final static String PACKET_CALLERPORT_NAME = "callerPort";

@@ -18,6 +18,7 @@ public class NettyTestServer {
 
 
     public NettyTestServer(int p){
+        System.out.println("Create NettyTest Server");
         port = p;
     }
 

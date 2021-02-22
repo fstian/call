@@ -49,12 +49,10 @@ public class TerminalPhoneManager {
             public void run() {
                 Message phonemsg = new Message();
                 phonemsg.arg1 = TerminalPhoneManager.MSG_SECOND_TICK;
-                phonemsg.obj = "";
+                phonemsg.obj = new UserMessage();
                 HandlerMgr.PostTerminalPhoneMsg(phonemsg);
 
-                Message userMsg = new Message();
-                userMsg.arg1 = UserMessage.MESSAGE_TEST_TICK;
-                HandlerMgr.SendMessageToUser(userMsg);
+                HandlerMgr.SendMessageToUser(UserMessage.MESSAGE_TEST_TICK,new UserMessage());
 
                 HandlerMgr.TerminalPhoneTransactionTick();
             }
@@ -122,8 +120,21 @@ public class TerminalPhoneManager {
             }
     }
 
-    public void SendUserMessage(Message msg){
+    public int GetCallCount(){
+        int count = 0;
+        synchronized (TerminalPhoneManager.class){
+            for(TerminalPhone phone:clientPhoneLists.values()){
+                count += phone.GetCallCount();
+            }
+        }
+        return count;
+    }
+
+    public void SendUserMessage(int type,Object data){
         if (userMsgHandler != null) {
+            Message msg = userMsgHandler.obtainMessage();
+            msg.arg1 = type;
+            msg.obj = data;
             userMsgHandler.sendMessage(msg);
         }
     }
@@ -225,7 +236,7 @@ public class TerminalPhoneManager {
                     break;
                 case ProtocolPacket.ANSWER_REQ:
                     AnswerReqPack answerReqPack = (AnswerReqPack)packet;
-                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Answer Req, call id is %s",answerReqPack.receiver,answerReqPack.callID);
+                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Answer Req, call id is %s, answerer is %s",answerReqPack.receiver,answerReqPack.callID,answerReqPack.answerer);
                     phone.UpdateCallStatus(answerReqPack);
                     break;
                 case ProtocolPacket.CALL_UPDATE_RES:

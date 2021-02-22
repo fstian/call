@@ -267,7 +267,7 @@ public class BackEndCallConvergence {
                 inviteCall.state = CommonCall.CALL_STATE_RINGING;
             else{
                 if(inviteResPack.sender.compareToIgnoreCase(inviteCall.callee)==0){
-                    LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"BackEnd End Call %s when Recv Call Res with %s",inviteCall.callID,ProtocolPacket.GetResString(inviteResPack.status));
+                    LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"BackEnd End Call %s when Recv Call Res with %s from %s",inviteCall.callID,ProtocolPacket.GetResString(inviteResPack.status),inviteCall.callee);
                     Message phonemsg = new Message();
                     phonemsg.arg1 = BackEndPhoneManager.MSG_NEW_PACKET;
                     phonemsg.obj = new EndReqPack(inviteCall.callID);

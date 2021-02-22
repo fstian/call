@@ -28,6 +28,10 @@ public class BackEndCallConvergenceManager {
 
     }
 
+    public int GetCallCount(){
+        return callConvergenceList.size();
+    }
+
     public ArrayList<byte[]> MakeCallConvergenceSnap(){
         ArrayList<byte[]> dateList = new ArrayList<>();
         for (BackEndCallConvergence callConvergence:callConvergenceList.values()) {
@@ -137,7 +141,7 @@ public class BackEndCallConvergenceManager {
                 break;
             case ProtocolPacket.END_REQ:
                 EndReqPack endReqPack = (EndReqPack)packet;
-                LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv Call End From %s",endReqPack.endDevID);
+                LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv Call End From %s for Call %s",endReqPack.endDevID,endReqPack.callID);
                 callConvergence = callConvergenceList.get(endReqPack.callID);
                 if(callConvergence!=null) {
                     callConvergence.EndCall(endReqPack);

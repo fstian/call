@@ -24,6 +24,7 @@ public class TestDevice {
     public boolean isRegOk;
     public boolean isCallOut;
     public boolean isTalking;
+    public String talkPeer;
     public LocalCallInfo outGoingCall;
     private TestInfo testInfo;
     private int testTickCount;
@@ -42,6 +43,7 @@ public class TestDevice {
         isCallOut = false;
         isRegOk = false;
         isTalking = false;
+        talkPeer = "";
         testInfo = new TestInfo();
         devLists = null;
         testWaitTick = (int)(Math.random()*testInfo.timeUnit)+1;
@@ -61,7 +63,9 @@ public class TestDevice {
     }
 
     public void SetTestInfo(TestInfo info){
-        testInfo = info;
+        testInfo.isAutoTest = info.isAutoTest;
+        testInfo.timeUnit = info.timeUnit;
+        testInfo.isRealTimeFlash = info.isRealTimeFlash;
     }
 
     public byte[] MakeSnap(){
@@ -106,8 +110,20 @@ public class TestDevice {
         if(result.result == OperationResult.OP_RESULT_OK) {
             isCallOut = false;
             isTalking = true;
+            talkPeer = GetIncomingCaller(callid);
         }
         return result;
+    }
+
+    private String GetIncomingCaller(String id){
+        String peer = "";
+        for(LocalCallInfo info:inComingCallInfos){
+            if(info.callID.compareToIgnoreCase(id)==0){
+                peer = info.caller;
+                break;
+            }
+        }
+        return peer;
     }
 
     public void QueryDevs(){
@@ -122,6 +138,7 @@ public class TestDevice {
                 if(outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED) {
                     if (outGoingCall.callID.compareToIgnoreCase(callid) == 0) {
                         isTalking = false;
+                        talkPeer = "";
                     }
                 }
             }
@@ -130,6 +147,7 @@ public class TestDevice {
                     if(callInfo.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED) {
                         if(callInfo.callID.compareToIgnoreCase(callid)==0) {
                             isTalking = false;
+                            talkPeer = "";
                             break;
                         }
                     }
@@ -254,7 +272,7 @@ public class TestDevice {
                 testWaitTick = (int) (Math.random() * testInfo.timeUnit) + 1;
                 result = true;
                 if(isCallOut){
-                    EndCall(outGoingCall.callID);
+//                    EndCall(outGoingCall.callID);
                 }else{
                     if(inComingCallInfos.size()==0){
                         if(type==UserInterface.CALL_NURSER_DEVICE) {
@@ -273,8 +291,8 @@ public class TestDevice {
                         }else {
                             if(Math.random()>0.5)
                                 AnswerCall(inComingCallInfos.get(selectCall).callID);
-                            else
-                                EndCall(inComingCallInfos.get(selectCall).callID);
+//                            else
+//                                EndCall(inComingCallInfos.get(selectCall).callID);
                         }
                     }
                 }
@@ -310,17 +328,23 @@ public class TestDevice {
             case UserCallMessage.CALL_MESSAGE_DISCONNECT:
             case UserCallMessage.CALL_MESSAGE_UPDATE_FAIL:
             case UserCallMessage.CALL_MESSAGE_INVITE_FAIL:
+            case UserCallMessage.CALL_MESSAGE_ANSWER_FAIL:
+            case UserCallMessage.CALL_MESSAGE_UNKNOWFAIL:
                 if(msg.callId.compareToIgnoreCase(outGoingCall.callID)==0) {
-                    if(outGoingCall.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
+                    if(outGoingCall.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED){
                         isTalking = false;
+                        talkPeer = "";
+                    }
                     outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_DISCONNECT;
                     UserInterface.PrintLog("Dev %s Set Out Going Call %s Disconnected",id,outGoingCall.callID);
                     isCallOut = false;
                 }else{
                     for(LocalCallInfo info:inComingCallInfos){
                         if(info.callID.compareToIgnoreCase(msg.callId)==0){
-                            if(info.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
+                            if(info.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED){
                                 isTalking = false;
+                                talkPeer = "";
+                            }
                             inComingCallInfos.remove(info);
                             UserInterface.PrintLog("Dev %s Remove Incoming Call %s",id,info.callID);
                             break;
@@ -333,6 +357,7 @@ public class TestDevice {
                 outGoingCall.answer = msg.operaterId;
                 UserInterface.PrintLog("Dev %s Set Out Going Call %s Connected",id,outGoingCall.callID);
                 isTalking = true;
+                talkPeer = outGoingCall.answer;
                 break;
             case UserCallMessage.CALL_MESSAGE_INCOMING:
                 LocalCallInfo info = new LocalCallInfo();
@@ -366,7 +391,7 @@ public class TestDevice {
 
     public String GetDeviceName(){
 
-        return String.format("%s %s ",UserInterface.GetDeviceTypeName(type),id);
+        return String.format("%s",id);
     }
 
     private String GetRandomBedDeviceId(){

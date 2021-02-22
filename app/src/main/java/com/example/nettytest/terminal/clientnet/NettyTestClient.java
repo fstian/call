@@ -20,6 +20,7 @@ public class NettyTestClient {
         host = h;
         port = p;
         this.devID = devID;
+        System.out.println(String.format("Create NettyTest client %s",devID));
     }
 
     public void run() {

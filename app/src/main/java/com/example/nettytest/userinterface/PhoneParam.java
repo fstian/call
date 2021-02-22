@@ -2,7 +2,7 @@ package com.example.nettytest.userinterface;
 
 import android.os.Environment;
 
-import com.example.nettytest.pub.protocol.ProtocolPacket;
+import com.example.nettytest.terminal.audio.Rtp;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -20,20 +20,18 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 
-import io.netty.util.CharsetUtil;
-
 public class PhoneParam {
     public static final String CALL_SERVER_ID = "FFFFFFFF";
     public static final String BROAD_ADDRESS = "255.255.255.255";
     public static final int CLIENT_REG_EXPIRE = 3600;
 
-    public static final int RTP_CODEC_711MU = 0;
-    public static final int RTP_CODEC_711A = 8;
-    public static final int RTP_CODEC_729A = 18;
+    public static final int INVITE_CALL_RTP_PORT = 9090;
+    public static final int ANSWER_CALL_RTP_PORT = 9092;
 
-    public static final int CALL_RTP_PORT = 9090;
-    public static final int CALL_RTP_CODEC = RTP_CODEC_711MU;
-    public static final int CALL_RTP_PTIME = 20;
+    public static int CALL_RTP_CODEC = Rtp.RTP_CODEC_711MU;
+    public static int CALL_RTP_PTIME = 20;
+    public static int CALL_RTP_SAMPLE = 8000;
+    public static int CALL_AEC_DELAY = 100;
 
     public static ArrayList<UserDevice> devicesOnServer = new ArrayList<>();
     public static ArrayList<UserDevice> deviceList = new ArrayList<>();
@@ -65,42 +63,33 @@ public class PhoneParam {
             json = new JSONObject(info);
             serverJson = json.getJSONObject(JSON_SERVE_NAME);
             clientJson = json.getJSONObject(JSON_CLIENT_NAME);
-            if(serverJson!=null) {
-                callServerPort = serverJson.optInt(JSON_SERVER_PORT_NAME);
-                serverActive = serverJson.optBoolean(JSON_SERVER_ACTIVE_NAME);
-                devicesJson = serverJson.getJSONArray(JSON_DEVICES_NAME);
-                devicesOnServer.clear();
-                if(devicesJson!=null){
-                    for(iTmp=0;iTmp<devicesJson.length();iTmp++){
-                        device = devicesJson.getJSONObject(iTmp);
-                        userdev = new UserDevice();
-                        userdev.devid = device.optString(JSON_DEVICES_ID_NAME);
-                        userdev.type = UserInterface.GetDeviceType(device.optString(JSON_DEVICE_TYPE_NAME));
-                        devicesOnServer.add(userdev);
-                    }
-                }
+            callServerPort = serverJson.optInt(JSON_SERVER_PORT_NAME);
+            serverActive = serverJson.optBoolean(JSON_SERVER_ACTIVE_NAME);
+            devicesJson = serverJson.getJSONArray(JSON_DEVICES_NAME);
+            devicesOnServer.clear();
+            for(iTmp=0;iTmp<devicesJson.length();iTmp++){
+                device = devicesJson.getJSONObject(iTmp);
+                userdev = new UserDevice();
+                userdev.devid = device.optString(JSON_DEVICES_ID_NAME);
+                userdev.type = UserInterface.GetDeviceType(device.optString(JSON_DEVICE_TYPE_NAME));
+                devicesOnServer.add(userdev);
             }
 
-            if(clientJson!=null) {
-                callServerPort = clientJson.optInt(JSON_SERVER_PORT_NAME);
-                callServerAddress = clientJson.optString(JSON_SERVER_ADDRESS_NAME);
-                devicesJson = clientJson.getJSONArray(JSON_DEVICES_NAME);
-                if(devicesJson!=null) {
-                    deviceList.clear();
-                    for (iTmp = 0; iTmp < devicesJson.length(); iTmp++) {
-                        device = devicesJson.getJSONObject(iTmp);
-                        userdev = new UserDevice();
-                        userdev.devid = device.optString(JSON_DEVICES_ID_NAME);
-                        userdev.type = UserInterface.GetDeviceType(device.optString(JSON_DEVICE_TYPE_NAME));
-                        deviceList.add(userdev);
-                    }
-                }
+            callServerPort = clientJson.optInt(JSON_SERVER_PORT_NAME);
+            callServerAddress = clientJson.optString(JSON_SERVER_ADDRESS_NAME);
+            devicesJson = clientJson.getJSONArray(JSON_DEVICES_NAME);
+            deviceList.clear();
+            for (iTmp = 0; iTmp < devicesJson.length(); iTmp++) {
+                device = devicesJson.getJSONObject(iTmp);
+                userdev = new UserDevice();
+                userdev.devid = device.optString(JSON_DEVICES_ID_NAME);
+                userdev.type = UserInterface.GetDeviceType(device.optString(JSON_DEVICE_TYPE_NAME));
+                deviceList.add(userdev);
             }
 
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        JSONObject context;
     }
 
     public static void InitPhoneParam(){
@@ -112,10 +101,12 @@ public class PhoneParam {
                     FileInputStream finput = new FileInputStream(configFile);
                     int len = finput.available();
                     byte[] data = new byte[len];
-                    finput.read(data);
+                    int readlen = finput.read(data);
                     finput.close();
-                    String config = new String(data, "UTF-8");
-                    InitServerAndDevicesConfig(config);
+                    if(readlen>0) {
+                        String config = new String(data, "UTF-8");
+                        InitServerAndDevicesConfig(config);
+                    }
                 } else {
                     FileOutputStream foutput = new FileOutputStream(configFile);
                     String config = "hello";
@@ -141,7 +132,7 @@ public class PhoneParam {
                     InetAddress inetAddress = enumIpAddr.nextElement();
                     if (!inetAddress.isLoopbackAddress() && (inetAddress instanceof Inet4Address))
                     {
-                        address =  inetAddress.getHostAddress().toString();
+                        address =  inetAddress.getHostAddress();
                     }
                 }
             }

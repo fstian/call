@@ -23,4 +23,8 @@ public class NetDevice {
     public void UpdateChannel(Channel ch){
         channel= ch;
     }
+
+    public void Close(){
+        channel.close();
+    }
 }

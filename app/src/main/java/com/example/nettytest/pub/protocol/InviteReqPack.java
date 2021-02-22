@@ -13,6 +13,7 @@ public class InviteReqPack extends ProtocolPacket{
 
     public int codec;
     public int pTime;
+    public int sample;
 
     public String callerRtpIP;
     public int callerRtpPort;
@@ -32,6 +33,7 @@ public class InviteReqPack extends ProtocolPacket{
 
         codec = invitePack.codec;
         pTime = invitePack.pTime;
+        sample = invitePack.sample;
 
         callerRtpPort = invitePack.callerRtpPort;
         callerRtpIP = invitePack.callerRtpIP;

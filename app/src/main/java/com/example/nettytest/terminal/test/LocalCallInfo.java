@@ -21,4 +21,5 @@ public class LocalCallInfo {
         callID = "";
         status = LOCAL_CALL_STATUS_DISCONNECT;
     }
+
 }

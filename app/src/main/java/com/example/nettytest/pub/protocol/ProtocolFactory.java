@@ -1,5 +1,6 @@
 package com.example.nettytest.pub.protocol;
 
+import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.commondevice.PhoneDevice;
 
 import org.json.JSONArray;
@@ -54,6 +55,11 @@ public class ProtocolFactory {
                     inviteReqPack.callerRtpPort = context.optInt(ProtocolPacket.PACKET_CALLERPORT_NAME);
                     inviteReqPack.broadcastIP = context.optString(ProtocolPacket.PACKET_BROADCASTIP_NAME);
                     inviteReqPack.broadcastPort = context.optInt(ProtocolPacket.PACKET_BROADCASTPORT_NAME);
+
+                    inviteReqPack.pTime = context.optInt(ProtocolPacket.PACKET_PTIME_NAME);
+                    inviteReqPack.codec = context.optInt(ProtocolPacket.PACKET_CODEC_NAME);
+                    inviteReqPack.sample = context.optInt(ProtocolPacket.PACKET_SAMPLE_NAME);
+
                     p = inviteReqPack;
                     break;
                 case  ProtocolPacket.CALL_RES:
@@ -89,12 +95,13 @@ public class ProtocolFactory {
                     PutDefaultData(answerReqP,json);
                     context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
                     answerReqP.callID = context.optString(ProtocolPacket.PACKET_CALLID_NAME);
-                    answerReqP.answerer = context.optString(ProtocolPacket.PACKET_CALLEE_NAME);
+                    answerReqP.answerer = context.optString(ProtocolPacket.PACKET_ANSWERER_NAME);
                     answerReqP.answererRtpIP = context.optString(ProtocolPacket.PACKET_CALLEEIP_MAME);
                     answerReqP.answererRtpPort = context.optInt(ProtocolPacket.PACKET_CALLEEPORT_NAME);
                     answerReqP.bedID = context.optString(ProtocolPacket.PACKET_BEDID_NAME);
                     answerReqP.codec = context.optInt(ProtocolPacket.PACKET_CODEC_NAME);
                     answerReqP.pTime = context.optInt(ProtocolPacket.PACKET_PTIME_NAME);
+                    answerReqP.sample= context.optInt(ProtocolPacket.PACKET_SAMPLE_NAME);
                     p = answerReqP;
                     break;
                 case ProtocolPacket.ANSWER_RES:
@@ -185,6 +192,7 @@ public class ProtocolFactory {
                     context.putOpt(ProtocolPacket.PACKET_CALLDIRECT_NAME,inviteReqP.callDirect);
                     context.putOpt(ProtocolPacket.PACKET_CODEC_NAME,inviteReqP.codec);
                     context.putOpt(ProtocolPacket.PACKET_PTIME_NAME,inviteReqP.pTime);
+                    context.putOpt(ProtocolPacket.PACKET_SAMPLE_NAME,inviteReqP.sample);
                     context.putOpt(ProtocolPacket.PACKET_CALLER_NAME,inviteReqP.caller);
                     context.putOpt(ProtocolPacket.PACKET_CALLEE_NAME,inviteReqP.callee);
                     context.putOpt(ProtocolPacket.PACKET_BEDID_NAME,inviteReqP.bedID);
@@ -206,12 +214,13 @@ public class ProtocolFactory {
                 case ProtocolPacket.ANSWER_REQ:
                     AnswerReqPack answerReqP = (AnswerReqPack)p;
                     context.putOpt(ProtocolPacket.PACKET_CALLID_NAME,answerReqP.callID);
-                    context.putOpt(ProtocolPacket.PACKET_CALLEE_NAME,answerReqP.answerer);
+                    context.putOpt(ProtocolPacket.PACKET_ANSWERER_NAME,answerReqP.answerer);
                     context.putOpt(ProtocolPacket.PACKET_CALLEEIP_MAME,answerReqP.answererRtpIP);
                     context.putOpt(ProtocolPacket.PACKET_CALLEEPORT_NAME,answerReqP.answererRtpPort);
                     context.putOpt(ProtocolPacket.PACKET_BEDID_NAME,answerReqP.bedID);
                     context.putOpt(ProtocolPacket.PACKET_CODEC_NAME,answerReqP.codec);
                     context.putOpt(ProtocolPacket.PACKET_PTIME_NAME,answerReqP.pTime);
+                    context.putOpt(ProtocolPacket.PACKET_SAMPLE_NAME,answerReqP.sample);
                     json.putOpt(ProtocolPacket.PACKET_CONTEXT_NAME,context);
                     break;
                 case ProtocolPacket.ANSWER_RES:

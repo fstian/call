@@ -9,7 +9,7 @@ import com.example.nettytest.backend.backendphone.BackEndPhoneManager;
 import com.example.nettytest.backend.backendtranscation.BackEndTransactionMgr;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.transaction.Transaction;
-import com.example.nettytest.pub.transaction.TransactionInfo;
+import com.example.nettytest.terminal.audio.AudioMgr;
 import com.example.nettytest.terminal.terminaldevice.TerminalDevManager;
 import com.example.nettytest.terminal.terminaldevice.TerminalDevice;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
@@ -47,6 +47,10 @@ public class HandlerMgr {
         return terminalTransMgr.AddTransaction(ID,trans);
     }
 
+    static public int GetTermTransCount(){
+        return terminalTransMgr.GetTransCount();
+    }
+
     static public void PhoneProcessPacket(ProtocolPacket packet){
         terminalTransMgr.ProcessPacket(packet);
     }
@@ -74,8 +78,8 @@ public class HandlerMgr {
         terminalPhoneMgr.SetMessageHandler(h);
     }
 
-    static public void SendMessageToUser(Message msg){
-        terminalPhoneMgr.SendUserMessage(msg);
+    static public void SendMessageToUser(int type,Object obj){
+        terminalPhoneMgr.SendUserMessage(type,obj);
     }
 
     static public void CreateTerminalPhone(String id,int type){
@@ -99,6 +103,10 @@ public class HandlerMgr {
         return terminalPhoneMgr.AnswerCall(devid,callID);
     }
 
+    static public int GetTermCallCount(){
+        return terminalPhoneMgr.GetCallCount();
+    }
+
     static public int QueryTerminalLists(String devid){
         return terminalPhoneMgr.QueryDevs(devid);
     }
@@ -120,6 +128,14 @@ public class HandlerMgr {
 
     static public void BackEndProcessPacket(ProtocolPacket packet){
         backEndTransMgr.ProcessPacket(packet);
+    }
+
+    static public int GetBackTransCount(){
+        return backEndTransMgr.GetTransCount();
+    }
+
+    static public int GetBackCallCount(){
+        return backEndPhoneMgr.GetCallCount();
     }
 
     static public void BackEndTransactionTick(){
@@ -150,8 +166,12 @@ public class HandlerMgr {
     }
 
     public static ArrayList<byte[]> GetBackEndTransInfo(){
-        ArrayList<byte[]> res = backEndTransMgr.GetTransactionDetail(SystemSnap.SNAP_BACKEND_TRANS_RES);
-        return res;
+        return backEndTransMgr.GetTransactionDetail(SystemSnap.SNAP_BACKEND_TRANS_RES);
     }
 
+// get audio Owner
+
+    public static String GetAudioOwner(){
+        return AudioMgr.GetAudioOwnwer();
+    }
 }
