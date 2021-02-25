@@ -13,11 +13,11 @@ import com.example.nettytest.terminal.terminalphone.TerminalPhone;
 import java.util.ArrayList;
 
 public class UserInterface {
-    public final static int CALL_BED_DEVICE = 1;
-    public final static int CALL_DOOR_DEVICE = 2;
-    public final static int CALL_NURSER_DEVICE = 3;
-    public final static int CALL_TV_DEVICE = 4;
-    public final static int CALL_CORRIDOR_DEVICE = 5;
+    public final static int CALL_BED_DEVICE = 2;
+    public final static int CALL_DOOR_DEVICE = 6;
+    public final static int CALL_NURSER_DEVICE = 9;
+    public final static int CALL_TV_DEVICE = 8;
+    public final static int CALL_CORRIDOR_DEVICE = 7;
 
     public final static int CALL_NORMAL_TYPE = 1;
     public final static int CALL_EMERGENCY_TYPE = 2;
