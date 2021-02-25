@@ -9,12 +9,17 @@ import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.SystemSnap;
 import com.example.nettytest.pub.commondevice.PhoneDevice;
+import com.example.nettytest.pub.phonecall.CommonCall;
+import com.example.nettytest.pub.protocol.ConfigItem;
+import com.example.nettytest.pub.protocol.ConfigReqPack;
+import com.example.nettytest.pub.protocol.ConfigResPack;
 import com.example.nettytest.pub.protocol.DevQueryReqPack;
 import com.example.nettytest.pub.protocol.DevQueryResPack;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.protocol.RegReqPack;
 import com.example.nettytest.pub.protocol.RegResPack;
 import com.example.nettytest.pub.transaction.Transaction;
+import com.example.nettytest.userinterface.ServerDeviceInfo;
 import com.example.nettytest.userinterface.PhoneParam;
 
 import org.json.JSONException;
@@ -118,17 +123,25 @@ public class BackEndPhoneManager {
         return backEndCallConvergencyMgr.GetCallCount();
     }
 
-    public ArrayList<BackEndPhone> GetListenDevices(){
+    public ArrayList<BackEndPhone> GetListenDevices(int callType){
         ArrayList<BackEndPhone> devices = new ArrayList<>();
             for(String devid:serverPhoneLists.keySet()){
                 BackEndPhone phone = serverPhoneLists.get(devid);
                 if(phone==null)
                     break;
-                if(phone.type==BackEndPhone.DOOR_CALL_DEVICE
-                ||phone.type==BackEndPhone.CORRIDOR_CALL_DEVICE
-                ||phone.type==BackEndPhone.NURSE_CALL_DEVICE
-                ||phone.type==BackEndPhone.TV_CALL_DEVICE){
-                    devices.add(phone);
+                if(callType== CommonCall.CALL_TYPE_NORMAL||callType==CommonCall.CALL_TYPE_EMERGENCY){
+                    if(phone.type==BackEndPhone.DOOR_CALL_DEVICE
+                    ||phone.type==BackEndPhone.CORRIDOR_CALL_DEVICE
+                    ||phone.type==BackEndPhone.NURSE_CALL_DEVICE
+                    ||phone.type==BackEndPhone.TV_CALL_DEVICE){
+                        devices.add(phone);
+                    }
+                }else if(callType==CommonCall.CALL_TYPE_BROADCAST){
+                    if(phone.type==BackEndPhone.DOOR_CALL_DEVICE
+                    ||phone.type==BackEndPhone.CORRIDOR_CALL_DEVICE
+                    ||phone.type==BackEndPhone.BED_CALL_DEVICE){
+                        devices.add(phone);
+                    }
                 }
             }
         return devices;
@@ -145,6 +158,52 @@ public class BackEndPhoneManager {
             }
         }
 
+    }
+
+    public void RemovePhone(String id){
+        BackEndPhone matchedPhone;
+        synchronized (BackEndPhoneManager.class){
+            matchedPhone = serverPhoneLists.get(id);
+            if(matchedPhone!=null)
+                serverPhoneLists.remove(matchedPhone);
+        }
+    }
+
+    public boolean SetDeviceConfig(String id, ArrayList<ConfigItem> list){
+        BackEndPhone matchedPhone;
+        boolean result = false;
+        synchronized (BackEndPhoneManager.class) {
+            matchedPhone = serverPhoneLists.get(id);
+            if (matchedPhone != null) {
+                matchedPhone.SetDeviceConfig(list);
+                result = true;
+            }
+        }
+        return result;
+    }
+
+    public boolean SetDeviceInfo(String id, ServerDeviceInfo info){
+        BackEndPhone matchedPhone;
+        boolean result = false;
+        synchronized (BackEndPhoneManager.class) {
+            matchedPhone = serverPhoneLists.get(id);
+            if (matchedPhone != null) {
+                matchedPhone.SetDeviceInfo(info);
+                result = true;
+            }
+        }
+        return result;
+    }
+
+    public ArrayList<ConfigItem> GetDeviceConfig(String id){
+        BackEndPhone matchedPhone;
+        ArrayList<ConfigItem> paramList = new ArrayList<>();
+        synchronized (BackEndPhoneManager.class) {
+            matchedPhone = serverPhoneLists.get(id);
+            if (matchedPhone != null)
+                matchedPhone.GetDeviceConfig(paramList);
+        }
+        return paramList;
     }
 
     public void PostBackEndPhoneMessage(Message msg){
@@ -193,6 +252,22 @@ public class BackEndPhoneManager {
                 }
 
                 trans = new Transaction(devID,packet,devResP,Transaction.TRANSCATION_DIRECTION_S2C);
+                HandlerMgr.AddBackEndTrans(packet.msgID,trans);
+                break;
+            case ProtocolPacket.DEV_CONFIG_REQ:
+                ConfigReqPack configReqP = (ConfigReqPack)packet;
+                ConfigResPack configResP;
+                phone = HandlerMgr.GetBackEndPhone(devID);
+                if(phone==null){
+                    resStatus = ProtocolPacket.STATUS_NOTFOUND;
+                }else{
+                    resStatus = ProtocolPacket.STATUS_OK;
+                }
+                configResP = new ConfigResPack(resStatus,configReqP);
+                if(resStatus==ProtocolPacket.STATUS_OK){
+                    configResP.params = GetDeviceConfig(devID);
+                }
+                trans = new Transaction(devID,packet,configResP,Transaction.TRANSCATION_DIRECTION_S2C);
                 HandlerMgr.AddBackEndTrans(packet.msgID,trans);
                 break;
             case ProtocolPacket.CALL_REQ:
@@ -272,6 +347,7 @@ public class BackEndPhoneManager {
         for(BackEndPhone phone:serverPhoneLists.values()){
             dev = new PhoneDevice();
             dev.id = phone.id;
+            dev.bedName = phone.devInfo.bedName;
             dev.type = phone.type;
             dev.isReg = phone.isReg;
             list.add(dev);

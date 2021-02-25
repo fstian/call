@@ -4,9 +4,11 @@ import android.os.Handler;
 import android.os.Message;
 
 import com.example.nettytest.backend.backenddevice.BackEndDevManager;
+import com.example.nettytest.backend.backendphone.BackEndConfig;
 import com.example.nettytest.backend.backendphone.BackEndPhone;
 import com.example.nettytest.backend.backendphone.BackEndPhoneManager;
 import com.example.nettytest.backend.backendtranscation.BackEndTransactionMgr;
+import com.example.nettytest.pub.protocol.ConfigItem;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.terminal.audio.AudioMgr;
@@ -15,6 +17,9 @@ import com.example.nettytest.terminal.terminaldevice.TerminalDevice;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
 import com.example.nettytest.terminal.terminalphone.TerminalPhoneManager;
 import com.example.nettytest.terminal.terminaltransaction.TerminalTransactionMgr;
+import com.example.nettytest.userinterface.ServerDeviceInfo;
+import com.example.nettytest.userinterface.TerminalDeviceInfo;
+import com.example.nettytest.userinterface.UserConfig;
 
 import java.util.ArrayList;
 
@@ -29,8 +34,8 @@ public class HandlerMgr {
     static private TerminalTransactionMgr terminalTransMgr = new TerminalTransactionMgr();
     static private TerminalDevManager terminalDevManager = new TerminalDevManager();
     static private TerminalPhoneManager terminalPhoneMgr = new TerminalPhoneManager();
+    static private BackEndConfig backEndConfig = new BackEndConfig();
 
-    static private Handler terminalMsgHandler = null;
 
 //for terminal NetDevice
 
@@ -74,7 +79,6 @@ public class HandlerMgr {
     }
 
     static public void SetTerminalMessageHandler(Handler h){
-        terminalMsgHandler = h;
         terminalPhoneMgr.SetMessageHandler(h);
     }
 
@@ -84,11 +88,15 @@ public class HandlerMgr {
 
     static public void CreateTerminalPhone(String id,int type){
         TerminalDevice dev = new TerminalDevice(id);
-        TerminalPhone phone = new TerminalPhone(id,type,terminalMsgHandler);
+        TerminalPhone phone = new TerminalPhone(id,type);
         terminalDevManager.AddDevice(id,dev);
         dev.Start();
 
         terminalPhoneMgr.AddDevice(phone);
+    }
+
+    static public boolean SetTerminalPhoneConfig(String id,TerminalDeviceInfo info){
+        return terminalPhoneMgr.SetConfig(id,info);
     }
 
     static public String BuildTerminalCall(String caller,String callee,int callType){
@@ -109,6 +117,10 @@ public class HandlerMgr {
 
     static public int QueryTerminalLists(String devid){
         return terminalPhoneMgr.QueryDevs(devid);
+    }
+
+    static public int QueryTerminalConfig(String devid){
+        return terminalPhoneMgr.QueryConfig(devid);
     }
 
 // for backend NetDevice
@@ -148,6 +160,13 @@ public class HandlerMgr {
         return backEndPhoneMgr.GetDevice(ID);
     }
        
+    static public void SetBackEndConfig(BackEndConfig config){
+        backEndConfig.Copy(config);
+    }
+
+    static public BackEndConfig GetBackEndConfig(){
+        return backEndConfig;
+    }
 
     static public void PostBackEndPhoneMsg(Message msg){
         backEndPhoneMgr.PostBackEndPhoneMessage(msg);
@@ -160,9 +179,40 @@ public class HandlerMgr {
         return true;
     }
 
+    static public boolean SetBackEndPhoneConfig(String id, ArrayList<UserConfig>list){
+        ArrayList<ConfigItem> configList = new ArrayList<>();
+        boolean result;
+        for(int iTmp=0;iTmp<list.size();iTmp++){
+            ConfigItem item = new ConfigItem();
+            UserConfig config = list.get(iTmp);
+            item.param_id = config.param_id;
+            item.param_name = config.param_name;
+            item.param_value = config.param_value;
+            item.param_unit = config.param_unit;
+            configList.add(item);
+        }
+        result = backEndPhoneMgr.SetDeviceConfig(id,configList);
+        if(!result)
+            configList.clear();
+        return result;
+    }
+
+    static public boolean SetBackEndPhoneInfo(String id, ServerDeviceInfo info){
+        boolean result;
+        ServerDeviceInfo devInfo = new ServerDeviceInfo(info);
+        result = backEndPhoneMgr.SetDeviceInfo(id,devInfo);
+        return result;
+    }
+
+    static public boolean RemoveBackEndPhone(String ID){
+        backEndPhoneMgr.RemovePhone(ID);
+        backEndDevMgr.RemoveDevice(ID);
+        return true;
+    }
+
 // get listen phone
-    static public ArrayList<BackEndPhone> GetBackEndListenDevices(){
-        return backEndPhoneMgr.GetListenDevices();
+    static public ArrayList<BackEndPhone> GetBackEndListenDevices(int callType){
+        return backEndPhoneMgr.GetListenDevices(callType);
     }
 
     public static ArrayList<byte[]> GetBackEndTransInfo(){

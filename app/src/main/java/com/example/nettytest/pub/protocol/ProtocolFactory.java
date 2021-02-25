@@ -1,6 +1,5 @@
 package com.example.nettytest.pub.protocol;
 
-import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.commondevice.PhoneDevice;
 
 import org.json.JSONArray;
@@ -47,7 +46,6 @@ public class ProtocolFactory {
 
                     inviteReqPack.caller = context.optString(ProtocolPacket.PACKET_CALLER_NAME);
                     inviteReqPack.callee = context.optString(ProtocolPacket.PACKET_CALLEE_NAME);
-                    inviteReqPack.bedID = context.optString(ProtocolPacket.PACKET_BEDID_NAME);
                     inviteReqPack.callerType = context.optInt(ProtocolPacket.PACKET_CALLERTYPE_NAME);
 
                     inviteReqPack.codec = context.optInt(ProtocolPacket.PACKET_CODEC_NAME);
@@ -55,6 +53,13 @@ public class ProtocolFactory {
                     inviteReqPack.callerRtpPort = context.optInt(ProtocolPacket.PACKET_CALLERPORT_NAME);
                     inviteReqPack.broadcastIP = context.optString(ProtocolPacket.PACKET_BROADCASTIP_NAME);
                     inviteReqPack.broadcastPort = context.optInt(ProtocolPacket.PACKET_BROADCASTPORT_NAME);
+
+                    inviteReqPack.patientName = context.optString(ProtocolPacket.PACKET_PATIENT_NAME_NAME);
+                    inviteReqPack.patientAge = context.optInt(ProtocolPacket.PACKET_PATIENT_AGE_NAME);
+                    inviteReqPack.bedName = context.optString(ProtocolPacket.PACKET_BEDID_NAME);
+
+                    inviteReqPack.deviceName = context.optString(ProtocolPacket.PACKET_DEVICE_NAME_NAME);
+                    inviteReqPack.roomId = context.optString(ProtocolPacket.PACKET_ROOMID_NAME);
 
                     inviteReqPack.pTime = context.optInt(ProtocolPacket.PACKET_PTIME_NAME);
                     inviteReqPack.codec = context.optInt(ProtocolPacket.PACKET_CODEC_NAME);
@@ -102,6 +107,7 @@ public class ProtocolFactory {
                     answerReqP.codec = context.optInt(ProtocolPacket.PACKET_CODEC_NAME);
                     answerReqP.pTime = context.optInt(ProtocolPacket.PACKET_PTIME_NAME);
                     answerReqP.sample= context.optInt(ProtocolPacket.PACKET_SAMPLE_NAME);
+                    answerReqP.callType = context.optInt(ProtocolPacket.PACKET_CALLTYPE_NAME);
                     p = answerReqP;
                     break;
                 case ProtocolPacket.ANSWER_RES:
@@ -125,13 +131,16 @@ public class ProtocolFactory {
                     PutDefaultData(devResP,json);
                     context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
                     JSONArray phoneLists = context.getJSONArray(ProtocolPacket.PACKET_DETAIL_NAME);
-                    for(int iTmp=0;iTmp<phoneLists.length();iTmp++){
-                        JSONObject jsonObj = phoneLists.getJSONObject(iTmp);
-                        PhoneDevice phone = new PhoneDevice();
-                        phone.id = jsonObj.optString(ProtocolPacket.PACKET_DEVID_NAME);
-                        phone.type = jsonObj.optInt(ProtocolPacket.PACKET_DEVTYPE_NAME);
-                        phone.isReg = jsonObj.optBoolean(ProtocolPacket.PACKET_STATUS_NAME);
-                        devResP.phoneList.add(phone);
+                    if(phoneLists!=null) {
+                        for (int iTmp = 0; iTmp < phoneLists.length(); iTmp++) {
+                            JSONObject jsonObj = phoneLists.getJSONObject(iTmp);
+                            PhoneDevice phone = new PhoneDevice();
+                            phone.id = jsonObj.optString(ProtocolPacket.PACKET_DEVID_NAME);
+                            phone.type = jsonObj.optInt(ProtocolPacket.PACKET_DEVTYPE_NAME);
+                            phone.isReg = jsonObj.optBoolean(ProtocolPacket.PACKET_STATUS_NAME);
+                            phone.bedName = jsonObj.optString(ProtocolPacket.PACKET_BEDID_NAME);
+                            devResP.phoneList.add(phone);
+                        }
                     }
                     p = devResP;
                     break;
@@ -151,6 +160,32 @@ public class ProtocolFactory {
                     updateResP.result = context.optString(ProtocolPacket.PACKET_RESULT_NAME);
                     updateResP.callid = context.optString(ProtocolPacket.PACKET_CALLID_NAME);
                     p = updateResP;
+                    break;
+                case ProtocolPacket.DEV_CONFIG_REQ:
+                    ConfigReqPack configReqP = new ConfigReqPack();
+                    PutDefaultData(configReqP,json);
+                    context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
+                    configReqP.devId = context.optString(ProtocolPacket.PACKET_DEVID_NAME);
+                    p = configReqP;
+                    break;
+                case ProtocolPacket.DEV_CONFIG_RES:
+                    ConfigResPack configResP = new ConfigResPack();
+                    PutDefaultData(configResP,json);
+                    context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
+                    configResP.devId = context.optString(ProtocolPacket.PACKET_DEVID_NAME);
+                    JSONArray paramList = context.getJSONArray(ProtocolPacket.PACKET_PARAMS_NAME);
+                    if(paramList!=null){
+                        for(int iTmp=0;iTmp<paramList.length();iTmp++){
+                            JSONObject item = paramList.getJSONObject(iTmp);
+                            ConfigItem param = new ConfigItem();
+                            param.param_id = item.optString(ProtocolPacket.PACKET_PARAM_ID_NAME);
+                            param.param_name = item.optString(ProtocolPacket.PACKET_PARAM_NAME_NAME);
+                            param.param_value = item.optString(ProtocolPacket.PACKET_PARAM_VALUE_NAME);
+                            param.param_unit = item.optString(ProtocolPacket.PACKET_PARAM_UNIT_NAME);
+                            configResP.params.add(param);
+                        }
+                    }
+                    p = configResP;
                     break;
             }
         }catch (JSONException e){
@@ -195,13 +230,17 @@ public class ProtocolFactory {
                     context.putOpt(ProtocolPacket.PACKET_SAMPLE_NAME,inviteReqP.sample);
                     context.putOpt(ProtocolPacket.PACKET_CALLER_NAME,inviteReqP.caller);
                     context.putOpt(ProtocolPacket.PACKET_CALLEE_NAME,inviteReqP.callee);
-                    context.putOpt(ProtocolPacket.PACKET_BEDID_NAME,inviteReqP.bedID);
                     context.putOpt(ProtocolPacket.PACKET_CALLERIP_MAME,inviteReqP.callerRtpIP);
                     context.putOpt(ProtocolPacket.PACKET_CALLERPORT_NAME,inviteReqP.callerRtpPort);
                     context.putOpt(ProtocolPacket.PACKET_CALLERTYPE_NAME,inviteReqP.callerType);
                     context.putOpt(ProtocolPacket.PACKET_BROADCASTIP_NAME,inviteReqP.broadcastIP);
                     context.putOpt(ProtocolPacket.PACKET_BROADCASTPORT_NAME,inviteReqP.broadcastPort);
                     context.putOpt(ProtocolPacket.PACKET_CALLID_NAME,inviteReqP.callID);
+                    context.putOpt(ProtocolPacket.PACKET_PATIENT_NAME_NAME,inviteReqP.patientName);
+                    context.putOpt(ProtocolPacket.PACKET_PATIENT_AGE_NAME,inviteReqP.patientAge);
+                    context.putOpt(ProtocolPacket.PACKET_ROOMID_NAME,inviteReqP.roomId);
+                    context.putOpt(ProtocolPacket.PACKET_BEDID_NAME,inviteReqP.bedName);
+                    context.putOpt(ProtocolPacket.PACKET_DEVICE_NAME_NAME,inviteReqP.deviceName);
                     json.putOpt(ProtocolPacket.PACKET_CONTEXT_NAME,context);
                     break;
                 case ProtocolPacket.CALL_RES:
@@ -221,6 +260,7 @@ public class ProtocolFactory {
                     context.putOpt(ProtocolPacket.PACKET_CODEC_NAME,answerReqP.codec);
                     context.putOpt(ProtocolPacket.PACKET_PTIME_NAME,answerReqP.pTime);
                     context.putOpt(ProtocolPacket.PACKET_SAMPLE_NAME,answerReqP.sample);
+                    context.putOpt(ProtocolPacket.PACKET_CALLTYPE_NAME,answerReqP.callType);
                     json.putOpt(ProtocolPacket.PACKET_CONTEXT_NAME,context);
                     break;
                 case ProtocolPacket.ANSWER_RES:
@@ -258,6 +298,7 @@ public class ProtocolFactory {
                         phoneJson.putOpt(ProtocolPacket.PACKET_DEVID_NAME,phone.id);
                         phoneJson.putOpt(ProtocolPacket.PACKET_DEVTYPE_NAME,phone.type);
                         phoneJson.putOpt(ProtocolPacket.PACKET_STATUS_NAME,phone.isReg);
+                        phoneJson.putOpt(ProtocolPacket.PACKET_BEDID_NAME,phone.bedName);
                         listArray.put(phoneJson);
                     }
                     context.putOpt(ProtocolPacket.PACKET_DETAIL_NAME,listArray);
@@ -274,6 +315,26 @@ public class ProtocolFactory {
                     context.putOpt(ProtocolPacket.PACKET_STATUS_NAME,updateResP.status);
                     context.putOpt(ProtocolPacket.PACKET_RESULT_NAME,updateResP.result);
                     context.putOpt(ProtocolPacket.PACKET_CALLID_NAME,updateResP.callid);
+                    json.putOpt(ProtocolPacket.PACKET_CONTEXT_NAME,context);
+                    break;
+                case ProtocolPacket.DEV_CONFIG_REQ:
+                    ConfigReqPack configReqP = (ConfigReqPack)p;
+                    context.putOpt(ProtocolPacket.PACKET_DEVID_NAME,configReqP.devId);
+                    json.putOpt(ProtocolPacket.PACKET_CONTEXT_NAME,context);
+                    break;
+                case ProtocolPacket.DEV_CONFIG_RES:
+                    ConfigResPack configResP = (ConfigResPack)p;
+                    context.putOpt(ProtocolPacket.PACKET_DEVID_NAME,configResP.devId);
+                    JSONArray paramArray = new JSONArray();
+                    for(ConfigItem item:configResP.params){
+                        JSONObject itemJson = new JSONObject();
+                        itemJson.putOpt(ProtocolPacket.PACKET_PARAM_ID_NAME,item.param_id);
+                        itemJson.putOpt(ProtocolPacket.PACKET_PARAM_NAME_NAME,item.param_name);
+                        itemJson.putOpt(ProtocolPacket.PACKET_PARAM_VALUE_NAME,item.param_value);
+                        itemJson.putOpt(ProtocolPacket.PACKET_PARAM_UNIT_NAME,item.param_unit);
+                        paramArray.put(itemJson);
+                    }
+                    context.putOpt(ProtocolPacket.PACKET_PARAMS_NAME,paramArray);
                     json.putOpt(ProtocolPacket.PACKET_CONTEXT_NAME,context);
                     break;
             }

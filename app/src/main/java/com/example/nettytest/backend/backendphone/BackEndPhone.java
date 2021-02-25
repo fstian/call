@@ -1,6 +1,10 @@
 package com.example.nettytest.backend.backendphone;
 
 import com.example.nettytest.pub.commondevice.PhoneDevice;
+import com.example.nettytest.pub.protocol.ConfigItem;
+import com.example.nettytest.userinterface.ServerDeviceInfo;
+
+import java.util.ArrayList;
 
 public class BackEndPhone extends PhoneDevice {
 
@@ -9,12 +13,18 @@ public class BackEndPhone extends PhoneDevice {
     public int regExpire;
     public int regCount;
 
+    ArrayList<ConfigItem> paramList;
+
+    public ServerDeviceInfo devInfo;
+
     public BackEndPhone(String id,int type){
         this.type = type;
         this.id = id;
         isReg = false;
         regCount = 0;
         regExpire = DEFAULT_REG_EXPIRE;
+        paramList = new ArrayList<>();
+        devInfo = new ServerDeviceInfo();
     }
 
     public void UpdateRegStatus(int expire){
@@ -34,4 +44,20 @@ public class BackEndPhone extends PhoneDevice {
         }
     }
 
+    public void GetDeviceConfig(ArrayList<ConfigItem> list){
+        int iTmp;
+        for(iTmp=0;iTmp<paramList.size();iTmp++){
+            ConfigItem item = new ConfigItem();
+            item.Copy(paramList.get(iTmp));
+            list.add(item);
+        }
+    }
+
+    public void SetDeviceInfo(ServerDeviceInfo info){
+        devInfo = info;
+    }
+
+    public void SetDeviceConfig(ArrayList<ConfigItem> list){
+        paramList=list;
+    }
 }

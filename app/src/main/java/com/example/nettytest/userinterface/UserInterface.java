@@ -2,6 +2,7 @@ package com.example.nettytest.userinterface;
 
 import android.os.Handler;
 
+import com.example.nettytest.backend.backendphone.BackEndConfig;
 import com.example.nettytest.backend.backendphone.BackEndPhone;
 import com.example.nettytest.backend.callserver.DemoServer;
 import com.example.nettytest.pub.HandlerMgr;
@@ -9,11 +10,14 @@ import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
 
+import java.util.ArrayList;
+
 public class UserInterface {
     public final static int CALL_BED_DEVICE = 1;
     public final static int CALL_DOOR_DEVICE = 2;
     public final static int CALL_NURSER_DEVICE = 3;
     public final static int CALL_TV_DEVICE = 4;
+    public final static int CALL_CORRIDOR_DEVICE = 5;
 
     public final static int CALL_NORMAL_TYPE = 1;
     public final static int CALL_EMERGENCY_TYPE = 2;
@@ -21,8 +25,36 @@ public class UserInterface {
 
     public static DemoServer callServer=null;
 
+    // backend
     public static void StartServer(){
         callServer = new DemoServer(PhoneParam.callServerPort);
+    }
+
+    public static OperationResult ConfigDeviceParamOnServer(String id, ArrayList<UserConfig>list){
+        OperationResult result = new OperationResult();
+
+        if(!HandlerMgr.SetBackEndPhoneConfig(id,list)){
+            result.result = OperationResult.OP_RESULT_FAIL;
+            result.reason = FailReason.FAIL_REASON_NOTFOUND;
+        }
+        return result;
+    }
+
+    public static OperationResult ConfigServerParam(BackEndConfig config){
+        OperationResult result = new OperationResult();
+        HandlerMgr.SetBackEndConfig(config);
+        return result;
+    }
+
+    public static OperationResult ConfigDeviceInfoOnServer(String id, ServerDeviceInfo info){
+        OperationResult result = new OperationResult();
+
+        if(!HandlerMgr.SetBackEndPhoneInfo(id,info)){
+            result.result = OperationResult.OP_RESULT_FAIL;
+            result.reason = FailReason.FAIL_REASON_NOTFOUND;
+        }
+        return result;
+
     }
 
     public static OperationResult AddDeviceOnServer(String id,int type){
@@ -42,6 +74,8 @@ public class UserInterface {
             case CALL_TV_DEVICE:
                 typeInServer = BackEndPhone.TV_CALL_DEVICE;
                 break;
+            case CALL_CORRIDOR_DEVICE:
+                typeInServer = BackEndPhone.CORRIDOR_CALL_DEVICE;
         }
 
         if(!callServer.AddBackEndPhone(id, typeInServer)){
@@ -55,6 +89,8 @@ public class UserInterface {
         HandlerMgr.SetTerminalMessageHandler(handler);
         return true;
     }
+
+    //Terminal
 
     public static OperationResult BuildDevice(int type, String ID){
         OperationResult result = new OperationResult();
@@ -134,6 +170,26 @@ public class UserInterface {
         operationCode = HandlerMgr.QueryTerminalLists(devid);
         result = new OperationResult(operationCode);
 
+        return result;
+    }
+
+    public static OperationResult QueryDevConfig(String devid){
+        int operationCode;
+        OperationResult result;
+
+        operationCode = HandlerMgr.QueryTerminalConfig(devid);
+        result = new OperationResult(operationCode);
+
+        return result;
+
+    }
+
+    public static OperationResult SetDevInfo(String devid,TerminalDeviceInfo info){
+        OperationResult result = new OperationResult();
+        if(!HandlerMgr.SetTerminalPhoneConfig(devid,info)){
+            result.result = OperationResult.OP_RESULT_FAIL;
+            result.reason = FailReason.FAIL_REASON_NOTFOUND;
+        }
         return result;
     }
 

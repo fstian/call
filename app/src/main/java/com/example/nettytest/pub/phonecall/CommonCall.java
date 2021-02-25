@@ -73,4 +73,20 @@ public class CommonCall {
 
     }
 
+    public static String GetCallTypeName(int callType){
+        String typeName = "Unknow Call Type";
+        switch(callType){
+            case CALL_TYPE_NORMAL:
+                typeName = "Normal Call";
+            break;
+            case CALL_TYPE_EMERGENCY:
+                typeName = "Emergency Call";
+            break;
+            case CALL_TYPE_BROADCAST:
+                typeName = "Broadcast Call";
+            break;
+        }
+        return typeName;
+    }
+
 }

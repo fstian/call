@@ -41,8 +41,8 @@ public class AudioDevice {
     AudioReadThread audioReadThread = null;
     AudioWriteThread audioWriteThread = null;
 
-    AudioRecord recorder;
-    AudioTrack player;
+    AudioRecord recorder = null;
+    AudioTrack player = null;
 
     JitterBuffer jb;
     int jbIndex;
@@ -169,12 +169,12 @@ public class AudioDevice {
 
     private void OpenAudio(){
 
+        aec =new MobileAEC(new SamplingFrequency(sample));
+        aec.setAecmMode(MobileAEC.AggressiveMode.MOST_AGGRESSIVE).prepare();
+
         jb = new JitterBuffer();
         jb.initJb();
         jbIndex = jb.openJb(codec,ptime,sample);
-
-        aec =new MobileAEC(new SamplingFrequency(sample));
-        aec.setAecmMode(MobileAEC.AggressiveMode.MOST_AGGRESSIVE).prepare();
 
         packSize = sample*ptime/1000;
 
@@ -190,6 +190,7 @@ public class AudioDevice {
 
     private void CloseAudio(){
 
+        int waitCount = 0;
         LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Close Audio !!!!!!!");
 
         if(audioReadThread!=null) {
@@ -208,7 +209,14 @@ public class AudioDevice {
         }
 
         try {
-            Thread.sleep(10);
+            while(recorder!=null||player!=null) {
+                if(waitCount<50) {
+                    Thread.sleep(20);
+                }else{
+                    break;
+                }
+                waitCount++;
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -333,6 +341,7 @@ public class AudioDevice {
 
             recorder.stop();
             recorder.release();
+            recorder = null;
         }
     }
 
@@ -372,6 +381,7 @@ public class AudioDevice {
 
             player.stop();
             player.release();
+            player = null;
 
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Exit Audio AudioWriteThread");
 

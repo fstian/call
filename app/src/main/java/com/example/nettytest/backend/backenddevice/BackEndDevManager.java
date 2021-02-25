@@ -16,5 +16,16 @@ public class BackEndDevManager extends NetDeviceManager {
         }
     }
 
+    public void RemoveDevice(String id){
+        BackEndDevice matchedDev;
+        synchronized (NetDeviceManager.class){
+            matchedDev = (BackEndDevice)devLists.get(id);
+            if(matchedDev!=null) {
+                matchedDev.Close();
+                devLists.remove(matchedDev);
+            }
+        }
+    }
+
 
 }

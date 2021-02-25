@@ -7,7 +7,12 @@ public class InviteReqPack extends ProtocolPacket{
 
     public String caller;
     public int callerType;
-    public String bedID;
+    public String bedName;
+    public String patientName;
+    public int patientAge;
+    public String roomId;
+    public String deviceName;
+
 
     public String callee;
 
@@ -29,7 +34,12 @@ public class InviteReqPack extends ProtocolPacket{
         caller = invitePack.caller;
         callerType = invitePack.callerType;
         callee = invitePack.callee;
-        bedID = invitePack.bedID;
+
+        bedName = invitePack.bedName;
+        deviceName = invitePack.deviceName;
+        patientAge = invitePack.patientAge;
+        patientName = invitePack.patientName;
+        roomId = invitePack.roomId;
 
         codec = invitePack.codec;
         pTime = invitePack.pTime;

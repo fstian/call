@@ -4,7 +4,9 @@ public class UserMessage {
     public final static int MESSAGE_CALL_INFO = 1;
     public final static int MESSAGE_REG_INFO = 2;
     public final static int MESSAGE_DEVICES_INFO = 3;
-    public final static int MESSAGE_TEST_TICK = 4;
+    public final static int MESSAGE_CONFIG_INFO = 4;
+    public final static int MESSAGE_TEST_TICK = 5;
+    public final static int MESSAGE_UNKNOW = 100;
 
     public final static int REGISTER_MESSAGE_SUCC = 1;
     public final static int REGISTER_MESSAGE_FAIL = 2;
@@ -18,12 +20,22 @@ public class UserMessage {
     public final static int CALL_MESSAGE_END_FAIL = 103;
     public final static int CALL_MESSAGE_UPDATE_FAIL = 104;
     public final static int CALL_MESSAGE_UNKNOWFAIL = 199;
+
     public final static int DEV_MESSAGE_LIST =200;
+    public final static int CONFIG_MESSAGE_LIST = 201;
+
     public final static int CALL_MESSAGE_UNKONWQ = 0xffff;
 
     public int type;
     public int reason;
     public String devId;
+
+    public UserMessage(){
+        type = MESSAGE_UNKNOW;
+        reason = FailReason.FAIL_REASON_NO;
+        devId = "";
+        devId = "";
+    }
 
     public static String GetMsgName(int type){
         String msgName ;

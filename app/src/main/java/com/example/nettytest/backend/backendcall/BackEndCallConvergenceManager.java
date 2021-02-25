@@ -3,6 +3,7 @@ package com.example.nettytest.backend.backendcall;
 import com.example.nettytest.backend.backendphone.BackEndPhone;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
+import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.pub.protocol.AnswerReqPack;
 import com.example.nettytest.pub.protocol.AnswerResPack;
 import com.example.nettytest.pub.protocol.EndReqPack;
@@ -105,10 +106,20 @@ public class BackEndCallConvergenceManager {
                 BackEndPhone caller = HandlerMgr.GetBackEndPhone(inviteReqPack.caller);
                 BackEndPhone callee = HandlerMgr.GetBackEndPhone(inviteReqPack.callee);
                 if(CheckInviteEnable(caller)) {
+
+                    inviteReqPack.roomId = caller.devInfo.roomId;
+                    inviteReqPack.bedName = caller.devInfo.bedName;
+                    inviteReqPack.deviceName = caller.devInfo.deviceName;
+
                     if(inviteReqPack.callee.compareToIgnoreCase(PhoneParam.CALL_SERVER_ID)==0){
-                        LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv Call Req from %s to %s",caller.id,PhoneParam.CALL_SERVER_ID);
-                        callConvergence = new BackEndCallConvergence(caller,inviteReqPack);
-                        callConvergenceList.put(inviteReqPack.callID,callConvergence);
+                        LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv %s Req from %s to %s",CommonCall.GetCallTypeName(inviteReqPack.callType),caller.id,PhoneParam.CALL_SERVER_ID);
+                        if(inviteReqPack.callType== CommonCall.CALL_TYPE_BROADCAST){
+                            callConvergence = new BackEndCallConvergence(caller,inviteReqPack);
+                            callConvergenceList.put(inviteReqPack.callID,callConvergence);
+                        }else{
+                            callConvergence = new BackEndCallConvergence(caller,inviteReqPack);
+                            callConvergenceList.put(inviteReqPack.callID,callConvergence);
+                        }
                     }else if(CheckInvitedEnable(callee)){
                         LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv Call Req from %s to %s",caller.id,callee.id);
                         callConvergence = new BackEndCallConvergence(caller,callee,inviteReqPack);
@@ -157,22 +168,30 @@ public class BackEndCallConvergenceManager {
             case ProtocolPacket.ANSWER_REQ:
                 AnswerReqPack answerReqPack  = (AnswerReqPack)packet;
                 BackEndPhone answerPhone = HandlerMgr.GetBackEndPhone(answerReqPack.answerer);
+                callConvergence = callConvergenceList.get(answerReqPack.callID);
                 LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv Call Answer From Dev %s for Call %s",answerReqPack.answerer,answerReqPack.callID);
-                if(CheckAnswerEnable(answerPhone,answerReqPack.callID)) {
-                    callConvergence = callConvergenceList.get(answerReqPack.callID);
-                    if (callConvergence != null) {
-                        callConvergence.AnswerCall(answerReqPack);
-                    } else {
-                        LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_ERROR, "Server Recv Call Answer From %s for CallID %s, But Could not Find this Call", answerReqPack.answerer, answerReqPack.callID);
-                    }
-                }else{
+                error = ProtocolPacket.STATUS_OK;
+                if(callConvergence==null){
+                    LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_ERROR, "Server Recv Call Answer From %s for CallID %s, But Could not Find this Call", answerReqPack.answerer, answerReqPack.callID);
                     error = ProtocolPacket.STATUS_NOTFOUND;
-                    if(answerPhone==null) {
-                        LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_ERROR, "Server Could not Find DEV %s", answerReqPack.answerer);
+                }else{
+                    if(callConvergence.inviteCall.callType==CommonCall.CALL_TYPE_BROADCAST){
+                        callConvergence.AnswerBroadCall(answerReqPack);
                     }else{
-                        error = ProtocolPacket.STATUS_FORBID;
-                        LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_WARN, "Server Reject Answer From %s for call %s", answerReqPack.answerer, answerReqPack.callID);
+                        if(CheckAnswerEnable(answerPhone,answerReqPack.callID)) {
+                            callConvergence.AnswerCall(answerReqPack);
+                        }else{
+                            if(answerPhone==null) {
+                                error = ProtocolPacket.STATUS_NOTFOUND;
+                                LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_ERROR, "Server Could not Find DEV %s", answerReqPack.answerer);
+                            }else{
+                                error = ProtocolPacket.STATUS_FORBID;
+                                LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_WARN, "Server Reject Answer From %s for call %s", answerReqPack.answerer, answerReqPack.callID);
+                            }
+                        }
                     }
+                }
+                if(error!=ProtocolPacket.STATUS_OK){
                     AnswerResPack answerResPack = new AnswerResPack(error,answerReqPack);
                     trans = new Transaction(answerReqPack.answerer,answerReqPack,answerResPack,Transaction.TRANSCATION_DIRECTION_S2C);
                     HandlerMgr.AddBackEndTrans(answerReqPack.msgID, trans);

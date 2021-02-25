@@ -9,6 +9,8 @@ import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.SystemSnap;
 import com.example.nettytest.pub.protocol.AnswerReqPack;
+import com.example.nettytest.pub.protocol.ConfigReqPack;
+import com.example.nettytest.pub.protocol.ConfigResPack;
 import com.example.nettytest.pub.protocol.DevQueryResPack;
 import com.example.nettytest.pub.protocol.EndReqPack;
 import com.example.nettytest.pub.protocol.EndResPack;
@@ -17,6 +19,7 @@ import com.example.nettytest.pub.protocol.InviteResPack;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.protocol.RegResPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
+import com.example.nettytest.userinterface.TerminalDeviceInfo;
 import com.example.nettytest.userinterface.UserMessage;
 
 import org.json.JSONException;
@@ -114,10 +117,7 @@ public class TerminalPhoneManager {
     }
 
     public void SetMessageHandler(Handler h){
-            userMsgHandler = h;
-            for (TerminalPhone phone : clientPhoneLists.values()) {
-                phone.SetMessageHandler(h);
-            }
+        userMsgHandler = h;
     }
 
     public int GetCallCount(){
@@ -168,6 +168,22 @@ public class TerminalPhoneManager {
         return callid;
     }
 
+    public boolean SetConfig(String id, TerminalDeviceInfo info){
+        TerminalPhone matchedDev;
+        boolean result = false;
+
+        synchronized (TerminalPhoneManager.class) {
+            matchedDev = clientPhoneLists.get(id);
+            if(matchedDev!=null){
+                TerminalDeviceInfo devInfo = new TerminalDeviceInfo();
+                devInfo.Copy(info);
+                matchedDev.SetConfig(devInfo);
+                result = true;
+            }
+        }
+        return result;
+    }
+
     public int EndCall(String devid,String callID){
         int result = ProtocolPacket.STATUS_NOTFOUND;
         TerminalPhone matchedDev;
@@ -200,6 +216,18 @@ public class TerminalPhoneManager {
             phone = clientPhoneLists.get(devid);
             if(phone!=null){
                 result = phone.QueryDevs();
+            }
+        }
+        return result;
+    }
+
+    public int QueryConfig(String devid){
+        int result = ProtocolPacket.STATUS_NOTFOUND;
+        TerminalPhone phone;
+        synchronized (TerminalPhoneManager.class){
+            phone = clientPhoneLists.get(devid);
+            if(phone!=null){
+                result = phone.QueryConfig();
             }
         }
         return result;
@@ -248,6 +276,11 @@ public class TerminalPhoneManager {
                     DevQueryResPack devResP = (DevQueryResPack)packet;
                     LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv DevQuery Res",devResP.receiver);
                     phone.UpdateDevLists(devResP);
+                    break;
+                case ProtocolPacket.DEV_CONFIG_RES:
+                    ConfigResPack configResP = (ConfigResPack)packet;
+                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv ConfigQuery Res",configResP.receiver);
+                    phone.UpdateConfig(configResP);
                     break;
             }
         }

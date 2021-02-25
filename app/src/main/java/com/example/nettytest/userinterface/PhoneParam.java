@@ -21,24 +21,22 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 
 public class PhoneParam {
-    public static final String CALL_SERVER_ID = "FFFFFFFF";
-    public static final String BROAD_ADDRESS = "255.255.255.255";
-    public static final int CLIENT_REG_EXPIRE = 3600;
+    final public static String CALL_SERVER_ID = "FFFFFFFF";
+    final public static String BROAD_ADDRESS = "255.255.255.255";
+    final public static int CLIENT_REG_EXPIRE = 3600;
 
-    public static final int INVITE_CALL_RTP_PORT = 9090;
-    public static final int ANSWER_CALL_RTP_PORT = 9092;
+    final public static int INVITE_CALL_RTP_PORT = 9090;
+    final public static int ANSWER_CALL_RTP_PORT = 9092;
 
-    public static int CALL_RTP_CODEC = Rtp.RTP_CODEC_711MU;
-    public static int CALL_RTP_PTIME = 20;
-    public static int CALL_RTP_SAMPLE = 8000;
-    public static int CALL_AEC_DELAY = 100;
+    final public static int CALL_RTP_CODEC = Rtp.RTP_CODEC_711MU;
+    final public static int CALL_RTP_PTIME = 20;
+    final public static int CALL_RTP_SAMPLE = 8000;
+    final public static int CALL_AEC_DELAY = 100;
 
-    public static ArrayList<UserDevice> devicesOnServer = new ArrayList<>();
-    public static ArrayList<UserDevice> deviceList = new ArrayList<>();
-
-    public static int callServerPort = 10002;
-    public static String callServerAddress = "127.0.0.1";
-    public static boolean serverActive = false;
+    final public static int BROADCALL_ANSWER_WAIT = 3;
+    
+    final public static int BROADCALL_USE_UNICAST = 1;
+    final public static int BROADCALL_USE_BROADCAST = 2;
 
     final static String JSON_SERVE_NAME = "server";
     final static String JSON_SERVER_ADDRESS_NAME = "address";
@@ -50,6 +48,14 @@ public class PhoneParam {
     final static String JSON_DEVICES_NAME = "devices";
     final static String JSON_DEVICES_ID_NAME = "id";
     final static String JSON_DEVICE_TYPE_NAME = "type";
+
+    public static ArrayList<UserDevice> devicesOnServer = new ArrayList<>();
+    public static ArrayList<UserDevice> deviceList = new ArrayList<>();
+
+    public static int callServerPort = 10002;
+    public static String callServerAddress = "127.0.0.1";
+    public static boolean serverActive = false;
+    public static int broadcallCastMode = BROADCALL_USE_BROADCAST;
 
     static void InitServerAndDevicesConfig(String info){
         JSONObject json;

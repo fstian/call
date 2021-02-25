@@ -15,6 +15,7 @@ import com.example.nettytest.pub.protocol.UpdateReqPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
+import com.example.nettytest.userinterface.TerminalDeviceInfo;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -84,13 +85,13 @@ public class TerminalCallManager {
         return result;
     }
 
-    public String BuildCall(String devID,String dstID,int callType){
+    public String BuildCall(String devID, TerminalDeviceInfo info,String dstID, int callType){
         String callid;
         TerminalCall call;
         if (!callLists.isEmpty()) {
             return null;
         }
-        call = new TerminalCall(devID,dstID,callType);
+        call = new TerminalCall(devID,info,dstID,callType);
         if(devType== TerminalPhone.NURSE_CALL_DEVICE)
             call.direct = CommonCall.CALL_DIRECT_M2S;
         else

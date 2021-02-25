@@ -1,10 +1,12 @@
 package com.example.nettytest.terminal.test;
 
 import com.example.nettytest.pub.SystemSnap;
+import com.example.nettytest.userinterface.TerminalDeviceInfo;
 import com.example.nettytest.userinterface.TestInfo;
 import com.example.nettytest.userinterface.UserCallMessage;
 import com.example.nettytest.userinterface.OperationResult;
 import com.example.nettytest.userinterface.PhoneParam;
+import com.example.nettytest.userinterface.UserConfigMessage;
 import com.example.nettytest.userinterface.UserDevice;
 import com.example.nettytest.userinterface.UserDevsMessage;
 import com.example.nettytest.userinterface.UserInterface;
@@ -35,9 +37,12 @@ public class TestDevice {
     public ArrayList<LocalCallInfo> inComingCallInfos;
 
     public TestDevice(int type,String id){
+        TerminalDeviceInfo info = new TerminalDeviceInfo();
         this.type = type;
         this.id = id;
         UserInterface.BuildDevice(type,id);
+        info.patientName = "patient"+id;
+        UserInterface.SetDevInfo(id,info);
         inComingCallInfos = new ArrayList<>();
         outGoingCall = new LocalCallInfo();
         isCallOut = false;
@@ -130,6 +135,8 @@ public class TestDevice {
         UserInterface.QueryDevs(id);
     }
 
+    public void QueryConfig() {UserInterface.QueryDevConfig(id);}
+
     public OperationResult EndCall(String callid){
         OperationResult result;
         result = UserInterface.EndCall(id,callid);
@@ -196,6 +203,13 @@ public class TestDevice {
                         if(opResult.result!=OperationResult.OP_RESULT_OK){
                             UserInterface.PrintLog("DEV %s End Call %s Fail",id,outGoingCall.callID);
                         }else {
+                            result = true;
+                        }
+                    }else{
+                        opResult = BuildCall(PhoneParam.CALL_SERVER_ID, UserInterface.CALL_BROADCAST_TYPE);
+                        if(opResult.result!=OperationResult.OP_RESULT_OK){
+                            UserInterface.PrintLog("DEV %s Make BroadCast Call Fail",id);
+                        }else{
                             result = true;
                         }
                     }
@@ -307,10 +321,15 @@ public class TestDevice {
         devLists = msg.deviceList;
     }
 
+    public void UpdateConfig(UserConfigMessage msg){
+        msg.paramList.clear();
+    }
+
     public void UpdateRegisterInfo(UserRegMessage msg){
         switch (msg.type){
             case UserCallMessage.REGISTER_MESSAGE_SUCC:
                 isRegOk = true;
+                QueryConfig();
                 break;
             case UserCallMessage.REGISTER_MESSAGE_FAIL:
                 isRegOk = false;

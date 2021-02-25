@@ -1,13 +1,13 @@
-apply plugin: 'com.android.library'
-apply plugin: 'com.github.dcendents.android-maven'
-group='com.gitee.xinwangyang'
+apply plugin: 'com.android.application'
+//apply plugin: 'com.github.dcendents.android-maven'
+//group='com.gitee.xinwangyang'
 
 android {
     compileSdkVersion 30
     buildToolsVersion "30.0.0"
 
     defaultConfig {
-//        applicationId "com.example.nettytest"
+        applicationId "com.example.nettytest"
         minSdkVersion 16
         targetSdkVersion 30
         versionCode 1

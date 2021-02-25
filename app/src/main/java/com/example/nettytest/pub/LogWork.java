@@ -26,11 +26,13 @@ public class LogWork {
     public static boolean terminalCallModuleLogEnable = false;
     public static boolean terminalUserModuleLogEnable = false;
     public static boolean terminalAudioModuleLogEnable = false;
+
     public static boolean backEndPhoneModuleLogEnable = false;
     public static boolean backEndDeviceModuleLogEnable = false;
     public static boolean backEndCallModuleLogEnable = false;
     public static boolean backEndNetModuleLogEnable = false;
-    public static boolean transactionModuleLogEnable = false;
+
+    public static boolean transactionModuleLogEnable = true;
     public static boolean debugModuleLogEnable = true;
 
     public final static int LOG_VERBOSE = 1;    // for verbose

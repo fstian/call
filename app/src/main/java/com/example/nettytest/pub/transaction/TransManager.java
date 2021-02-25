@@ -105,9 +105,9 @@ public class TransManager {
 
         }else if(tran.state == Transaction.TRANSCATION_STATE_RESPONDING){
             if(tran.direction==Transaction.TRANSCATION_DIRECTION_C2S)
-                LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv %s and Add %s to Server",tran.devID,ProtocolPacket.GetResString(tran.reqPacket.type),ProtocolPacket.GetTypeName(tran.resPacket.type));
+                LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv %s and Add %s to Server",tran.devID,ProtocolPacket.GetTypeName(tran.reqPacket.type),ProtocolPacket.GetTypeName(tran.resPacket.type));
             else if(tran.direction == Transaction.TRANSCATION_DIRECTION_S2C)
-                LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_DEBUG,"Server Recv %s and Add %s to DEV %s",ProtocolPacket.GetResString(tran.reqPacket.type),ProtocolPacket.GetTypeName(tran.resPacket.type),tran.devID);
+                LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_DEBUG,"Server Recv %s and Add %s to DEV %s",ProtocolPacket.GetTypeName(tran.reqPacket.type),ProtocolPacket.GetTypeName(tran.resPacket.type),tran.devID);
             ByteBuf buf = Unpooled.wrappedBuffer(ProtocolFactory.PacketData(tran.resPacket).getBytes(),"\r\n".getBytes());
             SendTransactionBuf(tran.devID,buf);
         }

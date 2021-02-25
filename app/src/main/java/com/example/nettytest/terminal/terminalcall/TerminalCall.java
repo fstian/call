@@ -1,11 +1,10 @@
 package com.example.nettytest.terminal.terminalcall;
 
-import android.os.Message;
-
 import com.example.nettytest.pub.protocol.UpdateReqPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.terminal.audio.AudioMgr;
 import com.example.nettytest.userinterface.FailReason;
+import com.example.nettytest.userinterface.TerminalDeviceInfo;
 import com.example.nettytest.userinterface.UserCallMessage;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
@@ -32,13 +31,13 @@ public class TerminalCall extends CommonCall {
     String audioId = "";
 
     // call out
-    public TerminalCall(String caller, String callee, int type) {
+    public TerminalCall(String caller, TerminalDeviceInfo info,String callee, int type) {
         super(caller, callee, type);
         remoteRtpAddress = "";
         remoteRtpPort = 0;
         updateTick =CommonCall.UPDATE_INTERVAL;
 
-        InviteReqPack invitePack = BuildInvitePacket();
+        InviteReqPack invitePack = BuildInvitePacket(info);
         Transaction inviteTransaction = new Transaction(devID,invitePack,Transaction.TRANSCATION_DIRECTION_C2S);
         LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s invite Phone %s, CallID = %s! ",caller,callee,callID);
         HandlerMgr.AddPhoneTrans(invitePack.msgID,inviteTransaction);
@@ -64,6 +63,14 @@ public class TerminalCall extends CommonCall {
         callMsg.callId = pack.callID;
         callMsg.callerId = pack.caller;
         callMsg.calleeId = pack.callee;
+        callMsg.callerType = pack.callerType;
+        callMsg.callType = pack.callType;
+
+        callMsg.patientName = pack.patientName;
+        callMsg.patientAge = pack.patientAge;
+        callMsg.roomId = pack.roomId;
+        callMsg.bedName = pack.bedName;
+        callMsg.deviceName = pack.deviceName;
 
         Transaction inviteResTransaction = new Transaction(devID,pack,resPack,Transaction.TRANSCATION_DIRECTION_C2S);
         LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Invite From %s to %s, CallID = %s",devID,caller,callee,callID);
@@ -224,7 +231,7 @@ public class TerminalCall extends CommonCall {
 
     }
 
-    private InviteReqPack BuildInvitePacket(){
+    private InviteReqPack BuildInvitePacket(TerminalDeviceInfo info){
         InviteReqPack invitePack = new InviteReqPack();
         TerminalPhone phone = HandlerMgr.GetPhoneDev(caller);
 
@@ -240,7 +247,9 @@ public class TerminalCall extends CommonCall {
         invitePack.caller = caller;
         invitePack.callee = callee;
         invitePack.callerType = phone.type;
-        invitePack.bedID = "";
+        invitePack.bedName = "";
+        invitePack.patientName = info.patientName;
+        invitePack.patientAge = info.patientAge;
 
         invitePack.codec = audioCodec;
         invitePack.pTime = rtpTime;
@@ -274,6 +283,7 @@ public class TerminalCall extends CommonCall {
         answerReqPack.sender = devID;
         answerReqPack.receiver = PhoneParam.CALL_SERVER_ID;
         answerReqPack.msgID = UniqueIDManager.GetUniqueID(devID,UniqueIDManager.MSG_UNIQUE_ID);
+        answerReqPack.callType = type;
 
         answerReqPack.answerer = devID;
         answerReqPack.callID = callID;

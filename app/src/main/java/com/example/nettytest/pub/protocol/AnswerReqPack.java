@@ -7,6 +7,7 @@ public class AnswerReqPack extends ProtocolPacket{
 
     public String answerer;
     public String bedID;
+    public int callType;
 
     public int codec;
     public int pTime;
@@ -21,6 +22,7 @@ public class AnswerReqPack extends ProtocolPacket{
 
         answerer = ans.answerer;
         bedID = ans.bedID;
+        callType = ans.callType;
 
         codec = ans.codec;
         pTime = ans.pTime;

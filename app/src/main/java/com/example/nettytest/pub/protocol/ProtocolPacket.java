@@ -24,7 +24,11 @@ public class ProtocolPacket {
     public final static String PACKET_CALLER_NAME = "caller";
     public final static String PACKET_CALLEE_NAME = "callee";
     public final static String PACKET_ANSWERER_NAME = "answerer";
-    public final static String PACKET_BEDID_NAME = "bedID";
+    public final static String PACKET_BEDID_NAME = "bedName";
+    public final static String PACKET_PATIENT_NAME_NAME = "patientName";
+    public final static String PACKET_PATIENT_AGE_NAME = "patientAge";
+    public final static String PACKET_ROOMID_NAME = "roomId";
+    public final static String PACKET_DEVICE_NAME_NAME = "deviceName";
     public final static String PACKET_CALLERIP_MAME = "callerIP";
     public final static String PACKET_CALLERPORT_NAME = "callerPort";
     public final static String PACKET_CALLERTYPE_NAME = "callerType";
@@ -34,6 +38,12 @@ public class ProtocolPacket {
     public final static String PACKET_BROADCASTPORT_NAME = "broadcastPort";
     public final static String PACKET_CALLID_NAME = "callID";
     public final static String PACKET_DETAIL_NAME = "detail";
+
+    public final static String PACKET_PARAMS_NAME = "params";
+    public final static String PACKET_PARAM_ID_NAME = "paramId";
+    public final static String PACKET_PARAM_NAME_NAME = "paramName";
+    public final static String PACKET_PARAM_VALUE_NAME = "paramValue";
+    public final static String PACKET_PARAM_UNIT_NAME = "paramUnit";
 
     public final static int REG_REQ = 1;
     public final static int REG_RES = 101;
@@ -49,6 +59,8 @@ public class ProtocolPacket {
     public final static int DEV_QUERY_RES = 106;
     public final static int CALL_UPDATE_REQ = 7;
     public final static int CALL_UPDATE_RES = 107;
+    public final static int DEV_CONFIG_REQ = 8;
+    public final static int DEV_CONFIG_RES = 108;
 
     public final static int MAX_REQ_TYPE = 100;
 
@@ -165,6 +177,12 @@ public class ProtocolPacket {
                 break;
             case CALL_UPDATE_RES:
                 packetTypeName = "Call_Update_Res";
+                break;
+            case DEV_CONFIG_REQ:
+                packetTypeName = "Dev_Config_req";
+                break;
+            case DEV_CONFIG_RES:
+                packetTypeName = "Dev_Config_res";
                 break;
         }
         return packetTypeName;

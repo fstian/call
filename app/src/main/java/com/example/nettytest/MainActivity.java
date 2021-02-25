@@ -2,7 +2,6 @@ package com.example.nettytest;
 
 import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
-import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -16,12 +15,16 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.nettytest.backend.backendphone.BackEndConfig;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.SystemSnap;
+import com.example.nettytest.userinterface.ServerDeviceInfo;
 import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.TestInfo;
 import com.example.nettytest.userinterface.UserCallMessage;
+import com.example.nettytest.userinterface.UserConfig;
+import com.example.nettytest.userinterface.UserConfigMessage;
 import com.example.nettytest.userinterface.UserDevice;
 import com.example.nettytest.userinterface.UserDevsMessage;
 import com.example.nettytest.userinterface.UserInterface;
@@ -39,6 +42,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -60,7 +64,7 @@ public class MainActivity extends AppCompatActivity {
 
     int iTestCount = 0;
 
-    static AudioTest audioTest;
+    static AudioTest audioTest = null;
     static boolean isAudioTestCreate = false;
     
     Handler terminalCallMessageHandler = null;
@@ -69,11 +73,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void CreateAudioTest(){
         if(!isAudioTestCreate){
+            System.out.println(String.format("screen CreateAudioTest create server and clients"));
             audioTest = new AudioTest();
             isAudioTestCreate = true;
 
             InitAudioDevice();
             InitServer();
+
+            new CallMessageProcess().start();
         }
     }
 
@@ -191,47 +198,52 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
 
-        CreateAudioTest();
-        audioTest.isUIActive = true;
+        System.out.println(String.format("screen onCreate with %d",getResources().getConfiguration().orientation));
+        if(getResources().getConfiguration().orientation==ActivityInfo.SCREEN_ORIENTATION_PORTRAIT) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        }else {
 
-        InitGui();
+            CreateAudioTest();
 
-        new CallMessageProcess().start();
-        uiUpdateTimer = new Timer();
-        uiUpdateTimer.schedule(new TimerTask() {
-            @SuppressLint("DefaultLocale")
-            @Override
-            public void run() {
-                runOnUiThread(() -> {
-                    TextView tv;
-                    if(audioTest.isUIActive) {
-                        tv = findViewById(R.id.runTimeId);
-                        if (audioTest.isTestFlag) {
-                            long testTime = System.currentTimeMillis() - audioTest.testStartTime;
-                            testTime = testTime / 1000;
-                            tv.setText(String.format("R: %d-%02d:%02d:%02d", testTime / 86400, (testTime % 86400) / 3600, (testTime % 3600) / 60, testTime % 60));
-                        } else {
-                            tv.setText("");
+            InitGui();
+
+            uiUpdateTimer = new Timer();
+            uiUpdateTimer.schedule(new TimerTask() {
+                @SuppressLint("DefaultLocale")
+                @Override
+                public void run() {
+                    runOnUiThread(() -> {
+                        TextView tv;
+                        if (audioTest.isUIActive) {
+                            tv = findViewById(R.id.runTimeId);
+                            if (audioTest.isTestFlag) {
+                                long testTime = System.currentTimeMillis() - audioTest.testStartTime;
+                                testTime = testTime / 1000;
+                                tv.setText(String.format("R: %d-%02d:%02d:%02d", testTime / 86400, (testTime % 86400) / 3600, (testTime % 3600) / 60, testTime % 60));
+                            } else {
+                                tv.setText("");
+                            }
                         }
-                    }
-                    tv = findViewById(R.id.audioOwnerId);
-                    String audioOwner = HandlerMgr.GetAudioOwner();
-                    if(audioOwner.isEmpty()){
-                        tv.setText("Audio is Free");
-                    }else{
-                        tv.setText(String.format("Audio Owner is %s",audioOwner));
-                    }
-                    tv = findViewById(R.id.statisticsId);
-                    tv.setText(String.format("B(C=%d,T=%d),T(C=%d,T=%d)",HandlerMgr.GetBackCallCount(),HandlerMgr.GetBackTransCount(),HandlerMgr.GetTermCallCount(),HandlerMgr.GetTermTransCount()));
-                });
-            }
-        },0,1000);
-                    
- 
+                        tv = findViewById(R.id.audioOwnerId);
+                        String audioOwner = HandlerMgr.GetAudioOwner();
+                        if (audioOwner.isEmpty()) {
+                            tv.setText("Audio is Free");
+                        } else {
+                            tv.setText(String.format("Audio Owner is %s", audioOwner));
+                        }
+                        tv = findViewById(R.id.statisticsId);
+                        tv.setText(String.format("B(C=%d,T=%d),T(C=%d,T=%d)", HandlerMgr.GetBackCallCount(), HandlerMgr.GetBackTransCount(), HandlerMgr.GetTermCallCount(), HandlerMgr.GetTermTransCount()));
+                    });
+                }
+            }, 0, 1000);
+
+            audioTest.isUIActive = true;
+        }
+
         TextView tv = findViewById(R.id.deviceStatusId);
 
         tv.setOnTouchListener((view, motionEvent) -> {
@@ -240,12 +252,14 @@ public class MainActivity extends AppCompatActivity {
                 boolean result;
                 float x = motionEvent.getX();
                 float y = motionEvent.getY();
-                if (audioTest.curDevice != null) {
-                    synchronized (MainActivity.class) {
-                        result = audioTest.curDevice.Operation(0, (int) x, (int) y);
+                if(audioTest!=null) {
+                    if (audioTest.curDevice != null) {
+                        synchronized (MainActivity.class) {
+                            result = audioTest.curDevice.Operation(0, (int) x, (int) y);
+                        }
+                        if (result)
+                            UpdateHMI(audioTest.curDevice);
                     }
-                    if (result)
-                        UpdateHMI(audioTest.curDevice);
                 }
             }
             return true;
@@ -260,16 +274,19 @@ public class MainActivity extends AppCompatActivity {
                 boolean result;
                 float x = motionEvent.getX();
                 float y = motionEvent.getY();
-                if(audioTest.curDevice!=null){
-                    synchronized (MainActivity.class) {
-                        result = audioTest.curDevice.Operation(1, (int) x, (int) y);
+                if(audioTest!=null) {
+                    if (audioTest.curDevice != null) {
+                        synchronized (MainActivity.class) {
+                            result = audioTest.curDevice.Operation(1, (int) x, (int) y);
+                        }
+                        if (result)
+                            UpdateHMI(audioTest.curDevice);
                     }
-                    if(result)
-                        UpdateHMI(audioTest.curDevice);
                 }
             }
             return true;
         });
+
 
     }
 
@@ -301,22 +318,56 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void InitServer(){
+        ServerDeviceInfo devInfo = new ServerDeviceInfo();
+        ArrayList<UserConfig> paramList = new ArrayList<>();
+
+        UserConfig param = new UserConfig();
+        param.param_id="iDJSYSM";
+        param.param_name="ddd";
+        param.param_value = "2000";
+        param.param_unit = "time";
+        paramList.add(param);
+
+        param = new UserConfig();
+        param.param_id="CallAlert";
+        param.param_name="ffff";
+        param.param_value = "1";
+        param.param_unit = "0/1";
+        paramList.add(param);
+
         if(PhoneParam.serverActive) {
             UserInterface.StartServer();
             for(int iTmp=0;iTmp<PhoneParam.devicesOnServer.size();iTmp++){
                 UserDevice dev = PhoneParam.devicesOnServer.get(iTmp);
                 UserInterface.AddDeviceOnServer(dev.devid,dev.type);
+                UserInterface.ConfigDeviceParamOnServer(dev.devid,paramList);
+                devInfo.roomId = "2001";
+                devInfo.bedName = "bed"+(iTmp+1);
+                devInfo.deviceName = "people"+(iTmp+1);
+                UserInterface.ConfigDeviceInfoOnServer(dev.devid,devInfo);
+                UserInterface.ConfigServerParam(new BackEndConfig());
             }
         }
+
+        paramList.clear();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        terminalCallMessageHandler.getLooper().quit();
-        uiUpdateTimer.cancel();
-        audioTest.isUIActive = false;
-        System.out.println("Call OnDestory");
+/*
+        if(terminalCallMessageHandler!=null) {
+            terminalCallMessageHandler.getLooper().quit();
+            terminalCallMessageHandler = null;
+        }
+ */
+        if(uiUpdateTimer!=null) {
+            uiUpdateTimer.cancel();
+            uiUpdateTimer = null;
+        }
+        if(audioTest!=null)
+            audioTest.isUIActive = false;
+        System.out.println("screen OnDestory");
     }
 
     private void InitGui(){
@@ -366,7 +417,7 @@ public class MainActivity extends AppCompatActivity {
                 int msgType = message.arg1;
                 UserMessage terminalMsg = (UserMessage)message.obj;
                 TestDevice device=null;
-                if (msgType == UserMessage.MESSAGE_CALL_INFO || msgType == UserMessage.MESSAGE_REG_INFO || msgType == UserMessage.MESSAGE_DEVICES_INFO) {
+                if (msgType == UserMessage.MESSAGE_CALL_INFO || msgType == UserMessage.MESSAGE_REG_INFO || msgType == UserMessage.MESSAGE_DEVICES_INFO||msgType==UserMessage.MESSAGE_CONFIG_INFO) {
 
                     UserInterface.PrintLog("DEV %s Recv Msg %d(%s) ", terminalMsg.devId, terminalMsg.type, UserMessage.GetMsgName(terminalMsg.type));
                     for (TestDevice testDevice : audioTest.testDevices) {
@@ -402,6 +453,11 @@ public class MainActivity extends AppCompatActivity {
                                 if (device == audioTest.curDevice) {
                                     if(device.type==UserInterface.CALL_NURSER_DEVICE )
                                         UpdateNurserHMI(device);
+                                }
+                                break;
+                            case UserMessage.MESSAGE_CONFIG_INFO:
+                                synchronized (MainActivity.class) {
+                                    device.UpdateConfig((UserConfigMessage )terminalMsg);
                                 }
                                 break;
                         }
