@@ -23,10 +23,11 @@ import java.util.Enumeration;
 public class PhoneParam {
     final public static String CALL_SERVER_ID = "FFFFFFFF";
     final public static String BROAD_ADDRESS = "255.255.255.255";
-    final public static int CLIENT_REG_EXPIRE = 3600;
+    final public static int CLIENT_REG_EXPIRE = 60;
 
     final public static int INVITE_CALL_RTP_PORT = 9090;
     final public static int ANSWER_CALL_RTP_PORT = 9092;
+    final public static int BROADCAST_CALL_RTP_PORT = 9094;
 
     final public static int CALL_RTP_CODEC = Rtp.RTP_CODEC_711MU;
     final public static int CALL_RTP_PTIME = 20;
@@ -42,6 +43,7 @@ public class PhoneParam {
     final static String JSON_SERVER_ADDRESS_NAME = "address";
     final static String JSON_SERVER_PORT_NAME = "port";
     final static String JSON_SERVER_ACTIVE_NAME = "active";
+    final static String JSON_SNAP_PORT_NAME = "snapPort";
 
     final static String JSON_CLIENT_NAME = "client";
 
@@ -57,6 +59,8 @@ public class PhoneParam {
     public static boolean serverActive = false;
     public static int broadcallCastMode = BROADCALL_USE_BROADCAST;
 
+    public static int snapStartPort = 11005;
+
     static void InitServerAndDevicesConfig(String info){
         JSONObject json;
         JSONObject serverJson;
@@ -67,6 +71,7 @@ public class PhoneParam {
         int iTmp;
         try {
             json = new JSONObject(info);
+            snapStartPort = json.getInt(JSON_SNAP_PORT_NAME);
             serverJson = json.getJSONObject(JSON_SERVE_NAME);
             clientJson = json.getJSONObject(JSON_CLIENT_NAME);
             callServerPort = serverJson.optInt(JSON_SERVER_PORT_NAME);

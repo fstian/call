@@ -28,7 +28,6 @@ import com.example.nettytest.userinterface.UserConfigMessage;
 import com.example.nettytest.userinterface.UserDevice;
 import com.example.nettytest.userinterface.UserDevsMessage;
 import com.example.nettytest.userinterface.UserInterface;
-import com.example.nettytest.terminal.test.LocalCallInfo;
 import com.example.nettytest.terminal.test.TestDevice;
 import com.example.nettytest.userinterface.UserMessage;
 import com.example.nettytest.userinterface.UserRegMessage;
@@ -101,12 +100,15 @@ public class MainActivity extends AppCompatActivity {
             audioTest.testDevices[0] = new TestDevice(UserInterface.CALL_BED_DEVICE,"20105101");
         }
         audioTest.curDevice = audioTest.testDevices[0];
+        try {
+            audioTest.testSocket = new DatagramSocket(PhoneParam.snapStartPort);
+        }catch (SocketException e){
+            e.printStackTrace();
+        }
 
         new Thread(() -> {
-            try {
                 byte[] recvBuf=new byte[1024];
                 DatagramPacket recvPack;
-                audioTest.testSocket = new DatagramSocket(SystemSnap.SNAP_MMI_PORT);
                 while (!audioTest.testSocket.isClosed()){
                     recvPack = new DatagramPacket(recvBuf, recvBuf.length);
                     try {
@@ -146,12 +148,15 @@ public class MainActivity extends AppCompatActivity {
                                     StopTestTimer();
                                 }
                             }else if(type==SystemSnap.SNAP_MMI_CALL_REQ){
+                                String devId = json.optString(SystemSnap.SNAP_DEVID_NAME);
                                 for (TestDevice dev : audioTest.testDevices) {
                                     if(dev==null)
                                         break;
-                                    byte[] resBuf = dev.MakeSnap();
-                                    DatagramPacket resPack= new DatagramPacket(resBuf,resBuf.length,recvPack.getAddress(),recvPack.getPort());
-                                    audioTest.testSocket.send(resPack);
+                                    if(dev.id.compareToIgnoreCase(devId)==0) {
+                                        byte[] resBuf = dev.MakeSnap();
+                                        DatagramPacket resPack = new DatagramPacket(resBuf, resBuf.length, recvPack.getAddress(), recvPack.getPort());
+                                        audioTest.testSocket.send(resPack);
+                                    }
                                 }
                             }else if(type==SystemSnap.LOG_CONFIG_REQ_CMD){
                                 LogWork.backEndNetModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_NET_NAME) == 1;
@@ -187,9 +192,6 @@ public class MainActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                 }
-            } catch (SocketException e) {
-                e.printStackTrace();
-            }
         }).start();
 
     }
@@ -291,8 +293,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void StartTestTimer(){
-        audioTest.testStartTime = System.currentTimeMillis();
-        audioTest.isTestFlag = true;
+        if(!audioTest.isTestFlag){
+            audioTest.testStartTime = System.currentTimeMillis();
+            audioTest.isTestFlag = true;
+        }
     }
 
     private void StopTestTimer(){
@@ -302,17 +306,22 @@ public class MainActivity extends AppCompatActivity {
     private void StopTest(){
         if(audioTest.testSocket!=null){
             if(!audioTest.testSocket.isClosed()){
-                String stopCmd = "{\"autoTest\":0,\"realTime\":1,\"timeUnit\":10}";
+                String stopCmd = "{\"type\":1,\"autoTest\":0,\"realTime\":1,\"timeUnit\":10}";
                 byte[] sendBuf = stopCmd.getBytes();
-                DatagramPacket packet;
-                try {
-                    packet = new DatagramPacket(sendBuf,sendBuf.length, InetAddress.getByName("255.255.255.255"),10005);
-                    audioTest.testSocket.send(packet);
-                } catch (UnknownHostException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        DatagramPacket packet;
+                        try {
+                            packet = new DatagramPacket(sendBuf,sendBuf.length,InetAddress.getByName("255.255.255.255"),PhoneParam.snapStartPort);
+                            audioTest.testSocket.send(packet);
+                        } catch (UnknownHostException e) {
+                            e.printStackTrace();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }).start();
             }
         }
     }
@@ -435,16 +444,20 @@ public class MainActivity extends AppCompatActivity {
                                 synchronized (MainActivity.class) {
                                     result = device.UpdateCallInfo((UserCallMessage) terminalMsg);
                                 }
-                                if(device==audioTest.curDevice)
-                                    UpdateHMI(device);
+                                if(device==audioTest.curDevice) {
+                                    if((!audioTest.isTestFlag)||device.testInfo.isRealTimeFlash)
+                                        UpdateHMI(device);
+                                }
                                 if(result<0){
                                     StopTest();
                                 }
                                 break;
                             case UserMessage.MESSAGE_REG_INFO:
                                 device.UpdateRegisterInfo((UserRegMessage) terminalMsg);
-                                if (device == audioTest.curDevice)
-                                    UpdateHMI(device);
+                                if (device == audioTest.curDevice){
+                                    if((!audioTest.isTestFlag)||device.testInfo.isRealTimeFlash)
+                                        UpdateHMI(device);
+                                }
                                 break;
                             case UserMessage.MESSAGE_DEVICES_INFO:
                                 synchronized (MainActivity.class) {
@@ -472,13 +485,15 @@ public class MainActivity extends AppCompatActivity {
                         }
                         if(audioTest.curDevice==testDevice){
                             if (testFlag) {
-                                UpdateHMI(audioTest.curDevice);
+                                if((!audioTest.isTestFlag)||testDevice.testInfo.isRealTimeFlash)
+                                    UpdateHMI(testDevice);
                             }
 
-                            //                            iTestCount++;
+                            iTestCount++;
                             if(iTestCount>20){
                                 iTestCount = 0;
-//                                UpdateHMI(curDevice);
+                                if(audioTest.isTestFlag&&(!testDevice.testInfo.isRealTimeFlash))
+                                    UpdateHMI(testDevice);
                             }
                         }
                     }
@@ -499,35 +514,7 @@ public class MainActivity extends AppCompatActivity {
                     TextView tv = findViewById(R.id.deviceStatusId);
                     if (dev.type == UserInterface.CALL_NURSER_DEVICE) {
                         StringBuilder status;
-                        if (dev.devLists == null)
-                            UserInterface.PrintLog("Recv DEV_REQ for %s, Has NO bed Device", dev.id);
-                        else
-                            UserInterface.PrintLog("Recv DEV_REQ for %s, Has %d bed Device", dev.id, dev.devLists.size());
-                        if (dev.isCallOut) {
-                            if (dev.outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_OUTGOING)
-                                status = new StringBuilder(String.format("%s Call to %s\r", audioTest.curDevice.GetDeviceName(), dev.outGoingCall.callee));
-                            else if (dev.outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_RINGING)
-                                status = new StringBuilder(String.format("%s Call to %s, Ringing....\n", dev.GetDeviceName(), dev.outGoingCall.callee));
-                            else if (dev.outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
-                                status = new StringBuilder(String.format("%s Talking with %s\n", dev.GetDeviceName(), dev.talkPeer));
-                            else
-                                status = new StringBuilder(String.format("%s Call to %s, Unknow....\n", dev.GetDeviceName(), dev.outGoingCall.callee));
-                        } else {
-                            if (dev.isRegOk)
-                                status = new StringBuilder(String.format("%s Register Suss\n", dev.GetDeviceName()));
-                            else
-                                status = new StringBuilder(String.format("%s Register Fail\n", dev.GetDeviceName()));
-                        }
-
-                        if (dev.devLists != null) {
-                            for (int iTmp = 0; iTmp < dev.devLists.size(); iTmp++) {
-                                UserDevice bedPhone = dev.devLists.get(iTmp);
-                                if (bedPhone.isReg) {
-                                    status.append(String.format("%s Register succ\n", bedPhone.devid));
-                                } else
-                                    status.append(String.format("%s Register Fail\n", bedPhone.devid));
-                            }
-                        }
+                        status = dev.GetNurserDeviceInfo();
                         tv.setText(status.toString());
                     }
                 }
@@ -539,24 +526,10 @@ public class MainActivity extends AppCompatActivity {
         if(audioTest.isUIActive) {
             runOnUiThread(() -> {
                 StringBuilder status;
-                int talkingNum = 0;
                 synchronized (MainActivity.class) {
                     TextView tv = findViewById(R.id.deviceStatusId);
-                    if (dev.isCallOut) {
-                        if (dev.outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_OUTGOING)
-                            status = new StringBuilder(String.format("%s Call to %s\n", audioTest.curDevice.GetDeviceName(), dev.outGoingCall.callee));
-                        else if (dev.outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_RINGING)
-                            status = new StringBuilder(String.format("%s Call to %s, Ringing....\n", dev.GetDeviceName(), dev.outGoingCall.callee));
-                        else if (dev.outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
-                            status = new StringBuilder(String.format("%s Talking with %s\n", dev.GetDeviceName(), dev.talkPeer));
-                        else
-                            status = new StringBuilder(String.format("%s Call to %s, Unknow....\n", dev.GetDeviceName(), dev.outGoingCall.callee));
-                    } else {
-                        if (dev.isRegOk)
-                            status = new StringBuilder(String.format("%s Register Suss\n", dev.GetDeviceName()));
-                        else
-                            status = new StringBuilder(String.format("%s Register Fail\n", dev.GetDeviceName()));
-                    }
+                    status = dev.GetDeviceInfo();
+
                     tv.setText(status.toString());
  
                     if (dev.type == UserInterface.CALL_NURSER_DEVICE) {
@@ -564,24 +537,9 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     tv = findViewById(R.id.callListId);
-                    status = new StringBuilder();
-                    for (LocalCallInfo callInfo : dev.inComingCallInfos) {
-                        switch (callInfo.status) {
-                            case LocalCallInfo.LOCAL_CALL_STATUS_INCOMING:
-                                status.append(String.format("From %s, Incoming\n", callInfo.caller));
-                                break;
-                            case LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED:
-                                status.append(String.format("%s Talking with %s\n", dev.id,dev.talkPeer));
-                                talkingNum++;
-                                break;
-                            default:
-                                status.append(String.format("From %s, Unexcept\n", callInfo.caller));
-                                break;
-
-                        }
-                    }
+                    status = dev.GetCallInfo();
                     tv.setText(status.toString());
-                    if (talkingNum > 1) {
+                    if (audioTest.isTestFlag&&(!dev.CheckTestStatus())) {
                         StopTest();
                     }
                 }

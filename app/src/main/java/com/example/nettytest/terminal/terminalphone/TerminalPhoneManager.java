@@ -19,6 +19,7 @@ import com.example.nettytest.pub.protocol.InviteResPack;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.protocol.RegResPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
+import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
 import com.example.nettytest.userinterface.UserMessage;
 
@@ -66,8 +67,8 @@ public class TerminalPhoneManager {
                 byte[] recvBuf = new byte[1024];
                 DatagramPacket recvPack;
                 DatagramSocket testSocket;
-                ArrayList<byte[]> resList;
-                testSocket = new DatagramSocket(SystemSnap.SNAP_TERMINAL_PORT);
+                byte[] snapResult;
+                testSocket = new DatagramSocket(PhoneParam.snapStartPort+1);
                 DatagramPacket resPack;
                 while (!testSocket.isClosed()) {
                     recvPack = new DatagramPacket(recvBuf, recvBuf.length);
@@ -79,12 +80,14 @@ public class TerminalPhoneManager {
                             int type = json.optInt(SystemSnap.SNAP_CMD_TYPE_NAME);
                             synchronized (TerminalPhoneManager.class) {
                                 if (type == SystemSnap.SNAP_TERMINAL_CALL_REQ) {
-                                    resList = MakeCallsSnap();
-                                    for (byte[] data : resList) {
-                                        resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
+                                    String devId = json.optString(SystemSnap.SNAP_DEVID_NAME);
+                                    snapResult = MakeCallsSnap(devId);
+                                    if(snapResult!=null) {
+                                        resPack = new DatagramPacket(snapResult, snapResult.length, recvPack.getAddress(), recvPack.getPort());
                                         testSocket.send(resPack);
                                     }
                                 } else if (type == SystemSnap.SNAP_TERMINAL_TRANS_REQ) {
+                                    ArrayList<byte[]>resList;
                                     resList = HandlerMgr.GetTerminalTransInfo();
                                     for (byte[] data : resList) {
                                         resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
@@ -337,15 +340,17 @@ public class TerminalPhoneManager {
         }
     }
 
-    private ArrayList<byte[]> MakeCallsSnap(){
-        ArrayList<byte[]> snapList = new ArrayList<>();
+    private byte[] MakeCallsSnap(String id){
+        byte[] result = null;
         synchronized (TerminalPhoneManager.class) {
             for (TerminalPhone phone : clientPhoneLists.values()) {
-                byte[] callInfo = phone.MakeCallSnap();
-                snapList.add(callInfo);
+                if(phone.id.compareToIgnoreCase(id)==0) {
+                    result = phone.MakeCallSnap();
+                    break;
+                }
             }
         }
-        return snapList;
+        return result;
     }
 
 

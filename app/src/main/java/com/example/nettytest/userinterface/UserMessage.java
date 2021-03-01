@@ -84,6 +84,9 @@ public class UserMessage {
             case DEV_MESSAGE_LIST:
                 msgName = "Dev List";
                 break;
+            case CONFIG_MESSAGE_LIST:
+                msgName = "Config List";
+                break;
             default:
                 msgName = "Message Unknow DD";
                 break;

@@ -3,11 +3,13 @@ package com.example.nettytest.pub;
 import android.os.Handler;
 import android.os.Message;
 
+import com.example.nettytest.backend.backendcall.BackEndCallConvergenceManager;
 import com.example.nettytest.backend.backenddevice.BackEndDevManager;
 import com.example.nettytest.backend.backendphone.BackEndConfig;
 import com.example.nettytest.backend.backendphone.BackEndPhone;
 import com.example.nettytest.backend.backendphone.BackEndPhoneManager;
 import com.example.nettytest.backend.backendtranscation.BackEndTransactionMgr;
+import com.example.nettytest.pub.commondevice.PhoneDevice;
 import com.example.nettytest.pub.protocol.ConfigItem;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.transaction.Transaction;
@@ -20,6 +22,8 @@ import com.example.nettytest.terminal.terminaltransaction.TerminalTransactionMgr
 import com.example.nettytest.userinterface.ServerDeviceInfo;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
 import com.example.nettytest.userinterface.UserConfig;
+import com.example.nettytest.userinterface.UserDevice;
+import com.example.nettytest.userinterface.UserInterface;
 
 import java.util.ArrayList;
 
@@ -210,9 +214,52 @@ public class HandlerMgr {
         return true;
     }
 
+    static public boolean GetBackEndPhoneInfo(ArrayList<UserDevice> lists){
+        ArrayList<PhoneDevice> phoneLists = new ArrayList<>();
+        backEndPhoneMgr.GetDeviceList(phoneLists);
+        for(PhoneDevice dev:phoneLists){
+            UserDevice userDev = new UserDevice();
+            userDev.isReg = dev.isReg;
+            userDev.devid = dev.id;
+            switch(dev.type) {
+                case PhoneDevice.BED_CALL_DEVICE:
+                    userDev.type = UserInterface.CALL_BED_DEVICE;
+                    break;
+                case PhoneDevice.DOOR_CALL_DEVICE:
+                    userDev.type = UserInterface.CALL_DOOR_DEVICE;
+                    break;
+                case PhoneDevice.CORRIDOR_CALL_DEVICE:
+                    userDev.type = UserInterface.CALL_CORRIDOR_DEVICE;
+                    break;
+                case PhoneDevice.NURSE_CALL_DEVICE:
+                    userDev.type = UserInterface.CALL_NURSER_DEVICE;
+                    break;
+                case PhoneDevice.EMER_CALL_DEVICE:
+                    userDev.type = UserInterface.CALL_EMERGENCY_TYPE;
+                    break;
+                case PhoneDevice.TV_CALL_DEVICE:
+                    userDev.type = UserInterface.CALL_TV_DEVICE;
+                    break;
+                case PhoneDevice.WHITE_BOARD_DEVICE:
+                    userDev.type = UserInterface.CALL_WHITE_BOARD_DEVICE;
+                    break;
+                default:
+                    userDev.type = dev.type;
+                    break;
+            }
+            userDev.bedName = dev.bedName;
+            lists.add(userDev);
+        }
+        return true;
+    }
+
 // get listen phone
     static public ArrayList<BackEndPhone> GetBackEndListenDevices(int callType){
         return backEndPhoneMgr.GetListenDevices(callType);
+    }
+
+    static public boolean CheckForwardEnable(BackEndPhone phone, int callType){
+        return backEndPhoneMgr.CheckForwardEnable(phone,callType);
     }
 
     public static ArrayList<byte[]> GetBackEndTransInfo(){

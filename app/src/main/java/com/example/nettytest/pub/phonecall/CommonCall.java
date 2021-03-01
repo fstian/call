@@ -36,7 +36,11 @@ public class CommonCall {
     public int audioCodec;
     public int rtpTime;
     public int audioSample;
+
     public int localRtpPort;
+    
+    public String remoteRtpAddress;
+    public int remoteRtpPort;
 
     public CommonCall(String caller,String callee,int type){
         this.callee = callee;
@@ -51,13 +55,20 @@ public class CommonCall {
         rtpTime = PhoneParam.CALL_RTP_PTIME;
         audioCodec = PhoneParam.CALL_RTP_CODEC;
         audioSample = PhoneParam.CALL_RTP_SAMPLE;
-        localRtpPort = PhoneParam.INVITE_CALL_RTP_PORT;
+        if(type==CALL_TYPE_BROADCAST){
+            localRtpPort = PhoneParam.BROADCAST_CALL_RTP_PORT;
+            remoteRtpPort = PhoneParam.BROADCAST_CALL_RTP_PORT;
+        }else{
+            localRtpPort = PhoneParam.INVITE_CALL_RTP_PORT;
+            remoteRtpPort = PhoneParam.ANSWER_CALL_RTP_PORT;
+        }
+        remoteRtpAddress="";
     }
 
     public CommonCall(String id,InviteReqPack pack){
         callee = pack.callee;
         caller = pack.caller;
-        type = pack.type;
+        type = pack.callType;
         direct = pack.callDirect;
 
         answer = "";
@@ -69,7 +80,15 @@ public class CommonCall {
         rtpTime = pack.pTime;
         audioCodec = pack.codec;
         audioSample = pack.sample;
-        localRtpPort = PhoneParam.ANSWER_CALL_RTP_PORT;
+
+        remoteRtpAddress = pack.callerRtpIP;
+        remoteRtpPort = pack.callerRtpPort;
+        
+        if(type==CALL_TYPE_BROADCAST){
+            localRtpPort = PhoneParam.BROADCAST_CALL_RTP_PORT;
+        }else{
+            localRtpPort = PhoneParam.ANSWER_CALL_RTP_PORT;
+        }
 
     }
 

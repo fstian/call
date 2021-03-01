@@ -2,6 +2,7 @@ package com.example.nettytest.terminal.terminalcall;
 
 import com.example.nettytest.pub.protocol.UpdateReqPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
+import com.example.nettytest.terminal.audio.AudioDevice;
 import com.example.nettytest.terminal.audio.AudioMgr;
 import com.example.nettytest.userinterface.FailReason;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
@@ -23,19 +24,20 @@ import com.example.nettytest.terminal.terminalphone.TerminalPhone;
 
 public class TerminalCall extends CommonCall {
 
-    public String remoteRtpAddress;
-    public int remoteRtpPort;
 
     public int updateTick;
 
     String audioId = "";
 
+    int autoAnswerTime;
+    int autoAnswerTick;
+
     // call out
     public TerminalCall(String caller, TerminalDeviceInfo info,String callee, int type) {
         super(caller, callee, type);
-        remoteRtpAddress = "";
-        remoteRtpPort = 0;
         updateTick =CommonCall.UPDATE_INTERVAL;
+        autoAnswerTime = -1;
+        autoAnswerTick = 0;
 
         InviteReqPack invitePack = BuildInvitePacket(info);
         Transaction inviteTransaction = new Transaction(devID,invitePack,Transaction.TRANSCATION_DIRECTION_C2S);
@@ -46,9 +48,9 @@ public class TerminalCall extends CommonCall {
     // incoming call
     public TerminalCall(InviteReqPack pack){
         super(pack.receiver,pack);
-        remoteRtpAddress = pack.callerRtpIP;
-        remoteRtpPort = pack.callerRtpPort;
         updateTick =CommonCall.UPDATE_INTERVAL;
+        autoAnswerTime = pack.autoAnswerTime;
+        autoAnswerTick = 0;
 
         InviteResPack resPack = new InviteResPack();
         resPack.ExchangeCopyData(pack);
@@ -80,6 +82,7 @@ public class TerminalCall extends CommonCall {
     }
 
     public int Answer(){
+        int audioMode;
         AnswerReqPack answerPack = BuildAnswerPacket();
 
         UserCallMessage callMsg = new UserCallMessage();
@@ -87,8 +90,16 @@ public class TerminalCall extends CommonCall {
         callMsg.devId = devID;
         callMsg.callId = callID;
 
+        if(type==CALL_TYPE_BROADCAST){
+            audioMode = AudioDevice.RECV_ONLY_MODE;
+        }else if(type==CALL_TYPE_EMERGENCY){
+            audioMode = AudioDevice.NO_SEND_RECV_MODE;
+        }else{
+            audioMode = AudioDevice.SEND_RECV_MODE;
+        }
+
         state = CommonCall.CALL_STATE_CONNECTED;
-        audioId = AudioMgr.OpenAudio(devID,localRtpPort,remoteRtpPort,remoteRtpAddress,audioSample,rtpTime,audioCodec,0);
+        audioId = AudioMgr.OpenAudio(devID,localRtpPort,remoteRtpPort,remoteRtpAddress,audioSample,rtpTime,audioCodec,audioMode);
 
         Transaction answerTrans = new Transaction(devID,answerPack,Transaction.TRANSCATION_DIRECTION_C2S);
         LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Answer Call %s! ",devID,callID);
@@ -156,6 +167,7 @@ public class TerminalCall extends CommonCall {
 
     }
 
+
     public void UpdateSecondTick(){
         updateTick--;
         if(updateTick==0){
@@ -166,11 +178,23 @@ public class TerminalCall extends CommonCall {
             HandlerMgr.AddPhoneTrans(updateReqP.msgID,updateReqTrans);
             updateTick = CommonCall.UPDATE_INTERVAL;
         }
+        if(state==CALL_STATE_INCOMING){
+            if(autoAnswerTime>=0){
+                if(autoAnswerTick<=autoAnswerTime){
+                    autoAnswerTick++;
+                    if(autoAnswerTick>autoAnswerTime){
+                        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s AutoAnswer call %s! ",devID,callID);
+                        Answer();
+                    }
+                }
+            }
+        }
     }
 
     public void UpdateCallStatus(AnswerReqPack pack){
         AnswerResPack answerResPack = new AnswerResPack(ProtocolPacket.STATUS_OK,pack);
         UserCallMessage callMsg = new UserCallMessage();
+        int audioMode;
         callMsg.type = UserCallMessage.CALL_MESSAGE_ANSWERED;
         callMsg.devId = devID;
         callMsg.callId = pack.callID;
@@ -180,7 +204,14 @@ public class TerminalCall extends CommonCall {
         state = CommonCall.CALL_STATE_CONNECTED;
         remoteRtpPort = pack.answererRtpPort;
         remoteRtpAddress = pack.answererRtpIP;
-        audioId = AudioMgr.OpenAudio(devID,localRtpPort,remoteRtpPort,remoteRtpAddress,pack.sample,pack.pTime,pack.codec,0);
+        if(type==CALL_TYPE_BROADCAST){
+            audioMode = AudioDevice.SEND_ONLY_MODE;
+        }else if(type == CALL_TYPE_EMERGENCY){
+            audioMode = AudioDevice.NO_SEND_RECV_MODE;
+        }else{
+            audioMode = AudioDevice.SEND_RECV_MODE;
+        }
+        audioId = AudioMgr.OpenAudio(devID,localRtpPort,remoteRtpPort,remoteRtpAddress,pack.sample,pack.pTime,pack.codec,audioMode);
 
         Transaction answerResTrans = new Transaction(devID,pack,answerResPack,Transaction.TRANSCATION_DIRECTION_C2S);
         LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Call Answer Req for CallID = %s, and Send Answer Res to Server! ",devID,callID);
@@ -257,8 +288,11 @@ public class TerminalCall extends CommonCall {
 
         invitePack.callerRtpIP = PhoneParam.GetLocalAddress();
         invitePack.callerRtpPort = localRtpPort;
-        invitePack.broadcastIP = PhoneParam.BROAD_ADDRESS;
-        invitePack.broadcastPort = PhoneParam.INVITE_CALL_RTP_PORT;
+        if(type==CALL_TYPE_BROADCAST){
+            invitePack.autoAnswerTime = PhoneParam.BROADCALL_ANSWER_WAIT;
+        }else{
+            invitePack.autoAnswerTime  = -1;
+        }
         return invitePack;
     }
 

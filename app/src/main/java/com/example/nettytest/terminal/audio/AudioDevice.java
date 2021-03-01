@@ -23,6 +23,12 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 
 public class AudioDevice {
+
+    public final static int NO_SEND_RECV_MODE = 0;
+    public final static int RECV_ONLY_MODE = 1;
+    public final static int SEND_ONLY_MODE = 2;
+    public final static int SEND_RECV_MODE = 3;
+    
     int dstPort ;
     int srcPort ;
     int ptime ;
@@ -30,7 +36,6 @@ public class AudioDevice {
     int codec;
 
     String dstAddress;
-    int mode;
 
     Handler audioWriteHandler;
     boolean audioWriteHandlerEnabled = false;
@@ -59,6 +64,8 @@ public class AudioDevice {
 
     MobileAEC aec;
 
+    int audioMode;
+
     static{
         System.loadLibrary("JitterBuffer");
         System.loadLibrary("webrtc_aecm");
@@ -69,65 +76,73 @@ public class AudioDevice {
         dstPort = dst;
         srcPort = src;
         dstAddress = address;
-        this.mode = mode;
         this.ptime = ptime;
         this.sample = sample;
         this.codec = codec;
         this.devId = devId;
+        audioMode = mode;
 
-        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Create Audio!!!!!!!");
+        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Create Audio, Mode = %d !!!!!!!",audioMode);
 
         OpenSocket();
         OpenAudio();
 
         id = UniqueIDManager.GetUniqueID(this.devId,UniqueIDManager.AUDIO_UNIQUE_ID);
-        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Open Audio %s on %d peer %s:%d, Codec=%d, Sample=%d, PTime=%d",id,src,address,dst,codec,sample,ptime);
+        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Open Audio %s on %d peer %s:%d, Codec=%d, Sample=%d, PTime=%d, mode=%d",id,src,address,dst,codec,sample,ptime,mode);
 
     }
 
     public void AudioSwitch(String devId,int src,int dst,String address,int sample,int ptime,int codec,int mode){
 
-        boolean isSwitch = false;
-        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,String.format("Begin Switch Audio %s!!!!!!!",id));
+        boolean isSocketSwitch = false;
+        boolean isAudioSwitch = false;
+        boolean isDeviceSwitch = false;
+        boolean isDestSwitch = false;
 
-       if(srcPort!=src){
+        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Switch From Audio %s mode %d!!!!!!!",id,audioMode);
+
+       if(srcPort!=src||audioMode!=mode){
             // do something to reopen socket;
             CloseSocket();
-            srcPort = src;
-            OpenSocket();
-            isSwitch = true;
+            isSocketSwitch = true;
         }
 
-        if(sample!=this.sample||ptime!=this.ptime||codec!=this.codec){
+        if(sample!=this.sample||ptime!=this.ptime||codec!=this.codec||audioMode!=mode){
             // do something to reset audio thread
-
             CloseAudio();
-            this.ptime = ptime;
-            this.sample = sample;
-            this.codec = codec;
+            isAudioSwitch = true;
+        }
 
-            this.mode = mode;
+        srcPort = src;
+        this.ptime = ptime;
+        this.sample = sample;
+        this.codec = codec;
+        this.audioMode = mode;
+
+        if(isSocketSwitch) {
+            OpenSocket();
+        }
+        if(isAudioSwitch) {
             OpenAudio();
-            isSwitch = true;
         }
 
         if(devId.compareToIgnoreCase(this.devId)!=0){
             this.devId = devId;
-            isSwitch = true;
+            isDeviceSwitch = true;
         }
 
         if(dst!=dstPort||dstAddress.compareToIgnoreCase(address)!=0){
             dstPort = dst;
             dstAddress = address;
-            isSwitch = true;
+            isDestSwitch = true;
         }
 
-        if(isSwitch){
+        if(isDestSwitch||isSocketSwitch||isAudioSwitch||isDeviceSwitch){
             String oldId = id;
             id = UniqueIDManager.GetUniqueID(this.devId,UniqueIDManager.AUDIO_UNIQUE_ID);
-            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Switch Audio %s to %s on %d peer %s:%d, Codec=%d, Sample=%d, PTime=%d",oldId,id,src,address,dst,codec,sample,ptime);
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Switch Audio %s to %s on %d peer %s:%d, Codec=%d, Sample=%d, PTime=%d, mode=%d",oldId,id,src,address,dst,codec,sample,ptime,audioMode);
         }else{
-            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Switch Audio %s on %d peer %s:%d, Codec=%d, Sample=%d, PTime=%d, but not Change",id,src,address,dst,codec,sample,ptime);
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Switch Audio %s on %d peer %s:%d, Codec=%d, Sample=%d, PTime=%d, mode=%d, but not Change",id,src,address,dst,codec,sample,ptime,audioMode);
         }
     }
 
@@ -147,8 +162,12 @@ public class AudioDevice {
     private void OpenSocket(){
         try {
             audioSocket = new DatagramSocket(srcPort);
-            socketReadThread = new SocketReadThread();
-            socketReadThread.start();
+            if(audioMode==RECV_ONLY_MODE||audioMode==SEND_RECV_MODE){
+                socketReadThread = new SocketReadThread();
+                socketReadThread.start();
+            }else{
+                socketReadThread = null;
+            }
             socketOpenCount++;
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"After OpenSocket Count =%d",socketOpenCount);
         } catch (SocketException e) {
@@ -158,7 +177,8 @@ public class AudioDevice {
 
     private void CloseSocket(){
         if(audioSocket!=null) {
-            socketReadThread.interrupt();
+            if(socketReadThread!=null)
+                socketReadThread.interrupt();
             audioSocket.close();
             socketReadThread = null;
             audioSocket = null;
@@ -169,8 +189,10 @@ public class AudioDevice {
 
     private void OpenAudio(){
 
-        aec =new MobileAEC(new SamplingFrequency(sample));
-        aec.setAecmMode(MobileAEC.AggressiveMode.MOST_AGGRESSIVE).prepare();
+        if(audioMode==SEND_RECV_MODE){
+            aec =new MobileAEC(new SamplingFrequency(sample));
+            aec.setAecmMode(MobileAEC.AggressiveMode.MOST_AGGRESSIVE).prepare();
+        }
 
         jb = new JitterBuffer();
         jb.initJb();
@@ -178,11 +200,14 @@ public class AudioDevice {
 
         packSize = sample*ptime/1000;
 
-        audioWriteThread = new AudioWriteThread();
-        audioWriteThread.start();
+        if(audioMode==SEND_RECV_MODE||audioMode==RECV_ONLY_MODE){
+            audioWriteThread = new AudioWriteThread();
+            audioWriteThread.start();
+        }
 
         audioReadThread = new AudioReadThread();
         audioReadThread.start();
+        
         audioOpenCount++;
         LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"After OpenAudio Count =%d",audioOpenCount);
 
@@ -224,7 +249,9 @@ public class AudioDevice {
         jb.closeJb(jbIndex);
         jb.deInitJb();
 
-        aec.close();
+        if(audioMode==SEND_RECV_MODE){
+            aec.close();
+        }
 
         audioOpenCount--;
         LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"After CloseAudio Count =%d",audioOpenCount);
@@ -275,7 +302,7 @@ public class AudioDevice {
             short[] pcmData;
             byte[] rtpData;
             short[] audioReadData = new short[packSize];
-            short[] aecData = new short[packSize];
+            short[] aecData ;
             int readNum;
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Audio AudioReadThread");
 
@@ -290,44 +317,57 @@ public class AudioDevice {
 
             recorder.startRecording();
 
+            if(audioMode==SEND_RECV_MODE){
+                aecData = new short[packSize];
+            }else{
+                aecData = audioReadData;
+            }
+
             while (!isInterrupted()) {
                 jbDataLen = jb.getPackage(jbIndex, jbData, packSize);
                 if (jbDataLen > 0) {
                     pcmData = Rtp.UnenclosureRtp(jbData, jbDataLen, codec);
-                    if (audioWriteHandlerEnabled && audioWriteHandler != null) {
-                        Message playMsg = audioWriteHandler.obtainMessage();
-                        playMsg.arg1 = AUDIO_PLAY_MSG;
-                        playMsg.obj = pcmData;
-                        audioWriteHandler.sendMessage(playMsg);
-                    }
                     // notify play thread;
+                    if(audioMode==RECV_ONLY_MODE||audioMode==SEND_RECV_MODE){
+                        if (audioWriteHandlerEnabled && audioWriteHandler != null) {
+                            Message playMsg = audioWriteHandler.obtainMessage();
+                            playMsg.arg1 = AUDIO_PLAY_MSG;
+                            playMsg.obj = pcmData;
+                            audioWriteHandler.sendMessage(playMsg);
+                        }
+                    }
 
                     //read ;
                     readNum = recorder.read(audioReadData, 0, packSize);
 //                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Read %d sample from Audio device, Return =%d",packSize,readNum);
 
                     //aec process
-                    try {
-                        aec.farendBuffer(pcmData,pcmData.length);
-                        aec.echoCancellation(audioReadData,null,aecData,(short)packSize,(short)100);
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                    if(audioMode==SEND_RECV_MODE){
+                        try {
+                            aec.farendBuffer(pcmData,pcmData.length);
+                            aec.echoCancellation(audioReadData,null,aecData,(short)packSize,(short)100);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+
                     }
                     // rtp packet and send
-                    rtpData = Rtp.EncloureRtp(aecData, codec);
-                    DatagramPacket dp = new DatagramPacket(rtpData, rtpData.length);
-                    try {
-                        dp.setAddress(InetAddress.getByName(dstAddress));
-                        dp.setPort(dstPort);
-                        DatagramSocket curSocket = audioSocket;
-                        if (curSocket != null) {
-                            curSocket.send(dp);
-//                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Send %d byte to %s:%d",rtpData.length,dstAddress,dstPort);
+                    if(audioMode==SEND_ONLY_MODE||audioMode==SEND_RECV_MODE){
+                        rtpData = Rtp.EncloureRtp(aecData, codec);
+                        DatagramPacket dp = new DatagramPacket(rtpData, rtpData.length);
+                        try {
+                            dp.setAddress(InetAddress.getByName(dstAddress));
+                            dp.setPort(dstPort);
+                            DatagramSocket curSocket = audioSocket;
+                            if (curSocket != null) {
+                                curSocket.send(dp);
+    //                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Send %d byte to %s:%d",rtpData.length,dstAddress,dstPort);
+                            }
+                        } catch (UnknownHostException e) {
+                            e.printStackTrace();
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
-                    } catch (UnknownHostException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
                     }
                 } else {
                     try {
