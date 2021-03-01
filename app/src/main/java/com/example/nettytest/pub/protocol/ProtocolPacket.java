@@ -34,10 +34,9 @@ public class ProtocolPacket {
     public final static String PACKET_CALLERTYPE_NAME = "callerType";
     public final static String PACKET_CALLEEIP_MAME = "calleeIP";
     public final static String PACKET_CALLEEPORT_NAME = "calleePort";
-    public final static String PACKET_BROADCASTIP_NAME = "broadcastIP";
-    public final static String PACKET_BROADCASTPORT_NAME = "broadcastPort";
     public final static String PACKET_CALLID_NAME = "callID";
     public final static String PACKET_DETAIL_NAME = "detail";
+    public final static String PACKET_AUTOANSWER_TIME_NAME = "autoAnswerTime";
 
     public final static String PACKET_PARAMS_NAME = "params";
     public final static String PACKET_PARAM_ID_NAME = "paramId";

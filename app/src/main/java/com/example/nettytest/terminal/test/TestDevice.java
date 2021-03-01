@@ -28,13 +28,13 @@ public class TestDevice {
     public boolean isTalking;
     public String talkPeer;
     public LocalCallInfo outGoingCall;
-    private TestInfo testInfo;
+    public TestInfo testInfo;
     private int testTickCount;
     private int testWaitTick;
     final int INCOMING_LINE_HEIGHT = 35;
-    public ArrayList<UserDevice> devLists;
 
-    public ArrayList<LocalCallInfo> inComingCallInfos;
+    private ArrayList<UserDevice> devLists;
+    private ArrayList<LocalCallInfo> inComingCallInfos;
 
     public TestDevice(int type,String id){
         TerminalDeviceInfo info = new TerminalDeviceInfo();
@@ -42,6 +42,7 @@ public class TestDevice {
         this.id = id;
         UserInterface.BuildDevice(type,id);
         info.patientName = "patient"+id;
+        info.patientAge = 18+type;
         UserInterface.SetDevInfo(id,info);
         inComingCallInfos = new ArrayList<>();
         outGoingCall = new LocalCallInfo();
@@ -86,19 +87,24 @@ public class TestDevice {
             }
             snap.putOpt(SystemSnap.SNAP_CALLSTATUS_NAME,outGoingCall.status);
             if(outGoingCall.status!=LocalCallInfo.LOCAL_CALL_STATUS_DISCONNECT) {
-                snap.putOpt(SystemSnap.SNAP_PEER_NAME, outGoingCall.callee);
+                if(outGoingCall.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
+                    snap.putOpt(SystemSnap.SNAP_PEER_NAME,outGoingCall.answer);
+                else
+                    snap.putOpt(SystemSnap.SNAP_PEER_NAME, outGoingCall.callee);
                 snap.putOpt(SystemSnap.SNAP_CALLID_NAME, outGoingCall.callID);
             }
 
             JSONArray callList = new JSONArray();
-            for(int iTmp=0;iTmp<inComingCallInfos.size();iTmp++){
-                JSONObject call = new JSONObject();
-                call.putOpt(SystemSnap.SNAP_CALLSTATUS_NAME,inComingCallInfos.get(iTmp).status);
-                if(inComingCallInfos.get(iTmp).status!=LocalCallInfo.LOCAL_CALL_STATUS_DISCONNECT) {
-                    call.putOpt(SystemSnap.SNAP_PEER_NAME, inComingCallInfos.get(iTmp).caller);
-                    call.putOpt(SystemSnap.SNAP_CALLID_NAME, inComingCallInfos.get(iTmp).callID);
+            synchronized (TestDevice.class) {
+                for (int iTmp = 0; iTmp < inComingCallInfos.size(); iTmp++) {
+                    JSONObject call = new JSONObject();
+                    call.putOpt(SystemSnap.SNAP_CALLSTATUS_NAME, inComingCallInfos.get(iTmp).status);
+                    if (inComingCallInfos.get(iTmp).status != LocalCallInfo.LOCAL_CALL_STATUS_DISCONNECT) {
+                        call.putOpt(SystemSnap.SNAP_PEER_NAME, inComingCallInfos.get(iTmp).caller);
+                        call.putOpt(SystemSnap.SNAP_CALLID_NAME, inComingCallInfos.get(iTmp).callID);
+                    }
+                    callList.put(call);
                 }
-                callList.put(call);
             }
             snap.putOpt(SystemSnap.SNAP_INCOMINGS_NAME,callList);
 
@@ -122,10 +128,12 @@ public class TestDevice {
 
     private String GetIncomingCaller(String id){
         String peer = "";
-        for(LocalCallInfo info:inComingCallInfos){
-            if(info.callID.compareToIgnoreCase(id)==0){
-                peer = info.caller;
-                break;
+        synchronized(TestDevice.class){
+            for(LocalCallInfo info:inComingCallInfos){
+                if(info.callID.compareToIgnoreCase(id)==0){
+                    peer = info.caller;
+                    break;
+                }
             }
         }
         return peer;
@@ -137,7 +145,7 @@ public class TestDevice {
 
     public void QueryConfig() {UserInterface.QueryDevConfig(id);}
 
-    public OperationResult EndCall(String callid){
+    private OperationResult EndCall(String callid){
         OperationResult result;
         result = UserInterface.EndCall(id,callid);
         if(isTalking) {
@@ -148,8 +156,7 @@ public class TestDevice {
                         talkPeer = "";
                     }
                 }
-            }
-            if(isTalking) {
+            }else{
                 for (LocalCallInfo callInfo : inComingCallInfos) {
                     if(callInfo.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED) {
                         if(callInfo.callID.compareToIgnoreCase(callid)==0) {
@@ -279,34 +286,36 @@ public class TestDevice {
 
     public boolean TestProcess(){
         boolean result = false;
-        if(testInfo.isAutoTest) {
+        if(testInfo.isAutoTest&& isRegOk) {
             testTickCount++;
             if (testTickCount >= testWaitTick) {
                 testTickCount = 0;
                 testWaitTick = (int) (Math.random() * testInfo.timeUnit) + 1;
                 result = true;
-                if(isCallOut){
+                synchronized (TestDevice.class) {
+                    if (isCallOut) {
 //                    EndCall(outGoingCall.callID);
-                }else{
-                    if(inComingCallInfos.size()==0){
-                        if(type==UserInterface.CALL_NURSER_DEVICE) {
-                            String callDevId = GetRandomBedDeviceId();
-                            if(callDevId!=null)
-                                BuildCall(callDevId,UserInterface.CALL_NORMAL_TYPE);
-                        }else if(type==UserInterface.CALL_BED_DEVICE){
-                            BuildCall(PhoneParam.CALL_SERVER_ID,UserInterface.CALL_BED_DEVICE);
-                        }
-                    }else{
-                        int selectCall = (int)(Math.random()*inComingCallInfos.size());
-                        if(selectCall>=inComingCallInfos.size())
-                            selectCall = inComingCallInfos.size()-1;
-                        if(isTalking){
-                            EndCall(inComingCallInfos.get(selectCall).callID);
-                        }else {
-                            if(Math.random()>0.5)
-                                AnswerCall(inComingCallInfos.get(selectCall).callID);
+                    } else {
+                        if (inComingCallInfos.size() == 0) {
+                            if (type == UserInterface.CALL_NURSER_DEVICE) {
+                                String callDevId = GetRandomBedDeviceId();
+                                if (callDevId != null)
+                                    BuildCall(callDevId, UserInterface.CALL_NORMAL_TYPE);
+                            } else if (type == UserInterface.CALL_BED_DEVICE) {
+                                BuildCall(PhoneParam.CALL_SERVER_ID, UserInterface.CALL_NORMAL_TYPE);
+                            }
+                        } else {
+                            int selectCall = (int) (Math.random() * inComingCallInfos.size());
+                            if (selectCall >= inComingCallInfos.size())
+                                selectCall = inComingCallInfos.size() - 1;
+                            if (isTalking) {
+                                EndCall(inComingCallInfos.get(selectCall).callID);
+                            } else {
+                                if (Math.random() > 0.5)
+                                    AnswerCall(inComingCallInfos.get(selectCall).callID);
 //                            else
 //                                EndCall(inComingCallInfos.get(selectCall).callID);
+                            }
                         }
                     }
                 }
@@ -339,76 +348,79 @@ public class TestDevice {
 
     public int UpdateCallInfo(UserCallMessage msg){
         int result = 0;
-        switch(msg.type){
-            case UserCallMessage.CALL_MESSAGE_RINGING:
-                outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_RINGING;
-                UserInterface.PrintLog("Dev %s Set Out Goning Call %s to Ringing",id,outGoingCall.callID);
-                break;
-            case UserCallMessage.CALL_MESSAGE_DISCONNECT:
-            case UserCallMessage.CALL_MESSAGE_UPDATE_FAIL:
-            case UserCallMessage.CALL_MESSAGE_INVITE_FAIL:
-            case UserCallMessage.CALL_MESSAGE_ANSWER_FAIL:
-            case UserCallMessage.CALL_MESSAGE_UNKNOWFAIL:
-                if(msg.callId.compareToIgnoreCase(outGoingCall.callID)==0) {
-                    if(outGoingCall.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED){
-                        isTalking = false;
-                        talkPeer = "";
-                    }
-                    outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_DISCONNECT;
-                    UserInterface.PrintLog("Dev %s Set Out Going Call %s Disconnected",id,outGoingCall.callID);
-                    isCallOut = false;
-                }else{
-                    for(LocalCallInfo info:inComingCallInfos){
-                        if(info.callID.compareToIgnoreCase(msg.callId)==0){
-                            if(info.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED){
-                                isTalking = false;
-                                talkPeer = "";
+        synchronized (TestDevice.class) {
+            switch (msg.type) {
+                case UserCallMessage.CALL_MESSAGE_RINGING:
+                    outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_RINGING;
+                    UserInterface.PrintLog("Dev %s Set Out Goning Call %s to Ringing", id, outGoingCall.callID);
+                    break;
+                case UserCallMessage.CALL_MESSAGE_DISCONNECT:
+                case UserCallMessage.CALL_MESSAGE_UPDATE_FAIL:
+                case UserCallMessage.CALL_MESSAGE_INVITE_FAIL:
+                case UserCallMessage.CALL_MESSAGE_ANSWER_FAIL:
+                case UserCallMessage.CALL_MESSAGE_UNKNOWFAIL:
+                    if (msg.callId.compareToIgnoreCase(outGoingCall.callID) == 0) {
+                        if (outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED) {
+                            isTalking = false;
+                            talkPeer = "";
+                        }
+                        outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_DISCONNECT;
+                        UserInterface.PrintLog("Dev %s Set Out Going Call %s Disconnected", id, outGoingCall.callID);
+                        isCallOut = false;
+                    } else {
+                        for (LocalCallInfo info : inComingCallInfos) {
+                            if (info.callID.compareToIgnoreCase(msg.callId) == 0) {
+                                if (info.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED) {
+                                    isTalking = false;
+                                    talkPeer = "";
+                                }
+                                inComingCallInfos.remove(info);
+                                UserInterface.PrintLog("Dev %s Remove Incoming Call %s", id, info.callID);
+                                break;
                             }
-                            inComingCallInfos.remove(info);
-                            UserInterface.PrintLog("Dev %s Remove Incoming Call %s",id,info.callID);
+                        }
+                    }
+                    break;
+                case UserCallMessage.CALL_MESSAGE_ANSWERED:
+                    outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED;
+                    outGoingCall.answer = msg.operaterId;
+                    UserInterface.PrintLog("Dev %s Set Out Going Call %s Connected", id, outGoingCall.callID);
+                    isTalking = true;
+                    talkPeer = outGoingCall.answer;
+                    break;
+                case UserCallMessage.CALL_MESSAGE_INCOMING:
+                    LocalCallInfo info = new LocalCallInfo();
+                    info.status = LocalCallInfo.LOCAL_CALL_STATUS_INCOMING;
+                    info.callID = msg.callId;
+                    info.callee = msg.calleeId;
+                    info.caller = msg.callerId;
+                    inComingCallInfos.add(info);
+                    UserInterface.PrintLog("Dev %s Recv Incoming Call %s from room-%s , bed-%s , patient-%s, age-%d", id, info.callID,msg.roomId,msg.bedName,msg.patientName,msg.patientAge);
+                    break;
+                case UserCallMessage.CALL_MESSAGE_CONNECT:
+                    for (LocalCallInfo info1 : inComingCallInfos) {
+                        if (info1.callID.compareToIgnoreCase(msg.callId) == 0) {
+                            info1.status = LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED;
+                            UserInterface.PrintLog("Dev %s Set Incoming Call %s Connected", id, info1.callID);
+                            talkPeer = info1.caller;
                             break;
                         }
                     }
-                }
-                break;
-            case UserCallMessage.CALL_MESSAGE_ANSWERED:
-                outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED;
-                outGoingCall.answer = msg.operaterId;
-                UserInterface.PrintLog("Dev %s Set Out Going Call %s Connected",id,outGoingCall.callID);
-                isTalking = true;
-                talkPeer = outGoingCall.answer;
-                break;
-            case UserCallMessage.CALL_MESSAGE_INCOMING:
-                LocalCallInfo info = new LocalCallInfo();
-                info.status = LocalCallInfo.LOCAL_CALL_STATUS_INCOMING;
-                info.callID = msg.callId;
-                info.callee = msg.calleeId;
-                info.caller = msg.callerId;
-                inComingCallInfos.add(info);
-                UserInterface.PrintLog("Dev %s Recv Incoming Call %s",id,info.callID);
-                break;
-            case UserCallMessage.CALL_MESSAGE_CONNECT:
-                for(LocalCallInfo info1:inComingCallInfos){
-                    if(info1.callID.compareToIgnoreCase(msg.callId)==0){
-                        info1.status = LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED;
-                        UserInterface.PrintLog("Dev %s Set Incoming Call %s Connected",id,info1.callID);
-                        break;
-                    }
-                }
-                break;
-        }
+                    break;
+            }
 
-        int talkingCount = 0;
-        for(LocalCallInfo info:inComingCallInfos){
-            if(info.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
-                talkingCount++;
+            int talkingCount = 0;
+            for (LocalCallInfo info : inComingCallInfos) {
+                if (info.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
+                    talkingCount++;
+            }
+            if (talkingCount > 1)
+                result = -1;
         }
-        if(talkingCount>1)
-            result = -1;
         return result;
     }
 
-    public String GetDeviceName(){
+    private String GetDeviceName(){
 
         return String.format("%s",id);
     }
@@ -449,5 +461,102 @@ public class TestDevice {
             return null;
     }
     
+    public StringBuilder GetCallInfo(){
+        StringBuilder status = new StringBuilder();
+        for (LocalCallInfo callInfo : inComingCallInfos) {
+            switch (callInfo.status) {
+                case LocalCallInfo.LOCAL_CALL_STATUS_INCOMING:
+                    status.append(String.format("From %s, Incoming\n", callInfo.caller));
+                    break;
+                case LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED:
+                    status.append(String.format("%s Talking with %s\n", id,talkPeer));
+                    break;
+                default:
+                    status.append(String.format("From %s, Unexcept\n", callInfo.caller));
+                    break;
 
+            }
+        }
+        return status;
+    }
+
+    public boolean CheckTestStatus(){
+        int talkNum = 0;
+        boolean isRight = true;
+        synchronized (TestDevice.class) {
+            if(outGoingCall.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
+                talkNum++;
+
+            for (LocalCallInfo callInfo : inComingCallInfos) {
+                switch (callInfo.status) {
+                    case LocalCallInfo.LOCAL_CALL_STATUS_INCOMING:
+                        break;
+                    case LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED:
+                        talkNum++;
+                        if (talkNum > 1) {
+                            isRight = false;
+                            break;
+                        }
+                        break;
+                }
+            }
+
+            if(isRight) {
+                for (int iTmp = 0; iTmp < inComingCallInfos.size(); iTmp++) {
+                    LocalCallInfo cp1 = inComingCallInfos.get(iTmp);
+                    for (int jTmp = iTmp+1; jTmp < inComingCallInfos.size(); jTmp++) {
+                        LocalCallInfo cp2 = inComingCallInfos.get(jTmp);
+                        if (cp1.callID.compareToIgnoreCase(cp2.callID) == 0) {
+                            isRight = false;
+                            break;
+                        }
+                        if (!isRight)
+                            break;
+                    }
+                }
+            }
+        }
+        return isRight;
+    }
+
+    public StringBuilder GetDeviceInfo(){
+        StringBuilder status;
+        if (isCallOut) {
+            if (outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_OUTGOING)
+                status = new StringBuilder(String.format("%s Call to %s\n", GetDeviceName(), outGoingCall.callee));
+            else if (outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_RINGING)
+                status = new StringBuilder(String.format("%s Call to %s, Ringing....\n", GetDeviceName(), outGoingCall.callee));
+            else if (outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
+                status = new StringBuilder(String.format("%s Talking with %s\n", GetDeviceName(), talkPeer));
+            else
+                status = new StringBuilder(String.format("%s Call to %s, Unknow....\n", GetDeviceName(), outGoingCall.callee));
+        } else {
+            if (isRegOk)
+                status = new StringBuilder(String.format("%s Register Suss\n", GetDeviceName()));
+            else
+                status = new StringBuilder(String.format("%s Register Fail\n", GetDeviceName()));
+        }
+        return status;
+    }
+
+    public StringBuilder GetNurserDeviceInfo(){
+        StringBuilder status;
+
+        status = GetDeviceInfo();
+
+        if (devLists != null) {
+            for (int iTmp = 0; iTmp < devLists.size(); iTmp++) {
+                UserDevice bedPhone = devLists.get(iTmp);
+                if (bedPhone.isReg) {
+                    status.append(String.format("%s Register succ\n", bedPhone.devid));
+                    UserInterface.PrintLog("%s-%s Register Succ",bedPhone.devid,bedPhone.bedName);
+                } else {
+                    status.append(String.format("%s Register Fail\n", bedPhone.devid));
+                    UserInterface.PrintLog("%s-%s Register Fail",bedPhone.devid,bedPhone.bedName);
+                }
+            }
+        }
+
+        return status;
+    }
 }

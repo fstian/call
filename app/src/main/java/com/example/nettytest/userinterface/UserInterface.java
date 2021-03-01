@@ -4,20 +4,25 @@ import android.os.Handler;
 
 import com.example.nettytest.backend.backendphone.BackEndConfig;
 import com.example.nettytest.backend.backendphone.BackEndPhone;
+import com.example.nettytest.backend.backendphone.BackEndPhoneManager;
 import com.example.nettytest.backend.callserver.DemoServer;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
+import com.example.nettytest.pub.commondevice.PhoneDevice;
 import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
 
 import java.util.ArrayList;
 
 public class UserInterface {
-    public final static int CALL_BED_DEVICE = 1;
-    public final static int CALL_DOOR_DEVICE = 2;
-    public final static int CALL_NURSER_DEVICE = 3;
-    public final static int CALL_TV_DEVICE = 4;
-    public final static int CALL_CORRIDOR_DEVICE = 5;
+    public final static int CALL_BED_DEVICE = 2;
+    public final static int CALL_DOOR_DEVICE = 6;
+    public final static int CALL_NURSER_DEVICE = 9;
+    public final static int CALL_TV_DEVICE = 8;
+    public final static int CALL_CORRIDOR_DEVICE = 7;
+    public final static int CALL_EMERGENCY_DEVICE = 4;
+    public final static int CALL_DOOR_LIGHT_DEVICE = 5;
+    public final static int CALL_WHITE_BOARD_DEVICE = 10;
 
     public final static int CALL_NORMAL_TYPE = 1;
     public final static int CALL_EMERGENCY_TYPE = 2;
@@ -46,6 +51,18 @@ public class UserInterface {
         return result;
     }
 
+    public static OperationResult RemoveDeviceOnServer(String id){
+        OperationResult result = new OperationResult();
+
+        if(!HandlerMgr.RemoveBackEndPhone(id)){
+            result.result = OperationResult.OP_RESULT_FAIL;
+            result.reason = FailReason.FAIL_REASON_NOTFOUND;
+        }
+        return result;
+
+    }
+
+    
     public static OperationResult ConfigDeviceInfoOnServer(String id, ServerDeviceInfo info){
         OperationResult result = new OperationResult();
 
@@ -76,6 +93,13 @@ public class UserInterface {
                 break;
             case CALL_CORRIDOR_DEVICE:
                 typeInServer = BackEndPhone.CORRIDOR_CALL_DEVICE;
+                break;
+            case CALL_DOOR_LIGHT_DEVICE:
+                typeInServer = BackEndPhone.DOOR_LIGHT_CALL_DEVICE;
+                break;
+            case CALL_WHITE_BOARD_DEVICE:
+                typeInServer = BackEndPhone.WHITE_BOARD_DEVICE;
+                break;
         }
 
         if(!callServer.AddBackEndPhone(id, typeInServer)){
@@ -83,6 +107,12 @@ public class UserInterface {
             result.reason = FailReason.FAIL_REASON_UNKNOW;
         }
         return result;
+    }
+
+    public static ArrayList<UserDevice> GetDeviceInfoOnServer(){
+        ArrayList<UserDevice> devLists = new ArrayList<>();
+        HandlerMgr.GetBackEndPhoneInfo(devLists);
+        return devLists;
     }
 
     public static boolean SetMessageHandler(Handler handler){
@@ -106,6 +136,12 @@ public class UserInterface {
                 break;
             case CALL_TV_DEVICE:
                 HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.TV_CALL_DEVICE);
+                break;
+            case CALL_CORRIDOR_DEVICE:
+                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.CORRIDOR_CALL_DEVICE);
+                break;
+            case CALL_WHITE_BOARD_DEVICE:
+                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.WHITE_BOARD_DEVICE);
                 break;
             default:
                 result.result = OperationResult.OP_RESULT_FAIL;
@@ -219,6 +255,18 @@ public class UserInterface {
             case CALL_TV_DEVICE:
                 name = "TV";
                 break;
+            case CALL_EMERGENCY_DEVICE:
+                name = "emergency";
+                break;
+            case CALL_DOOR_LIGHT_DEVICE:
+                name = "door light";
+                break;
+            case CALL_WHITE_BOARD_DEVICE:
+                name = "white board";
+                break;
+            case CALL_CORRIDOR_DEVICE:
+                name = "corridor";
+                break;
         }
 
         return name;
@@ -233,6 +281,14 @@ public class UserInterface {
             type = CALL_NURSER_DEVICE;
         else if(name.compareToIgnoreCase("TV")==0)
             type = CALL_TV_DEVICE;
+        else if(name.compareToIgnoreCase("emergency")==0)
+            type = CALL_EMERGENCY_DEVICE;
+        else if(name.compareToIgnoreCase("doorLight")==0)
+            type = CALL_DOOR_LIGHT_DEVICE;
+        else if(name.compareToIgnoreCase("corridor")==0)
+            type = CALL_CORRIDOR_DEVICE;
+        else if(name.compareToIgnoreCase("whiteBoard")==0)
+            type = CALL_WHITE_BOARD_DEVICE;
         return type;
     }
 }

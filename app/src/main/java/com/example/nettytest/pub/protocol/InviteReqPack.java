@@ -23,8 +23,7 @@ public class InviteReqPack extends ProtocolPacket{
     public String callerRtpIP;
     public int callerRtpPort;
 
-    public String broadcastIP;
-    public int broadcastPort;
+    public int autoAnswerTime;
 
     private void CopyInviteData(InviteReqPack invitePack){
         callType = invitePack.callType;
@@ -48,8 +47,7 @@ public class InviteReqPack extends ProtocolPacket{
         callerRtpPort = invitePack.callerRtpPort;
         callerRtpIP = invitePack.callerRtpIP;
 
-        broadcastPort = invitePack.broadcastPort;
-        broadcastIP = invitePack.broadcastIP;
+        autoAnswerTime = invitePack.autoAnswerTime;
     }
 
     public int ExchangeCopyData(InviteReqPack pack){

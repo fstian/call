@@ -34,7 +34,6 @@ import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 
-
 public class BackEndPhoneManager {
 
     public static final int MSG_NEW_PACKET = 1;
@@ -70,7 +69,7 @@ public class BackEndPhoneManager {
                 DatagramPacket recvPack;
                 DatagramSocket testSocket;
                 ArrayList<byte[]> resList;
-                testSocket = new DatagramSocket(SystemSnap.SNAP_BACKEND_PORT);
+                testSocket = new DatagramSocket(PhoneParam.snapStartPort+2);
                 DatagramPacket resPack;
                 while (!testSocket.isClosed()) {
                     recvPack = new DatagramPacket(recvBuf, recvBuf.length);
@@ -80,12 +79,14 @@ public class BackEndPhoneManager {
                             if(PhoneParam.serverActive) {
                                 String recv = new String(recvBuf, "UTF-8");
                                 JSONObject json = new JSONObject(recv);
-                                int type = json.optInt("type");
+                                int type = json.optInt(SystemSnap.SNAP_CMD_TYPE_NAME);
                                 synchronized (BackEndPhoneManager.class) {
                                     if (type == SystemSnap.SNAP_BACKEND_CALL_REQ) {
-                                        resList = backEndCallConvergencyMgr.MakeCallConvergenceSnap();
-                                        for (byte[] data : resList) {
-                                            resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
+                                        String devid = json.optString(SystemSnap.SNAP_DEVID_NAME);
+                                        byte[] result;
+                                        result = backEndCallConvergencyMgr.MakeCallConvergenceSnap(devid);
+                                        if(result!=null) {
+                                            resPack = new DatagramPacket(result, result.length, recvPack.getAddress(), recvPack.getPort());
                                             testSocket.send(resPack);
                                         }
                                     } else if (type == SystemSnap.SNAP_BACKEND_TRANS_REQ) {
@@ -123,25 +124,90 @@ public class BackEndPhoneManager {
         return backEndCallConvergencyMgr.GetCallCount();
     }
 
+    public boolean CheckForwardEnable(BackEndPhone phone,int callType){
+        return backEndCallConvergencyMgr.CheckForwardEnable(phone, callType);
+    }
+
     public ArrayList<BackEndPhone> GetListenDevices(int callType){
         ArrayList<BackEndPhone> devices = new ArrayList<>();
             for(String devid:serverPhoneLists.keySet()){
+                boolean isAdd = false;
                 BackEndPhone phone = serverPhoneLists.get(devid);
                 if(phone==null)
                     break;
-                if(callType== CommonCall.CALL_TYPE_NORMAL||callType==CommonCall.CALL_TYPE_EMERGENCY){
-                    if(phone.type==BackEndPhone.DOOR_CALL_DEVICE
-                    ||phone.type==BackEndPhone.CORRIDOR_CALL_DEVICE
-                    ||phone.type==BackEndPhone.NURSE_CALL_DEVICE
-                    ||phone.type==BackEndPhone.TV_CALL_DEVICE){
-                        devices.add(phone);
-                    }
-                }else if(callType==CommonCall.CALL_TYPE_BROADCAST){
-                    if(phone.type==BackEndPhone.DOOR_CALL_DEVICE
-                    ||phone.type==BackEndPhone.CORRIDOR_CALL_DEVICE
-                    ||phone.type==BackEndPhone.BED_CALL_DEVICE){
-                        devices.add(phone);
-                    }
+                switch(callType){
+                    case CommonCall.CALL_TYPE_BROADCAST:
+                        switch(phone.type){
+                            case BackEndPhone.BED_CALL_DEVICE:
+                                if(BackEndConfig.broadCallToBed)
+                                    isAdd = true;
+                                break;
+                            case BackEndPhone.DOOR_CALL_DEVICE:
+                                if(BackEndConfig.broadCallToRoom)
+                                    isAdd = true;
+                                break;
+                            case BackEndPhone.CORRIDOR_CALL_DEVICE:
+                                if(BackEndConfig.broadCallToCorridor)
+                                    isAdd = true;
+                                break;
+                            case BackEndPhone.NURSE_CALL_DEVICE:
+                                isAdd = false;
+                                break;
+                            case BackEndPhone.TV_CALL_DEVICE:
+                                if(BackEndConfig.broadCallToTv)
+                                    isAdd = true;
+                                break;
+                        }
+                        break;
+                    case CommonCall.CALL_TYPE_EMERGENCY:
+                        switch(phone.type){
+                            case BackEndPhone.BED_CALL_DEVICE:
+                                if(BackEndConfig.emerCallToBed)
+                                    isAdd = true;
+                                break;
+                            case BackEndPhone.DOOR_CALL_DEVICE:
+                                if(BackEndConfig.emerCallToRoom)
+                                    isAdd = true;
+                                break;
+                            case BackEndPhone.CORRIDOR_CALL_DEVICE:
+                                if(BackEndConfig.emerCallToCorridor)
+                                    isAdd = true;
+                                break;
+                            case BackEndPhone.NURSE_CALL_DEVICE:
+                                isAdd = true;
+                                break;
+                            case BackEndPhone.TV_CALL_DEVICE:
+                                if(BackEndConfig.emerCallToTv)
+                                    isAdd = true;
+                                break;
+                        }
+                        break;
+                    case CommonCall.CALL_TYPE_NORMAL:
+                        switch(phone.type){
+                            case BackEndPhone.BED_CALL_DEVICE:
+                                if(BackEndConfig.normalCallToBed)
+                                    isAdd = true;
+                                break;
+                            case BackEndPhone.DOOR_CALL_DEVICE:
+                                if(BackEndConfig.normalCallToRoom)
+                                    isAdd = true;
+                                break;
+                            case BackEndPhone.CORRIDOR_CALL_DEVICE:
+                                if(BackEndConfig.normalCallToCorridor)
+                                    isAdd = true;
+                                break;
+                            case BackEndPhone.NURSE_CALL_DEVICE:
+                                isAdd = true;
+                                break;
+                            case BackEndPhone.TV_CALL_DEVICE:
+                                if(BackEndConfig.normalCallToTv)
+                                    isAdd = true;
+                                break;
+                        }
+                        break;
+                }
+                if(isAdd){
+                    devices.add(phone);
                 }
             }
         return devices;
@@ -342,7 +408,7 @@ public class BackEndPhoneManager {
         }
     }
 
-    private void GetDeviceList(ArrayList<PhoneDevice> list){
+    public void GetDeviceList(ArrayList<PhoneDevice> list){
         PhoneDevice dev;
         for(BackEndPhone phone:serverPhoneLists.values()){
             dev = new PhoneDevice();

@@ -23,10 +23,6 @@ public class SystemSnap {
     public static final int LOG_CONFIG_REQ_CMD = 7;
     public static final int LOG_CONFIG_REQ_RES = 107;
 
-    public static final int SNAP_MMI_PORT = 11005;
-    public static final int SNAP_TERMINAL_PORT = 11006;
-    public static final int SNAP_BACKEND_PORT = 11007;
-
     public static final String SNAP_AUTOTEST_NAME = "autoTest";
     public static final String SNAP_REALTIME_NAME = "realTime";
     public static final String SNAP_TIMEUNIT_NAME = "timeUnit";
@@ -42,6 +38,7 @@ public class SystemSnap {
     public static final String SNAP_REG_NAME = "reg";
 
     public static final String SNAP_INCOMINGS_NAME = "incomingCalls";
+    public static final String SNAP_OUTGOINGS_NAME = "outGoingCalls";
     public static final String SNAP_CALLER_NAME = "caller";
     public static final String SNAP_CALLEE_NAME = "callee";
     public static final String SNAP_PEER_NAME = "peer";

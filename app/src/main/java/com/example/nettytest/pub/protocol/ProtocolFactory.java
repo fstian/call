@@ -51,8 +51,6 @@ public class ProtocolFactory {
                     inviteReqPack.codec = context.optInt(ProtocolPacket.PACKET_CODEC_NAME);
                     inviteReqPack.callerRtpIP = context.optString(ProtocolPacket.PACKET_CALLERIP_MAME);
                     inviteReqPack.callerRtpPort = context.optInt(ProtocolPacket.PACKET_CALLERPORT_NAME);
-                    inviteReqPack.broadcastIP = context.optString(ProtocolPacket.PACKET_BROADCASTIP_NAME);
-                    inviteReqPack.broadcastPort = context.optInt(ProtocolPacket.PACKET_BROADCASTPORT_NAME);
 
                     inviteReqPack.patientName = context.optString(ProtocolPacket.PACKET_PATIENT_NAME_NAME);
                     inviteReqPack.patientAge = context.optInt(ProtocolPacket.PACKET_PATIENT_AGE_NAME);
@@ -64,6 +62,7 @@ public class ProtocolFactory {
                     inviteReqPack.pTime = context.optInt(ProtocolPacket.PACKET_PTIME_NAME);
                     inviteReqPack.codec = context.optInt(ProtocolPacket.PACKET_CODEC_NAME);
                     inviteReqPack.sample = context.optInt(ProtocolPacket.PACKET_SAMPLE_NAME);
+                    inviteReqPack.autoAnswerTime = context.optInt(ProtocolPacket.PACKET_AUTOANSWER_TIME_NAME);
 
                     p = inviteReqPack;
                     break;
@@ -233,14 +232,13 @@ public class ProtocolFactory {
                     context.putOpt(ProtocolPacket.PACKET_CALLERIP_MAME,inviteReqP.callerRtpIP);
                     context.putOpt(ProtocolPacket.PACKET_CALLERPORT_NAME,inviteReqP.callerRtpPort);
                     context.putOpt(ProtocolPacket.PACKET_CALLERTYPE_NAME,inviteReqP.callerType);
-                    context.putOpt(ProtocolPacket.PACKET_BROADCASTIP_NAME,inviteReqP.broadcastIP);
-                    context.putOpt(ProtocolPacket.PACKET_BROADCASTPORT_NAME,inviteReqP.broadcastPort);
                     context.putOpt(ProtocolPacket.PACKET_CALLID_NAME,inviteReqP.callID);
                     context.putOpt(ProtocolPacket.PACKET_PATIENT_NAME_NAME,inviteReqP.patientName);
                     context.putOpt(ProtocolPacket.PACKET_PATIENT_AGE_NAME,inviteReqP.patientAge);
                     context.putOpt(ProtocolPacket.PACKET_ROOMID_NAME,inviteReqP.roomId);
                     context.putOpt(ProtocolPacket.PACKET_BEDID_NAME,inviteReqP.bedName);
                     context.putOpt(ProtocolPacket.PACKET_DEVICE_NAME_NAME,inviteReqP.deviceName);
+                    context.putOpt(ProtocolPacket.PACKET_AUTOANSWER_TIME_NAME,inviteReqP.autoAnswerTime);
                     json.putOpt(ProtocolPacket.PACKET_CONTEXT_NAME,context);
                     break;
                 case ProtocolPacket.CALL_RES:

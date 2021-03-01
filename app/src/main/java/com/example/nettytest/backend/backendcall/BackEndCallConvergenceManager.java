@@ -1,8 +1,11 @@
 package com.example.nettytest.backend.backendcall;
 
+import android.telecom.Call;
+
 import com.example.nettytest.backend.backendphone.BackEndPhone;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
+import com.example.nettytest.pub.SystemSnap;
 import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.pub.protocol.AnswerReqPack;
 import com.example.nettytest.pub.protocol.AnswerResPack;
@@ -15,6 +18,10 @@ import com.example.nettytest.pub.protocol.UpdateReqPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.userinterface.PhoneParam;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,14 +40,54 @@ public class BackEndCallConvergenceManager {
         return callConvergenceList.size();
     }
 
-    public ArrayList<byte[]> MakeCallConvergenceSnap(){
-        ArrayList<byte[]> dateList = new ArrayList<>();
-        for (BackEndCallConvergence callConvergence:callConvergenceList.values()) {
-            byte[] snapBuf = callConvergence.MakeSnap();
-            dateList.add(snapBuf);
+    public byte[] MakeCallConvergenceSnap(String devid){
+        byte[] result = null;
+        JSONObject json = new JSONObject();
+
+        try {
+            json.putOpt(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_BACKEND_CALL_RES);
+            json.putOpt(SystemSnap.SNAP_DEVID_NAME, devid);
+            JSONArray outCalls = new JSONArray();
+            JSONArray incomingCalls = new JSONArray();
+            JSONObject calljson;
+            for (BackEndCallConvergence callConvergence:callConvergenceList.values()) {
+                if(callConvergence.inviteCall.caller.compareToIgnoreCase(devid)==0){
+                    calljson = new JSONObject();
+                    calljson.putOpt(SystemSnap.SNAP_CALLER_NAME,callConvergence.inviteCall.caller);
+                    calljson.putOpt(SystemSnap.SNAP_CALLEE_NAME,callConvergence.inviteCall.callee);
+                    calljson.putOpt(SystemSnap.SNAP_ANSWERER_NAME,callConvergence.inviteCall.answer);
+                    calljson.putOpt(SystemSnap.SNAP_CALLID_NAME,callConvergence.inviteCall.callID);
+                    calljson.putOpt(SystemSnap.SNAP_CALLSTATUS_NAME,callConvergence.inviteCall.state);
+                    outCalls.put(calljson);
+                }
+
+                if(callConvergence.inviteCall.callee.compareToIgnoreCase(devid)==0||callConvergence.inviteCall.answer.compareToIgnoreCase(devid)==0){
+                    calljson = new JSONObject();
+                    calljson.putOpt(SystemSnap.SNAP_CALLER_NAME,callConvergence.inviteCall.caller);
+                    calljson.putOpt(SystemSnap.SNAP_CALLID_NAME,callConvergence.inviteCall.callID);
+                    calljson.putOpt(SystemSnap.SNAP_CALLSTATUS_NAME,callConvergence.inviteCall.state);
+                    incomingCalls.put(calljson);
+                }
+
+                for(BackEndCall call:callConvergence.listenCallList){
+                    if(call.devID.compareToIgnoreCase(devid)==0){
+                        calljson = new JSONObject();
+                        calljson.putOpt(SystemSnap.SNAP_CALLER_NAME,call.caller);
+                        calljson.putOpt(SystemSnap.SNAP_CALLID_NAME,call.callID);
+                        calljson.putOpt(SystemSnap.SNAP_CALLSTATUS_NAME,call.state);
+                        incomingCalls.put(calljson);
+                    }
+                }
+            }
+            json.putOpt(SystemSnap.SNAP_OUTGOINGS_NAME,outCalls);
+            json.putOpt(SystemSnap.SNAP_INCOMINGS_NAME,incomingCalls);
+            result = json.toString().getBytes();
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
 
-        return dateList;
+
+        return result;
     }
 
     private boolean CheckInviteEnable(BackEndPhone phone){
@@ -66,6 +113,21 @@ public class BackEndCallConvergenceManager {
             return false;
         for(BackEndCallConvergence callConvergence:callConvergenceList.values()){
             if(!callConvergence.CheckAnswerEnable(phone,callid)) {
+                result = false;
+                break;
+            }
+        }
+        return result;
+    }
+
+    public boolean CheckForwardEnable(BackEndPhone phone,int callType){
+        boolean result = true;
+        if(phone == null)
+            return false;
+        if(!phone.isReg)
+            return false;
+        for(BackEndCallConvergence callConvergence:callConvergenceList.values()){
+            if(!callConvergence.CheckForwardEnable(phone,callType)) {
                 result = false;
                 break;
             }
@@ -155,9 +217,22 @@ public class BackEndCallConvergenceManager {
                 LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv Call End From %s for Call %s",endReqPack.endDevID,endReqPack.callID);
                 callConvergence = callConvergenceList.get(endReqPack.callID);
                 if(callConvergence!=null) {
-                    callConvergence.EndCall(endReqPack);
-                    callConvergenceList.remove(endReqPack.callID);
-                    callConvergence.Release();
+                    if(callConvergence.inviteCall.type==CommonCall.CALL_TYPE_BROADCAST) {
+                        if(endReqPack.endDevID.compareToIgnoreCase(callConvergence.inviteCall.caller)==0){
+                            LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server End Call %s",endReqPack.callID);
+                            callConvergence.EndCall(endReqPack);
+                            callConvergenceList.remove(endReqPack.callID);
+                            callConvergence.Release();
+                        }else{
+                            LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Remove %s From Call %s",endReqPack.endDevID,endReqPack.callID);
+                            callConvergence.SingleEnd(endReqPack);
+                        }
+                    }else if(callConvergence.inviteCall.type==CommonCall.CALL_TYPE_NORMAL) {
+                        LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server End Call %s",endReqPack.callID);
+                        callConvergence.EndCall(endReqPack);
+                        callConvergenceList.remove(endReqPack.callID);
+                        callConvergence.Release();
+                    }
                 }else{
                     LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"Server Recv Call End From %s for CallID %s, But Could not Find this Call",endReqPack.endDevID,endReqPack.callID);
                     EndResPack endResP = new EndResPack(ProtocolPacket.STATUS_NOTFOUND,endReqPack);
