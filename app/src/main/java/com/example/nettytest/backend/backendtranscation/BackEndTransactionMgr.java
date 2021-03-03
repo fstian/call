@@ -1,7 +1,5 @@
 package com.example.nettytest.backend.backendtranscation;
 
-import android.os.Message;
-
 import com.example.nettytest.backend.backendphone.BackEndPhoneManager;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.protocol.ProtocolPacket;

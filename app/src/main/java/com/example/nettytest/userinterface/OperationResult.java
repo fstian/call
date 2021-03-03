@@ -18,7 +18,7 @@ public class    OperationResult {
     }
 
     static public int GetUserFailReason(int status){
-        int localReason = FailReason.FAIL_REASON_UNKNOW;
+        int localReason;
         switch(status){
             case ProtocolPacket.STATUS_BUSY:
                 localReason = FailReason.FAIL_REASON_BUSY;

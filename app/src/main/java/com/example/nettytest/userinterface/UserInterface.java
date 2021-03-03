@@ -4,11 +4,9 @@ import android.os.Handler;
 
 import com.example.nettytest.backend.backendphone.BackEndConfig;
 import com.example.nettytest.backend.backendphone.BackEndPhone;
-import com.example.nettytest.backend.backendphone.BackEndPhoneManager;
 import com.example.nettytest.backend.callserver.DemoServer;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
-import com.example.nettytest.pub.commondevice.PhoneDevice;
 import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
 

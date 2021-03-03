@@ -8,7 +8,7 @@ public class Rtp {
     static final int RTP_HEADER_LEN = 12;
     static long rtpSessionId = 0x80000;
     static int rtpSeq = 0;
-    static g729main g729=null;
+    static g729main g729;
 
     public static final int RTP_CODEC_711MU = 0;
     public static final int RTP_CODEC_711A = 8;

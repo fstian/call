@@ -1,7 +1,5 @@
 package com.example.nettytest.terminal.audio;
 
-import com.example.nettytest.pub.LogWork;
-
 public class AudioMgr {
     static AudioDevice audio = null;
 

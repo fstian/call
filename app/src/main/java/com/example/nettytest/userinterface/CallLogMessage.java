@@ -1,7 +1,5 @@
 package com.example.nettytest.userinterface;
 
-import com.example.nettytest.userinterface.UserInterface;
-
 public class CallLogMessage extends UserMessage{
     public String callId;
     public String caller;
