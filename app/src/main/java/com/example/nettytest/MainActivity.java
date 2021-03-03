@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -19,6 +20,7 @@ import com.example.nettytest.backend.backendphone.BackEndConfig;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.SystemSnap;
+import com.example.nettytest.userinterface.CallLogMessage;
 import com.example.nettytest.userinterface.ServerDeviceInfo;
 import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.TestInfo;
@@ -80,6 +82,17 @@ public class MainActivity extends AppCompatActivity {
             InitServer();
 
             new CallMessageProcess().start();
+        }
+    }
+
+    private void ReplaceDevice(String id,TestDevice dev){
+        for(int iTmp=0;iTmp<audioTest.testDevices.length;iTmp++){
+            if(audioTest.testDevices[iTmp].id.compareToIgnoreCase(id)==0){
+                if(audioTest.curDevice == audioTest.testDevices[iTmp]) {
+                    audioTest.curDevice = dev;
+                }
+                audioTest.testDevices[iTmp] = dev;
+            }
         }
     }
 
@@ -289,6 +302,27 @@ public class MainActivity extends AppCompatActivity {
             return true;
         });
 
+        Button bt = (Button)findViewById(R.id.increaseId);
+        bt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+//                UserInterface.RemoveAllDeviceOnServer();
+                if (audioTest != null) {
+                    if (audioTest.curDevice != null) {
+                        if(audioTest.curDevice.type == UserInterface.CALL_BED_DEVICE ){
+
+//                            TestDevice newDevice;
+//                            String oldDevId = audioTest.curDevice.id;
+//                            long idValue = Long.parseLong(audioTest.curDevice.id,16);
+//                            idValue++;
+//                            UserInterface.RemoveDevice(audioTest.curDevice.id);
+//                            newDevice = new TestDevice(UserInterface.CALL_BED_DEVICE,String.format("%X",idValue));
+//                            ReplaceDevice(oldDevId,newDevice);
+                        }
+                    }
+                }
+            }
+        });
 
     }
 
@@ -304,26 +338,26 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void StopTest(){
-        if(audioTest.testSocket!=null){
-            if(!audioTest.testSocket.isClosed()){
-                String stopCmd = "{\"type\":1,\"autoTest\":0,\"realTime\":1,\"timeUnit\":10}";
-                byte[] sendBuf = stopCmd.getBytes();
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        DatagramPacket packet;
-                        try {
-                            packet = new DatagramPacket(sendBuf,sendBuf.length,InetAddress.getByName("255.255.255.255"),PhoneParam.snapStartPort);
-                            audioTest.testSocket.send(packet);
-                        } catch (UnknownHostException e) {
-                            e.printStackTrace();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }).start();
-            }
-        }
+//        if(audioTest.testSocket!=null){
+//            if(!audioTest.testSocket.isClosed()){
+//                String stopCmd = "{\"type\":1,\"autoTest\":0,\"realTime\":1,\"timeUnit\":10}";
+//                byte[] sendBuf = stopCmd.getBytes();
+//                new Thread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        DatagramPacket packet;
+//                        try {
+//                            packet = new DatagramPacket(sendBuf,sendBuf.length,InetAddress.getByName("255.255.255.255"),PhoneParam.snapStartPort);
+//                            audioTest.testSocket.send(packet);
+//                        } catch (UnknownHostException e) {
+//                            e.printStackTrace();
+//                        } catch (IOException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                }).start();
+//            }
+//        }
     }
 
     private void InitServer(){
@@ -359,6 +393,25 @@ public class MainActivity extends AppCompatActivity {
         }
 
         paramList.clear();
+
+        paramList = new ArrayList<>();
+        param = new UserConfig();
+        param.param_id="iaeraName";
+        param.param_name="area";
+        param.param_value = "daas";
+        param.param_unit = "";
+        paramList.add(param);
+
+        param = new UserConfig();
+        param.param_id="ihospital";
+        param.param_name="hospital";
+        param.param_value = "afeea";
+        param.param_unit = "";
+        paramList.add(param);
+
+        UserInterface.ConfigSystemParamOnServer(paramList);
+        
+        
     }
 
     @Override
@@ -426,7 +479,11 @@ public class MainActivity extends AppCompatActivity {
                 int msgType = message.arg1;
                 UserMessage terminalMsg = (UserMessage)message.obj;
                 TestDevice device=null;
-                if (msgType == UserMessage.MESSAGE_CALL_INFO || msgType == UserMessage.MESSAGE_REG_INFO || msgType == UserMessage.MESSAGE_DEVICES_INFO||msgType==UserMessage.MESSAGE_CONFIG_INFO) {
+                if (msgType == UserMessage.MESSAGE_CALL_INFO 
+                    || msgType == UserMessage.MESSAGE_REG_INFO 
+                    || msgType == UserMessage.MESSAGE_DEVICES_INFO
+                    ||msgType==UserMessage.MESSAGE_CONFIG_INFO
+                    || msgType == UserMessage.MESSAGE_SYSTEM_CONFIG_INFO) {
 
                     UserInterface.PrintLog("DEV %s Recv Msg %d(%s) ", terminalMsg.devId, terminalMsg.type, UserMessage.GetMsgName(terminalMsg.type));
                     for (TestDevice testDevice : audioTest.testDevices) {
@@ -473,6 +530,9 @@ public class MainActivity extends AppCompatActivity {
                                     device.UpdateConfig((UserConfigMessage )terminalMsg);
                                 }
                                 break;
+                            case UserMessage.MESSAGE_SYSTEM_CONFIG_INFO:
+                                System.out.println("Recv System Config Info"); 
+                                break;
                         }
                     }
                 } else if (msgType == UserMessage.MESSAGE_TEST_TICK) {
@@ -497,11 +557,16 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
                     }
+                }else if(msgType == UserMessage.MESSAGE_BACKEND_CALL_LOG){
+                    CallLogMessage callLog = (CallLogMessage)terminalMsg;
+                    UserInterface.PrintLog("Recv Call Log , CallID = %s, Caller=%s, Callee=%s, Answer=%s, Ender=%s, StartTime=%d, AnswerTime=%d, EndTime=%d",
+                            callLog.callId,callLog.caller,callLog.callee,callLog.answer,callLog.ender,callLog.startTime,callLog.answerTime,callLog.endTime);
                 }
 
                 return false;
             });
             UserInterface.SetMessageHandler(terminalCallMessageHandler);
+            UserInterface.SetBackEndMessageHandler(terminalCallMessageHandler);
             Looper.loop();
             System.out.println("CallMessageProcess Exit!!!!!");
         }

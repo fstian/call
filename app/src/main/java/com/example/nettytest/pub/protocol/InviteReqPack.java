@@ -9,7 +9,7 @@ public class InviteReqPack extends ProtocolPacket{
     public int callerType;
     public String bedName;
     public String patientName;
-    public int patientAge;
+    public String patientAge;
     public String roomId;
     public String deviceName;
 

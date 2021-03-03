@@ -6,6 +6,8 @@ public class UserMessage {
     public final static int MESSAGE_DEVICES_INFO = 3;
     public final static int MESSAGE_CONFIG_INFO = 4;
     public final static int MESSAGE_TEST_TICK = 5;
+    public final static int MESSAGE_SYSTEM_CONFIG_INFO = 6;
+    public final static int MESSAGE_BACKEND_CALL_LOG = 7;
     public final static int MESSAGE_UNKNOW = 100;
 
     public final static int REGISTER_MESSAGE_SUCC = 1;

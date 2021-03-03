@@ -1,15 +1,10 @@
 package com.example.nettytest.backend.backendcall;
 
-import android.os.Message;
-
 import com.example.nettytest.backend.backendphone.BackEndPhone;
 import com.example.nettytest.backend.backendphone.BackEndPhoneManager;
+import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.SystemSnap;
-import com.example.nettytest.pub.protocol.UpdateReqPack;
-import com.example.nettytest.pub.protocol.UpdateResPack;
-import com.example.nettytest.userinterface.PhoneParam;
-import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.UniqueIDManager;
 import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.pub.protocol.AnswerReqPack;
@@ -19,7 +14,10 @@ import com.example.nettytest.pub.protocol.EndResPack;
 import com.example.nettytest.pub.protocol.InviteReqPack;
 import com.example.nettytest.pub.protocol.InviteResPack;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
+import com.example.nettytest.pub.protocol.UpdateReqPack;
+import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.pub.transaction.Transaction;
+import com.example.nettytest.userinterface.PhoneParam;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -29,8 +27,11 @@ import java.util.ArrayList;
 
 public class BackEndCallConvergence {
     BackEndCall inviteCall;
-    int autoAnswerTick = 0;
-    int autoAnswerTime = -1;
+    int autoAnswerTick;
+    int autoAnswerTime;
+
+    long answerTime;
+    long startTime;
 
     ArrayList<BackEndCall> listenCallList;
 
@@ -65,6 +66,8 @@ public class BackEndCallConvergence {
             }
         }
         inviteCall.state = CommonCall.CALL_STATE_DIALING;
+        startTime = System.currentTimeMillis();
+        answerTime = 0;
     }
 
     public BackEndCallConvergence(BackEndPhone caller,BackEndPhone callee, InviteReqPack pack){
@@ -89,6 +92,9 @@ public class BackEndCallConvergence {
             HandlerMgr.AddBackEndTrans(invitePacket.msgID, transaction);
         }
         inviteCall.state = CommonCall.CALL_STATE_INCOMING;
+
+        startTime = System.currentTimeMillis();
+        answerTime = 0;
     }
 
     public boolean SingleEnd(EndReqPack endReqP){
@@ -99,7 +105,7 @@ public class BackEndCallConvergence {
         trans = new Transaction(endReqP.endDevID, endReqP, endResP, Transaction.TRANSCATION_DIRECTION_S2C);
         HandlerMgr.AddBackEndTrans(endResP.msgID, trans);
 
-         for(CommonCall listenCall:listenCallList){
+         for(BackEndCall listenCall:listenCallList){
             if(listenCall.devID.compareToIgnoreCase(endReqP.endDevID)==0){
                 listenCallList.remove(listenCall);
                 break;
@@ -132,7 +138,6 @@ public class BackEndCallConvergence {
                 endReqForwardP = new EndReqPack(endReqP, inviteCall.answer);
                 trans = new Transaction(inviteCall.answer, endReqForwardP, Transaction.TRANSCATION_DIRECTION_S2C);
                 HandlerMgr.AddBackEndTrans(endReqForwardP.msgID, trans);
-                inviteCall.answer = "";
             }
         }else {
             if (inviteCall.callee.compareToIgnoreCase(PhoneParam.CALL_SERVER_ID) != 0) {
@@ -198,6 +203,9 @@ public class BackEndCallConvergence {
         Transaction trans;
         AnswerResPack answerResP;
 
+        if(packet.answerer.compareToIgnoreCase(PhoneParam.CALL_SERVER_ID)==0)
+            inviteCall.answer = packet.answerer;
+
         if(packet.answerer.compareToIgnoreCase(PhoneParam.CALL_SERVER_ID)==0){
             inviteCall.state = CommonCall.CALL_STATE_CONNECTED;
             answerForwareP = new AnswerReqPack(packet,inviteCall.caller);
@@ -216,6 +224,7 @@ public class BackEndCallConvergence {
                 }
             }        
         }
+        answerTime = System.currentTimeMillis();
     }
 
     public void AnswerCall(AnswerReqPack packet){
@@ -270,20 +279,15 @@ public class BackEndCallConvergence {
 
         listenCallList.clear();
         inviteCall.state = CommonCall.CALL_STATE_CONNECTED;
+        answerTime = System.currentTimeMillis();
     }
 
     private void StopCall(){
-        Message phonemsg = new Message();
-        phonemsg.arg1 = BackEndPhoneManager.MSG_NEW_PACKET;
-        phonemsg.obj = new EndReqPack(inviteCall.callID);
-        HandlerMgr.PostBackEndPhoneMsg(phonemsg);
+        HandlerMgr.PostBackEndPhoneMsg(BackEndPhoneManager.MSG_NEW_PACKET,new EndReqPack(inviteCall.callID));
     }
 
     private void AutoAnswerCall(){
-        Message phonemsg = new Message();
-        phonemsg.arg1 = BackEndPhoneManager.MSG_NEW_PACKET;
-        phonemsg.obj = BuildAutoAnswerPacket();
-        HandlerMgr.PostBackEndPhoneMsg(phonemsg);
+        HandlerMgr.PostBackEndPhoneMsg(BackEndPhoneManager.MSG_NEW_PACKET,BuildAutoAnswerPacket());
     }
 
     private AnswerReqPack BuildAutoAnswerPacket(){
@@ -317,11 +321,12 @@ public class BackEndCallConvergence {
 
     public void ProcessSecondTick(){
         inviteCall.callerWaitUpdateCount++;
+
+        if(inviteCall.callee.compareToIgnoreCase(PhoneParam.CALL_SERVER_ID)!=0){
+            inviteCall.calleeWaitUpdateCount++;
+        }
+
         if(inviteCall.answer.isEmpty()){
-            if(inviteCall.callee.compareToIgnoreCase(PhoneParam.CALL_SERVER_ID)!=0){
-                inviteCall.calleeWaitUpdateCount++;
-            }
-        }else{
             inviteCall.answerWaitUpdateCount++;
         }
 
@@ -360,22 +365,18 @@ public class BackEndCallConvergence {
 
     public void UpdateStatus(InviteResPack packet){
         if(packet.type == ProtocolPacket.CALL_RES ){
-            InviteResPack inviteResPack = (InviteResPack)packet;
-            if(inviteResPack.status == ProtocolPacket.STATUS_OK)
+            if(packet.status == ProtocolPacket.STATUS_OK)
                 inviteCall.state = CommonCall.CALL_STATE_RINGING;
             else{
                 if(inviteCall.type==CommonCall.CALL_TYPE_NORMAL) {
-                    if (inviteResPack.sender.compareToIgnoreCase(inviteCall.callee) == 0) {
-                        LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_ERROR, "BackEnd End Call %s when Recv Call Res with %s from %s", inviteCall.callID, ProtocolPacket.GetResString(inviteResPack.status), inviteCall.callee);
-                        Message phonemsg = new Message();
-                        phonemsg.arg1 = BackEndPhoneManager.MSG_NEW_PACKET;
-                        phonemsg.obj = new EndReqPack(inviteCall.callID);
-                        HandlerMgr.PostBackEndPhoneMsg(phonemsg);
+                    if (packet.sender.compareToIgnoreCase(inviteCall.callee) == 0) {
+                        LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_ERROR, "BackEnd End Call %s when Recv Call Res with %s from %s", inviteCall.callID, ProtocolPacket.GetResString(packet.status), inviteCall.callee);
+                        HandlerMgr.PostBackEndPhoneMsg(BackEndPhoneManager.MSG_NEW_PACKET,new EndReqPack(inviteCall.callID));
                     }
                 }else if(inviteCall.type==CommonCall.CALL_TYPE_BROADCAST){
                     for(BackEndCall listenCall:listenCallList){
                         if(listenCall.devID.compareToIgnoreCase(packet.sender)==0){
-                            LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_ERROR, "BackEnd Remove dev %s From Listen List for Call %s When Recv %s", packet.sender,inviteCall.callID, ProtocolPacket.GetResString(inviteResPack.status));
+                            LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_ERROR, "BackEnd Remove dev %s From Listen List for Call %s When Recv %s", packet.sender,inviteCall.callID, ProtocolPacket.GetResString(packet.status));
                             listenCallList.remove(listenCall);
                             break;
                         }
@@ -448,15 +449,13 @@ public class BackEndCallConvergence {
             case CommonCall.CALL_TYPE_EMERGENCY:
                 switch(phone.type){
                     case BackEndPhone.BED_CALL_DEVICE:
+                    case BackEndPhone.EMER_CALL_DEVICE:
                         result = false;
                         break;
                     case BackEndPhone.CORRIDOR_CALL_DEVICE:
                     case BackEndPhone.DOOR_CALL_DEVICE:
                     case BackEndPhone.NURSE_CALL_DEVICE:
                     case BackEndPhone.TV_CALL_DEVICE:
-                        break;
-                    case BackEndPhone.EMER_CALL_DEVICE:
-                        result = false;
                         break;
                 }
                 break;

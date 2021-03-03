@@ -69,7 +69,6 @@ public class TerminalCallManager {
         TerminalCall call = callLists.get(callid);
         if(call!=null){
             result = call.EndCall();
-            callLists.remove(callid);
         }
 
         return result;
@@ -126,10 +125,40 @@ public class TerminalCallManager {
         if(result!=ProtocolPacket.STATUS_OK){
             LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"DEV %s Reject Call From %s for reason %s",packet.callee,packet.caller,ProtocolPacket.GetResString(result));
             InviteResPack inviteResPack = new InviteResPack(result,packet);
-            Transaction trans = new Transaction(packet.callee,packet,inviteResPack,Transaction.TRANSCATION_DIRECTION_S2C);
+            Transaction trans = new Transaction(packet.callee,packet,inviteResPack,Transaction.TRANSCATION_DIRECTION_C2S);
             HandlerMgr.AddPhoneTrans(packet.msgID, trans);
         }
 
+    }
+
+    public void RecvAnswerCall(String devid,AnswerReqPack answerReqPack){
+        String callid = answerReqPack.callID;
+        TerminalCall call = callLists.get(callid);
+        
+        if(call!=null){
+            call.RecvAnswer(answerReqPack);
+        }else{
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone Recv %s Answer For Call %s , but Could not Find it",devid,callid);
+            AnswerResPack answerResP = new AnswerResPack(ProtocolPacket.STATUS_NOTFOUND,answerReqPack);
+            Transaction trans = new Transaction(devid,answerReqPack,answerResP,Transaction.TRANSCATION_DIRECTION_C2S);
+            HandlerMgr.AddPhoneTrans(answerResP.msgID,trans);
+
+        }
+    }
+
+    public void RecvEndCall(String devid,EndReqPack endReqP){
+        String callid = endReqP.callID;
+        TerminalCall call = callLists.get(callid);
+
+        if(call!=null){
+            call.RecvEnd(endReqP);
+            callLists.remove(callid);
+        }else{
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone Recv %s End For Call %s , but Could not Find it",devid,callid);
+            EndResPack endResP = new EndResPack(ProtocolPacket.STATUS_NOTFOUND,endReqP);
+            Transaction trans = new Transaction(devid,endReqP,endResP,Transaction.TRANSCATION_DIRECTION_C2S);
+            HandlerMgr.AddPhoneTrans(endResP.msgID,trans);
+        }
     }
 
     public void UpdateSecondTick(){
@@ -148,7 +177,7 @@ public class TerminalCallManager {
                 callid = inviteResPack.callID;
                 call = callLists.get(callid);
                 if(call!=null){
-                    call.UpdateCallStatus(inviteResPack);
+                    call.UpdateByInviteRes(inviteResPack);
                     if(call.state!=CommonCall.CALL_STATE_RINGING)
                         callLists.remove(callid);
                 }else{
@@ -159,44 +188,41 @@ public class TerminalCallManager {
                     }
                 }
                 break;
+            case ProtocolPacket.ANSWER_RES:
+                AnswerResPack answerResPack = (AnswerResPack)packet;
+                callid = answerResPack.callID;
+                call = callLists.get(callid);
+                if(call!=null){
+                    call.UpdateByAnswerRes(answerResPack);
+                    if(call.state!=CommonCall.CALL_STATE_CONNECTED)
+                        callLists.remove(callid);
+                }else{
+                    LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Could not Find Call %s for DEV %s when Recv Answer Res",answerResPack.callID,devid);
+                }
+                break;
+            case ProtocolPacket.END_RES:
+                EndResPack endResP = (EndResPack)packet;
+                callid = endResP.callId;
+                call = callLists.get(callid);
+                if(call!=null){
+                    call.UpdateByEndRes(endResP);
+                    callLists.remove(callid);
+                }else{
+                    LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Could not Find Call %s for DEV %s when Recv Answer Res",endResP.callId,devid);
+                }
+                break;
             case ProtocolPacket.CALL_UPDATE_RES:
                 UpdateResPack updateResP = (UpdateResPack)packet;
                 callid = updateResP.callid;
                 call = callLists.get(callid);
                 if(call!=null){
                     LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"DEV %s Recv Call Update Res for callid %s,Status is %s",call.devID,callid,ProtocolPacket.GetResString(updateResP.status));
-                    call.UpdateCallStatus(updateResP);
+                    call.UpdateByUpdateRes(updateResP);
                     if(call.state==CommonCall.CALL_STATE_DISCONNECTED){
                         callLists.remove(callid);
                     }
-                }
-                break;
-            case ProtocolPacket.END_REQ:
-                EndReqPack endReqPack = (EndReqPack)packet;
-                callid = endReqPack.callID;
-                call = callLists.get(callid);
-                if(call!=null){
-                    call.Finish(endReqPack);
-                    callLists.remove(callid);
                 }else{
-                    LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone Recv %s End For Call %s , but Could not Find it",devid,callid);
-                    EndResPack endResPack = new EndResPack(ProtocolPacket.STATUS_NOTFOUND,endReqPack);
-                    Transaction trans = new Transaction(devid,endReqPack,endResPack,Transaction.TRANSCATION_DIRECTION_C2S);
-                    HandlerMgr.AddPhoneTrans(endReqPack.msgID,trans);
-                }
-                break;
-            case ProtocolPacket.ANSWER_REQ:
-                AnswerReqPack answerReqPack = (AnswerReqPack)packet;
-                callid = answerReqPack.callID;
-                call = callLists.get(callid);
-                if(call!=null){
-                    call.UpdateCallStatus(answerReqPack);
-                }else{
-                    LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone Recv %s Answer For Call %s , but Could not Find it",devid,callid);
-                    AnswerResPack answerResP = new AnswerResPack(ProtocolPacket.STATUS_NOTFOUND,answerReqPack);
-                    Transaction trans = new Transaction(devid,answerReqPack,answerResP,Transaction.TRANSCATION_DIRECTION_C2S);
-                    HandlerMgr.AddPhoneTrans(answerResP.msgID,trans);
-
+                    LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Could not Find Call %s for DEV %s when Recv Update Res",updateResP.callid,devid);
                 }
                 break;
         }
@@ -213,7 +239,7 @@ public class TerminalCallManager {
                 callid = inviteReqPack.callID;
                 call = callLists.get(callid);
                 if(call!=null){
-                    call.Fail(ProtocolPacket.CALL_REQ,ProtocolPacket.STATUS_TIMEOVER);
+                    call.InviteTimeOver();
                     callLists.remove(callid);
                 }
                 break;
@@ -222,7 +248,7 @@ public class TerminalCallManager {
                 callid = answerReqPack.callID;
                 call = callLists.get(callid);
                 if(call!=null){
-                    call.Fail(ProtocolPacket.ANSWER_REQ,ProtocolPacket.STATUS_TIMEOVER);
+                    call.AnswerTimeOver();
                 }
                 break;
             case ProtocolPacket.CALL_UPDATE_REQ:
@@ -230,11 +256,8 @@ public class TerminalCallManager {
                 callid = updateReqP.callId;
                 call = callLists.get(callid);
                 if(call!=null){
-                    call.Fail(ProtocolPacket.CALL_UPDATE_REQ,ProtocolPacket.STATUS_TIMEOVER);
-                    if(call.caller.compareToIgnoreCase(updateReqP.devId)==0||call.callee.compareToIgnoreCase(updateReqP.devId)==0) {
-                        call.EndCall();
-                        callLists.remove(callid);
-                    }
+                    call.UpdateTimeOver();
+                    callLists.remove(callid);
                 }
                 break;
             case ProtocolPacket.END_REQ:
@@ -242,7 +265,8 @@ public class TerminalCallManager {
                 callid = endReqPack.callID;
                 call = callLists.get(callid);
                 if(call!=null){
-                    call.Fail(ProtocolPacket.END_REQ,ProtocolPacket.STATUS_TIMEOVER);
+                    call.EndTimeOver();
+                    callLists.remove(callid);
                 }
                 break;
         }

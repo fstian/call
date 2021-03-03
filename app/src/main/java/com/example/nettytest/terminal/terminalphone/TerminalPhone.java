@@ -1,8 +1,12 @@
 package com.example.nettytest.terminal.terminalphone;
 
+import com.example.nettytest.pub.protocol.AnswerReqPack;
 import com.example.nettytest.pub.protocol.ConfigItem;
 import com.example.nettytest.pub.protocol.ConfigReqPack;
 import com.example.nettytest.pub.protocol.ConfigResPack;
+import com.example.nettytest.pub.protocol.EndReqPack;
+import com.example.nettytest.pub.protocol.SystemConfigReqPack;
+import com.example.nettytest.pub.protocol.SystemConfigResPack;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
 import com.example.nettytest.userinterface.UserConfig;
 import com.example.nettytest.userinterface.UserConfigMessage;
@@ -67,6 +71,17 @@ public class TerminalPhone extends PhoneDevice {
 
         return result;
 
+    }
+
+    public int QuerySystemConfig(){
+        int result = ProtocolPacket.STATUS_OK;
+
+        SystemConfigReqPack configReqP = BuildSystemConfigReqPacket(id);
+        Transaction devReqTrans = new Transaction(id,configReqP,Transaction.TRANSCATION_DIRECTION_C2S);
+        LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Send System Config Query Req!",id);
+        HandlerMgr.AddPhoneTrans(configReqP.msgID,devReqTrans);
+
+        return result;
     }
 
     public int GetCallCount(){
@@ -138,6 +153,22 @@ public class TerminalPhone extends PhoneDevice {
         HandlerMgr.SendMessageToUser(UserMessage.MESSAGE_CONFIG_INFO,configMsg);
     }
 
+    public void UpdateSystemConfig(SystemConfigResPack res){
+        UserConfigMessage configMsg = new UserConfigMessage();
+        configMsg.type = UserMessage.CONFIG_MESSAGE_LIST;
+        configMsg.devId = res.devId;
+        for(int iTmp=0;iTmp<res.params.size();iTmp++){
+            ConfigItem item = res.params.get(iTmp);
+            UserConfig config = new UserConfig();
+            config.param_id = item.param_id;
+            config.param_name = item.param_name;
+            config.param_value = item.param_value;
+            config.param_unit = item.param_unit;
+            configMsg.paramList.add(config);
+        }
+        HandlerMgr.SendMessageToUser(UserMessage.MESSAGE_SYSTEM_CONFIG_INFO,configMsg);
+    }
+
     public void UpdateCallStatus(ProtocolPacket packet){
         callManager.UpdateStatus(id, packet);
     }
@@ -148,6 +179,14 @@ public class TerminalPhone extends PhoneDevice {
 
     public void RecvIncomingCall(InviteReqPack packet){
         callManager.RecvIncomingCall(packet);
+    }
+
+    public void RecvAnswerCall(AnswerReqPack packet){
+        callManager.RecvAnswerCall(id,packet);
+    }
+
+    public void RecvEndCall(EndReqPack packet){
+        callManager.RecvEndCall(id,packet);
     }
 
     public String MakeOutGoingCall(String dst,int callType){
@@ -219,7 +258,18 @@ public class TerminalPhone extends PhoneDevice {
 
         configReqP.sender = devid;
         configReqP.receiver = PhoneParam.CALL_SERVER_ID;
-        configReqP.type = ProtocolPacket.DEV_CONFIG_REQ;
+        configReqP.msgID = UniqueIDManager.GetUniqueID(devid,UniqueIDManager.MSG_UNIQUE_ID);
+
+        configReqP.devId = devid;
+
+        return configReqP;
+    }
+
+    private SystemConfigReqPack BuildSystemConfigReqPacket(String devid){
+        SystemConfigReqPack configReqP = new SystemConfigReqPack();
+
+        configReqP.sender = devid;
+        configReqP.receiver = PhoneParam.CALL_SERVER_ID;
         configReqP.msgID = UniqueIDManager.GetUniqueID(devid,UniqueIDManager.MSG_UNIQUE_ID);
 
         configReqP.devId = devid;
@@ -227,3 +277,4 @@ public class TerminalPhone extends PhoneDevice {
         return configReqP;
     }
 }
+

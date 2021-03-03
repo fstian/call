@@ -9,7 +9,7 @@ import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.SystemSnap;
 import com.example.nettytest.pub.protocol.AnswerReqPack;
-import com.example.nettytest.pub.protocol.ConfigReqPack;
+import com.example.nettytest.pub.protocol.AnswerResPack;
 import com.example.nettytest.pub.protocol.ConfigResPack;
 import com.example.nettytest.pub.protocol.DevQueryResPack;
 import com.example.nettytest.pub.protocol.EndReqPack;
@@ -18,6 +18,7 @@ import com.example.nettytest.pub.protocol.InviteReqPack;
 import com.example.nettytest.pub.protocol.InviteResPack;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.protocol.RegResPack;
+import com.example.nettytest.pub.protocol.SystemConfigResPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
@@ -117,6 +118,17 @@ public class TerminalPhoneManager {
                 clientPhoneLists.put(phone.id,phone);
         }
 
+    }
+
+    public void RemovePhone(String id){
+        TerminalPhone matchedDev;
+        synchronized (TerminalPhoneManager.class) {
+            matchedDev = clientPhoneLists.get(id);
+            if(matchedDev!=null){
+                matchedDev.UpdateRegStatus(ProtocolPacket.STATUS_NOTFOUND);
+                clientPhoneLists.remove(id);
+            }
+        }
     }
 
     public void SetMessageHandler(Handler h){
@@ -236,39 +248,57 @@ public class TerminalPhoneManager {
         return result;
     }
 
+    public int QuerySystemConfig(String devid){
+        int result = ProtocolPacket.STATUS_NOTFOUND;
+        TerminalPhone phone;
+        synchronized (TerminalPhoneManager.class){
+            phone = clientPhoneLists.get(devid);
+            if(phone!=null){
+                result = phone.QuerySystemConfig();
+            }
+        }
+        return result;
+    }
+
     private void PacketRecvProcess(ProtocolPacket packet) {
 
         TerminalPhone phone = GetDevice(packet.receiver);
         if(phone!=null){
             switch(packet.type){
-                case ProtocolPacket.REG_RES:
-                    RegResPack resP = (RegResPack)packet;
-                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Reg Res",resP.receiver);
-                    phone.UpdateRegStatus(resP.status);
+                case ProtocolPacket.CALL_REQ:
+                    InviteReqPack inviteReqPack = (InviteReqPack)packet;
+                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Invite Req, call id is %s",inviteReqPack.receiver,inviteReqPack.callID);
+                    phone.RecvIncomingCall(inviteReqPack);
+                    break;
+                case ProtocolPacket.ANSWER_REQ:
+                    AnswerReqPack answerReqPack = (AnswerReqPack)packet;
+                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Answer Req, call id is %s, answerer is %s",answerReqPack.receiver,answerReqPack.callID,answerReqPack.answerer);
+                    phone.RecvAnswerCall(answerReqPack);
+                    break;
+                case ProtocolPacket.END_REQ:
+                    EndReqPack endReqPack = (EndReqPack)packet;
+                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv End Req, call id is %s",endReqPack.receiver,endReqPack.callID);
+                    phone.RecvEndCall(endReqPack);
                     break;
                 case ProtocolPacket.CALL_RES:
                     InviteResPack inviteResP = (InviteResPack)packet;
                     LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Invite Res, call id is %s",inviteResP.receiver,inviteResP.callID);
                     phone.UpdateCallStatus(inviteResP);
                     break;
-                case ProtocolPacket.CALL_REQ:
-                    InviteReqPack inviteReqPack = (InviteReqPack)packet;
-                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Invite Req, call id is %s",inviteReqPack.receiver,inviteReqPack.callID);
-                    phone.RecvIncomingCall(inviteReqPack);
-                    break;
-                case ProtocolPacket.END_REQ:
-                    EndReqPack endReqPack = (EndReqPack)packet;
-                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv End Req, call id is %s",endReqPack.receiver,endReqPack.callID);
-                    phone.UpdateCallStatus(endReqPack);
+                case ProtocolPacket.REG_RES:
+                    RegResPack resP = (RegResPack)packet;
+                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Reg Res",resP.receiver);
+                    phone.UpdateRegStatus(resP.status);
                     break;
                 case ProtocolPacket.END_RES:
                     EndResPack endResPack = (EndResPack)packet;
-                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv End Res, call id is %s",endResPack.receiver,endResPack.callID);
+                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv End Res, call id is %s",endResPack.receiver,endResPack.callId);
+                    phone.UpdateCallStatus(endResPack);
                     break;
-                case ProtocolPacket.ANSWER_REQ:
-                    AnswerReqPack answerReqPack = (AnswerReqPack)packet;
-                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Answer Req, call id is %s, answerer is %s",answerReqPack.receiver,answerReqPack.callID,answerReqPack.answerer);
-                    phone.UpdateCallStatus(answerReqPack);
+                case ProtocolPacket.ANSWER_RES:
+                    AnswerResPack answerResPack = (AnswerResPack)packet;
+                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Answer Res, call id is %s",answerResPack.receiver,answerResPack.callID);
+                    phone.UpdateCallStatus(answerResPack);
                     break;
                 case ProtocolPacket.CALL_UPDATE_RES:
                     UpdateResPack updateResP = (UpdateResPack)packet;
@@ -284,6 +314,11 @@ public class TerminalPhoneManager {
                     ConfigResPack configResP = (ConfigResPack)packet;
                     LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv ConfigQuery Res",configResP.receiver);
                     phone.UpdateConfig(configResP);
+                    break;
+                case ProtocolPacket.SYSTEM_CONFIG_RES:
+                    SystemConfigResPack systemConfigResP = (SystemConfigResPack)packet;
+                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv System ConfigQuery Res",systemConfigResP.receiver);
+                    phone.UpdateSystemConfig(systemConfigResP);
                     break;
             }
         }

@@ -20,6 +20,16 @@ public class TerminalDevManager extends NetDeviceManager {
     }
 
 
-
+    public void RemovePhone(String id){
+        TerminalDevice matchedDev;
+        synchronized (NetDeviceManager.class) {
+            matchedDev = (TerminalDevice)devLists.get(id);
+            if(matchedDev!=null){
+                matchedDev.Stop();
+                matchedDev.Close();
+                devLists.remove(id);
+            }
+        }
+    }
 
 }

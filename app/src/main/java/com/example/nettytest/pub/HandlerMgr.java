@@ -99,6 +99,12 @@ public class HandlerMgr {
         terminalPhoneMgr.AddDevice(phone);
     }
 
+    static public void RemoveTerminalPhone(String id){
+        terminalDevManager.RemovePhone(id);
+        terminalPhoneMgr.RemovePhone(id);
+    }
+
+
     static public boolean SetTerminalPhoneConfig(String id,TerminalDeviceInfo info){
         return terminalPhoneMgr.SetConfig(id,info);
     }
@@ -126,6 +132,11 @@ public class HandlerMgr {
     static public int QueryTerminalConfig(String devid){
         return terminalPhoneMgr.QueryConfig(devid);
     }
+
+    static public int QuerySystemConfig(String devid){
+        return terminalPhoneMgr.QuerySystemConfig(devid);
+    }
+
 
 // for backend NetDevice
     static public void UpdateBackEndDevChannel(String ID,Channel ch){
@@ -172,10 +183,14 @@ public class HandlerMgr {
         return backEndConfig;
     }
 
-    static public void PostBackEndPhoneMsg(Message msg){
-        backEndPhoneMgr.PostBackEndPhoneMessage(msg);
+    static public void PostBackEndPhoneMsg(int type,Object obj){
+        backEndPhoneMgr.PostBackEndPhoneMessage(type,obj);
     }
 
+    static public void SetBackEndlMessageHandler(Handler h){
+        backEndPhoneMgr.SetMessageHandler(h);
+    }
+    
 // create backend device
     static public boolean AddBackEndPhone(String ID,int type){
         backEndDevMgr.AddDevice(ID);
@@ -201,6 +216,24 @@ public class HandlerMgr {
         return result;
     }
 
+    static public boolean SetBackEndSystemConfig( ArrayList<UserConfig>list){
+        ArrayList<ConfigItem> configList = new ArrayList<>();
+        boolean result;
+        for(int iTmp=0;iTmp<list.size();iTmp++){
+            ConfigItem item = new ConfigItem();
+            UserConfig config = list.get(iTmp);
+            item.param_id = config.param_id;
+            item.param_name = config.param_name;
+            item.param_value = config.param_value;
+            item.param_unit = config.param_unit;
+            configList.add(item);
+        }
+        result = backEndPhoneMgr.SetSystemConfig(configList);
+        if(!result)
+            configList.clear();
+        return result;
+    }
+
     static public boolean SetBackEndPhoneInfo(String id, ServerDeviceInfo info){
         boolean result;
         ServerDeviceInfo devInfo = new ServerDeviceInfo(info);
@@ -211,6 +244,12 @@ public class HandlerMgr {
     static public boolean RemoveBackEndPhone(String ID){
         backEndPhoneMgr.RemovePhone(ID);
         backEndDevMgr.RemoveDevice(ID);
+        return true;
+    }
+
+    static public boolean RemoveAllBackEndPhone(){
+        backEndPhoneMgr.RemoveAllPhone();
+        backEndDevMgr.RemoveAllDevice();
         return true;
     }
 
@@ -242,6 +281,9 @@ public class HandlerMgr {
                     break;
                 case PhoneDevice.WHITE_BOARD_DEVICE:
                     userDev.type = UserInterface.CALL_WHITE_BOARD_DEVICE;
+                    break;
+                case PhoneDevice.DOOR_LIGHT_CALL_DEVICE:
+                    userDev.type = UserInterface.CALL_DOOR_LIGHT_DEVICE;
                     break;
                 default:
                     userDev.type = dev.type;

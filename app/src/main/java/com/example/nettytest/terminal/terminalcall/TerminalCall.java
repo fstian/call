@@ -5,6 +5,7 @@ import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.terminal.audio.AudioDevice;
 import com.example.nettytest.terminal.audio.AudioMgr;
 import com.example.nettytest.userinterface.FailReason;
+import com.example.nettytest.userinterface.OperationResult;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
 import com.example.nettytest.userinterface.UserCallMessage;
 import com.example.nettytest.pub.HandlerMgr;
@@ -85,10 +86,6 @@ public class TerminalCall extends CommonCall {
         int audioMode;
         AnswerReqPack answerPack = BuildAnswerPacket();
 
-        UserCallMessage callMsg = new UserCallMessage();
-        callMsg.type = UserCallMessage.CALL_MESSAGE_CONNECT;
-        callMsg.devId = devID;
-        callMsg.callId = callID;
 
         if(type==CALL_TYPE_BROADCAST){
             audioMode = AudioDevice.RECV_ONLY_MODE;
@@ -98,14 +95,16 @@ public class TerminalCall extends CommonCall {
             audioMode = AudioDevice.SEND_RECV_MODE;
         }
 
-        state = CommonCall.CALL_STATE_CONNECTED;
         audioId = AudioMgr.OpenAudio(devID,localRtpPort,remoteRtpPort,remoteRtpAddress,audioSample,rtpTime,audioCodec,audioMode);
 
-        Transaction answerTrans = new Transaction(devID,answerPack,Transaction.TRANSCATION_DIRECTION_C2S);
         LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Answer Call %s! ",devID,callID);
+        Transaction answerTrans = new Transaction(devID,answerPack,Transaction.TRANSCATION_DIRECTION_C2S);
         HandlerMgr.AddPhoneTrans(answerPack.msgID,answerTrans);
 
-        HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
+        state = CommonCall.CALL_STATE_CONNECTED;
+
+//        Success(ProtocolPacket.ANSWER_REQ);
+
         return ProtocolPacket.STATUS_OK;
     }
 
@@ -128,27 +127,49 @@ public class TerminalCall extends CommonCall {
         return ProtocolPacket.STATUS_OK;
     }
 
-    public void UpdateCallStatus(InviteResPack packet){
+    public void UpdateByInviteRes(InviteResPack packet){
         UserCallMessage callMsg = new UserCallMessage();
+        
         callMsg.devId = devID;
-        callMsg.callId = packet.callID;
+        callMsg.callId = callID;
 
         if(packet.status == ProtocolPacket.STATUS_OK) {
             LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv OK for Invite in Call %s! ",devID,callID);
             state = CommonCall.CALL_STATE_RINGING;
             callMsg.type = UserCallMessage.CALL_MESSAGE_RINGING;
+            callMsg.reason = FailReason.FAIL_REASON_NO;
+
         }else {
             LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_INFO,"Phone %s Recv %d(%s) for Invite in Call %s! ",devID,packet.status,ProtocolPacket.GetResString(packet.status),callID);
             state = CommonCall.CALL_STATE_DISCONNECTED;
-            callMsg.type = UserCallMessage.CALL_MESSAGE_DISCONNECT;
-            callMsg.reason = FailReason.FAIL_REASON_UNKNOW;
+            callMsg.type = UserCallMessage.CALL_MESSAGE_INVITE_FAIL;
+            callMsg.reason = OperationResult.GetUserFailReason(packet.status);
         }
-
+        
         HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
-
     }
 
-    public void UpdateCallStatus(UpdateResPack pack){
+   public void UpdateByAnswerRes(AnswerResPack pack){
+        UserCallMessage callMsg = new UserCallMessage();
+        
+        callMsg.devId = devID;
+        callMsg.callId = callID;
+
+        if(pack.status==ProtocolPacket.STATUS_OK){
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv OK for Answer in Call %s! ",devID,callID);
+            state = CommonCall.CALL_STATE_CONNECTED;
+            callMsg.type = UserCallMessage.CALL_MESSAGE_CONNECT;
+            callMsg.reason = FailReason.FAIL_REASON_NO;
+        }else{
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_INFO,"Phone %s Recv %d(%s) for Answer in Call %s! ",devID,pack.status,ProtocolPacket.GetResString(pack.status),callID);
+            callMsg.type = UserCallMessage.CALL_MESSAGE_ANSWER_FAIL;
+            callMsg.reason = OperationResult.GetUserFailReason(pack.status);
+        }
+        
+        HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
+   }
+
+    public void UpdateByUpdateRes(UpdateResPack pack){
         UserCallMessage callMsg = new UserCallMessage();
         callMsg.devId = devID;
         callMsg.callId = pack.callid;
@@ -157,7 +178,7 @@ public class TerminalCall extends CommonCall {
             LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone %s Recv %d(%s) for Update in Call %s!",devID,pack.status,ProtocolPacket.GetResString(pack.status),callID);
             state = CommonCall.CALL_STATE_DISCONNECTED;
             callMsg.type = UserCallMessage.CALL_MESSAGE_DISCONNECT;
-            callMsg.reason = FailReason.FAIL_REASON_TIMEOVER;
+            callMsg.reason = OperationResult.GetUserFailReason(pack.status);
 
             HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
 
@@ -167,31 +188,44 @@ public class TerminalCall extends CommonCall {
 
     }
 
+    public void UpdateByEndRes(EndResPack pack){
+        UserCallMessage callMsg = new UserCallMessage();
+        callMsg.devId = devID;
+        callMsg.callId = pack.callId;
 
-    public void UpdateSecondTick(){
-        updateTick--;
-        if(updateTick==0){
-            // resend update;
-            UpdateReqPack updateReqP = BuildUpdatePacket();
-            Transaction updateReqTrans = new Transaction(devID,updateReqP,Transaction.TRANSCATION_DIRECTION_C2S);
-            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Send Update to Server for call %s! ",devID,callID);
-            HandlerMgr.AddPhoneTrans(updateReqP.msgID,updateReqTrans);
-            updateTick = CommonCall.UPDATE_INTERVAL;
+        if(pack.status!=ProtocolPacket.STATUS_OK){
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone %s Recv %d(%s) for End Call %s!",devID,pack.status,ProtocolPacket.GetResString(pack.status),callID);
+            state = CommonCall.CALL_STATE_DISCONNECTED;
+            callMsg.type = UserCallMessage.CALL_MESSAGE_END_FAIL;
+            callMsg.reason = OperationResult.GetUserFailReason(pack.status);
+            
+            HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
+
+        }else{
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv OK for Update in Call %s! ",devID,callID);
         }
-        if(state==CALL_STATE_INCOMING){
-            if(autoAnswerTime>=0){
-                if(autoAnswerTick<=autoAnswerTime){
-                    autoAnswerTick++;
-                    if(autoAnswerTick>autoAnswerTime){
-                        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s AutoAnswer call %s! ",devID,callID);
-                        Answer();
-                    }
-                }
-            }
-        }
+
+    }
+    
+    public void RecvEnd(EndReqPack pack){
+        UserCallMessage callMsg = new UserCallMessage();
+        callMsg.devId = devID;
+        callMsg.callId = pack.callID;
+        callMsg.type = UserCallMessage.CALL_MESSAGE_DISCONNECT;
+
+        if(!audioId.isEmpty())
+            AudioMgr.CloseAudio(audioId);
+
+        EndResPack endResPack = new EndResPack(ProtocolPacket.STATUS_OK,pack);
+        Transaction endResTrans = new Transaction(devID,pack,endResPack,Transaction.TRANSCATION_DIRECTION_C2S);
+        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Call End Req for CallID = %s from Dev %s, and Send End Res to Server! ",devID,callID,pack.endDevID);
+        HandlerMgr.AddPhoneTrans(endResPack.msgID,endResTrans);
+        HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
+        
     }
 
-    public void UpdateCallStatus(AnswerReqPack pack){
+
+   public void RecvAnswer(AnswerReqPack pack){
         AnswerResPack answerResPack = new AnswerResPack(ProtocolPacket.STATUS_OK,pack);
         UserCallMessage callMsg = new UserCallMessage();
         int audioMode;
@@ -201,6 +235,7 @@ public class TerminalCall extends CommonCall {
         callMsg.operaterId = pack.answerer;
 
         answer = pack.answerer;
+        
         state = CommonCall.CALL_STATE_CONNECTED;
         remoteRtpPort = pack.answererRtpPort;
         remoteRtpAddress = pack.answererRtpIP;
@@ -221,47 +256,68 @@ public class TerminalCall extends CommonCall {
 
     }
 
-    public void Finish(EndReqPack pack){
-        UserCallMessage callMsg = new UserCallMessage();
-        callMsg.devId = devID;
-        callMsg.callId = pack.callID;
-        callMsg.type = UserCallMessage.CALL_MESSAGE_DISCONNECT;
 
-        if(!audioId.isEmpty())
-            AudioMgr.CloseAudio(audioId);
-
-        EndResPack endResPack = new EndResPack(ProtocolPacket.STATUS_OK,pack);
-        Transaction endResTrans = new Transaction(devID,pack,endResPack,Transaction.TRANSCATION_DIRECTION_C2S);
-        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Call End Req for CallID = %s, and Send End Res to Server! ",devID,callID);
-        HandlerMgr.AddPhoneTrans(endResPack.msgID,endResTrans);
-        HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
+    public void UpdateSecondTick(){
+        updateTick--;
+        if(updateTick==0){
+            // resend update;
+            UpdateReqPack updateReqP = BuildUpdatePacket();
+            Transaction updateReqTrans = new Transaction(devID,updateReqP,Transaction.TRANSCATION_DIRECTION_C2S);
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Send Update to Server for call %s! ",devID,callID);
+            HandlerMgr.AddPhoneTrans(updateReqP.msgID,updateReqTrans);
+            updateTick = CommonCall.UPDATE_INTERVAL;
+        }
+        
+        if(state==CALL_STATE_INCOMING){
+            if(autoAnswerTime>=0&&type==CALL_TYPE_BROADCAST){
+                if(autoAnswerTick<=autoAnswerTime){
+                    autoAnswerTick++;
+                    if(autoAnswerTick>autoAnswerTime){
+                        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s AutoAnswer call %s! ",devID,callID);
+                        Answer();
+                    }
+                }
+            }
+        }
     }
 
-    public void Fail(int req, int status){
+    public void InviteTimeOver(){
         UserCallMessage callMsg = new UserCallMessage();
         callMsg.devId = devID;
         callMsg.callId = callID;
-        if(req == ProtocolPacket.CALL_REQ)
-            callMsg.type = UserCallMessage.CALL_MESSAGE_INVITE_FAIL;
-        else if(req == ProtocolPacket.ANSWER_REQ)
-            callMsg.type = UserCallMessage.CALL_MESSAGE_ANSWER_FAIL;
-        else if(req == ProtocolPacket.END_REQ)
-            callMsg.type = UserCallMessage.CALL_MESSAGE_END_FAIL;
-        else if(req == ProtocolPacket.CALL_UPDATE_REQ)
-            callMsg.type = UserCallMessage.CALL_MESSAGE_UPDATE_FAIL;
-        else
-            callMsg.type = UserCallMessage.CALL_MESSAGE_UNKNOWFAIL;
-
-        if (status == ProtocolPacket.STATUS_TIMEOVER) {
-            callMsg.reason = FailReason.FAIL_REASON_TIMEOVER;
-        } else {
-            callMsg.reason = FailReason.FAIL_REASON_UNKNOW;
-        }
-
+        callMsg.type = UserCallMessage.CALL_MESSAGE_INVITE_FAIL;
+        callMsg.reason = OperationResult.GetUserFailReason(ProtocolPacket.STATUS_TIMEOVER);
         HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
-
+    }
+    
+    public void AnswerTimeOver(){
+        UserCallMessage callMsg = new UserCallMessage();
+        callMsg.devId = devID;
+        callMsg.callId = callID;
+        callMsg.type = UserCallMessage.CALL_MESSAGE_ANSWER_FAIL;
+        callMsg.reason = OperationResult.GetUserFailReason(ProtocolPacket.STATUS_TIMEOVER);
+        HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
     }
 
+    public void EndTimeOver(){
+        UserCallMessage callMsg = new UserCallMessage();
+        callMsg.devId = devID;
+        callMsg.callId = callID;
+        callMsg.type = UserCallMessage.CALL_MESSAGE_END_FAIL;
+        callMsg.reason = OperationResult.GetUserFailReason(ProtocolPacket.STATUS_TIMEOVER);
+        HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
+    }
+
+
+    public void UpdateTimeOver(){
+        UserCallMessage callMsg = new UserCallMessage();
+        callMsg.devId = devID;
+        callMsg.callId = callID;
+        callMsg.type = UserCallMessage.CALL_MESSAGE_UPDATE_FAIL;
+        callMsg.reason = OperationResult.GetUserFailReason(ProtocolPacket.STATUS_TIMEOVER);
+        HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
+    }
+   
     private InviteReqPack BuildInvitePacket(TerminalDeviceInfo info){
         InviteReqPack invitePack = new InviteReqPack();
         TerminalPhone phone = HandlerMgr.GetPhoneDev(caller);

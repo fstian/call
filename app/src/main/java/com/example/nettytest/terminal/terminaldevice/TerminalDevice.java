@@ -31,4 +31,8 @@ public class TerminalDevice extends NetDevice {
             }
         }.start();
     }
+
+    public void Stop(){
+        isActive = false;
+    }
 }

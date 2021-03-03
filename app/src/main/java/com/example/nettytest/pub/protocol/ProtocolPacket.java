@@ -60,6 +60,8 @@ public class ProtocolPacket {
     public final static int CALL_UPDATE_RES = 107;
     public final static int DEV_CONFIG_REQ = 8;
     public final static int DEV_CONFIG_RES = 108;
+    public final static int SYSTEM_CONFIG_REQ = 9;
+    public final static int SYSTEM_CONFIG_RES = 109;
 
     public final static int MAX_REQ_TYPE = 100;
 
@@ -182,6 +184,12 @@ public class ProtocolPacket {
                 break;
             case DEV_CONFIG_RES:
                 packetTypeName = "Dev_Config_res";
+                break;
+            case SYSTEM_CONFIG_REQ:
+                packetTypeName = "System_Config_req";
+                break;
+            case SYSTEM_CONFIG_RES:
+                packetTypeName = "System_Config_res";
                 break;
         }
         return packetTypeName;
