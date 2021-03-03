@@ -33,6 +33,7 @@ public class PhoneParam {
     final public static int CALL_RTP_PTIME = 20;
     final public static int CALL_RTP_SAMPLE = 8000;
     final public static int CALL_AEC_DELAY = 100;
+    final public static int DEFAULT_AEC_DELAY = 100;
 
     final public static int BROADCALL_ANSWER_WAIT = 3;
     
@@ -58,6 +59,7 @@ public class PhoneParam {
     public static String callServerAddress = "127.0.0.1";
     public static boolean serverActive = false;
     public static int broadcallCastMode = BROADCALL_USE_BROADCAST;
+    public static int aecDelay = DEFAULT_AEC_DELAY;
 
     public static int snapStartPort = 11005;
 

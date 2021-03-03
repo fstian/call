@@ -13,6 +13,7 @@ import com.android.webrtc.audio.MobileAEC;
 import com.android.webrtc.audio.MobileAEC.SamplingFrequency;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.UniqueIDManager;
+import com.example.nettytest.userinterface.PhoneParam;
 import com.witted.ptt.JitterBuffer;
 
 import java.io.IOException;
@@ -345,7 +346,7 @@ public class AudioDevice {
                     if(audioMode==SEND_RECV_MODE){
                         try {
                             aec.farendBuffer(pcmData,pcmData.length);
-                            aec.echoCancellation(audioReadData,null,aecData,(short)packSize,(short)100);
+                            aec.echoCancellation(audioReadData,null,aecData,(short)packSize,(short) PhoneParam.aecDelay);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
