@@ -1,7 +1,7 @@
 package com.example.nettytest.pub.protocol;
 
 public class EndResPack extends ProtocolPacket{
-    public String callID;
+    public String callId;
     public int status;
     public String result;
 
@@ -9,14 +9,14 @@ public class EndResPack extends ProtocolPacket{
         super();
         type = ProtocolPacket.END_RES;
         status = UNKONWSTATUATYPE;
-        callID = "";
+        callId = "";
         result = "";
     }
 
     public EndResPack(int status,EndReqPack reqPack){
         ExchangeCopyData(reqPack);
         type = ProtocolPacket.END_RES;
-        callID = reqPack.callID;
+        callId = reqPack.callID;
         this.status = status;
         result = ProtocolPacket.GetResString(status);
     }

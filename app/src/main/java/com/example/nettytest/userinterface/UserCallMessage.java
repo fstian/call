@@ -18,7 +18,7 @@ public class UserCallMessage extends UserMessage {
 
     public String deviceName;
     public String patientName;
-    public int patientAge;
+    public String patientAge;
     public String bedName;
     public String roomId;
 
@@ -37,7 +37,7 @@ public class UserCallMessage extends UserMessage {
 
         deviceName = "";
         patientName = "";
-        patientAge = 18;
+        patientAge = "18";
         bedName = "";
         roomId = "";
     }

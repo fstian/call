@@ -1,6 +1,7 @@
 package com.example.nettytest.backend.backendcall;
 
-import android.telecom.Call;
+import android.os.Handler;
+import android.os.Message;
 
 import com.example.nettytest.backend.backendphone.BackEndPhone;
 import com.example.nettytest.pub.HandlerMgr;
@@ -17,23 +18,57 @@ import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.protocol.UpdateReqPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.pub.transaction.Transaction;
+import com.example.nettytest.userinterface.CallLogMessage;
 import com.example.nettytest.userinterface.PhoneParam;
+import com.example.nettytest.userinterface.UserMessage;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 public class BackEndCallConvergenceManager {
 
     HashMap<String, BackEndCallConvergence> callConvergenceList;
+    Handler userMsgHandler = null;
+
 
     public BackEndCallConvergenceManager(){
 
         callConvergenceList = new HashMap<>();
 
+    }
+
+    public void SetUserMessageHandler(Handler h){
+        userMsgHandler = h;
+    }
+
+    private void PostUserMessage(int type,Object obj){
+        if(userMsgHandler!=null){
+            Message msg = userMsgHandler.obtainMessage();
+            msg.arg1 = type;
+            msg.obj = obj;
+            userMsgHandler.sendMessage(msg);
+        }
+    }
+
+    private void PostCallLog(String endDevId,BackEndCallConvergence callConvergence){
+        CallLogMessage log = new CallLogMessage();
+
+        log.callType = callConvergence.inviteCall.callType;
+
+        log.caller = callConvergence.inviteCall.caller;
+        log.callee = callConvergence.inviteCall.callee;
+        log.answer = callConvergence.inviteCall.answer;
+        log.callId = callConvergence.inviteCall.callID;
+        log.ender = endDevId;
+
+        log.startTime = callConvergence.startTime;
+        log.answerTime = callConvergence.answerTime;
+        log.endTime = System.currentTimeMillis();
+
+        PostUserMessage(UserMessage.MESSAGE_BACKEND_CALL_LOG,log);
     }
 
     public int GetCallCount(){
@@ -221,6 +256,7 @@ public class BackEndCallConvergenceManager {
                         if(endReqPack.endDevID.compareToIgnoreCase(callConvergence.inviteCall.caller)==0){
                             LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server End Call %s",endReqPack.callID);
                             callConvergence.EndCall(endReqPack);
+                            PostCallLog(endReqPack.endDevID,callConvergence);
                             callConvergenceList.remove(endReqPack.callID);
                             callConvergence.Release();
                         }else{
@@ -230,6 +266,7 @@ public class BackEndCallConvergenceManager {
                     }else if(callConvergence.inviteCall.type==CommonCall.CALL_TYPE_NORMAL) {
                         LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server End Call %s",endReqPack.callID);
                         callConvergence.EndCall(endReqPack);
+                        PostCallLog(endReqPack.endDevID,callConvergence);
                         callConvergenceList.remove(endReqPack.callID);
                         callConvergence.Release();
                     }
@@ -298,7 +335,7 @@ public class BackEndCallConvergenceManager {
                 break;
             case ProtocolPacket.END_RES:
                 EndResPack endResPack = (EndResPack)packet;
-                LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv End Res From %s for call %s",endResPack.sender, endResPack.callID);
+                LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv End Res From %s for call %s",endResPack.sender, endResPack.callId);
                 break;
         }
     }

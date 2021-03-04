@@ -25,6 +25,9 @@ public class NetDevice {
     }
 
     public void Close(){
-        channel.close();
+        if(channel!=null) {
+            channel.close();
+            channel = null;
+        }
     }
 }

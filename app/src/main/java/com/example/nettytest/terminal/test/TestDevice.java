@@ -1,6 +1,7 @@
 package com.example.nettytest.terminal.test;
 
 import com.example.nettytest.pub.SystemSnap;
+import com.example.nettytest.userinterface.FailReason;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
 import com.example.nettytest.userinterface.TestInfo;
 import com.example.nettytest.userinterface.UserCallMessage;
@@ -42,7 +43,7 @@ public class TestDevice {
         this.id = id;
         UserInterface.BuildDevice(type,id);
         info.patientName = "patient"+id;
-        info.patientAge = 18+type;
+        info.patientAge = String.format("%d",18+type);
         UserInterface.SetDevInfo(id,info);
         inComingCallInfos = new ArrayList<>();
         outGoingCall = new LocalCallInfo();
@@ -144,6 +145,10 @@ public class TestDevice {
     }
 
     public void QueryConfig() {UserInterface.QueryDevConfig(id);}
+    
+    public void QuerySystemConfig() {
+        UserInterface.QuerySystemConfig(id);
+    }
 
     private OperationResult EndCall(String callid){
         OperationResult result;
@@ -235,7 +240,7 @@ public class TestDevice {
                                 UserInterface.PrintLog("Device %s Calling %s", id, device.devid);
                                 opResult = BuildCall(device.devid, UserInterface.CALL_NORMAL_TYPE);
                                 if(opResult.result!=OperationResult.OP_RESULT_OK){
-                                    UserInterface.PrintLog("DEV %s Makd Call to DEV %s Fail",id,device.devid);
+                                    UserInterface.PrintLog("DEV %s Make Call to DEV %s Fail, Reason=%s",id,device.devid, FailReason.GetFailName(opResult.reason));
                                 }else{
                                     result = true;
                                 }
@@ -339,6 +344,7 @@ public class TestDevice {
             case UserCallMessage.REGISTER_MESSAGE_SUCC:
                 isRegOk = true;
                 QueryConfig();
+                QuerySystemConfig();
                 break;
             case UserCallMessage.REGISTER_MESSAGE_FAIL:
                 isRegOk = false;
@@ -356,8 +362,8 @@ public class TestDevice {
                     break;
                 case UserCallMessage.CALL_MESSAGE_DISCONNECT:
                 case UserCallMessage.CALL_MESSAGE_UPDATE_FAIL:
+                case UserCallMessage.CALL_MESSAGE_END_FAIL:    
                 case UserCallMessage.CALL_MESSAGE_INVITE_FAIL:
-                case UserCallMessage.CALL_MESSAGE_ANSWER_FAIL:
                 case UserCallMessage.CALL_MESSAGE_UNKNOWFAIL:
                     if (msg.callId.compareToIgnoreCase(outGoingCall.callID) == 0) {
                         if (outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED) {
@@ -395,7 +401,7 @@ public class TestDevice {
                     info.callee = msg.calleeId;
                     info.caller = msg.callerId;
                     inComingCallInfos.add(info);
-                    UserInterface.PrintLog("Dev %s Recv Incoming Call %s from room-%s , bed-%s , patient-%s, age-%d", id, info.callID,msg.roomId,msg.bedName,msg.patientName,msg.patientAge);
+                    UserInterface.PrintLog("Dev %s Recv Incoming Call %s from room-%s , bed-%s , patient-%s, age-%s", id, info.callID,msg.roomId,msg.bedName,msg.patientName,msg.patientAge);
                     break;
                 case UserCallMessage.CALL_MESSAGE_CONNECT:
                     for (LocalCallInfo info1 : inComingCallInfos) {

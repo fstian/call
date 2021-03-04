@@ -2,10 +2,10 @@ package com.example.nettytest.userinterface;
 
 public class TerminalDeviceInfo {
     public String patientName;
-    public int patientAge;
+    public String patientAge;
 
     public TerminalDeviceInfo(){
-        patientAge = 18;
+        patientAge = "18";
         patientName = "";
     }
 

@@ -7,7 +7,7 @@ public class G711 {
     private static int SEG_SHIFT = (4);        /* Left shift for segment number. */
     private static int SEG_MASK = (0x70);        /* Segment field mask. */
     private static int BIAS = (0x84);
-    private static short seg_end[] = {0xFF, 0x1FF, 0x3FF, 0x7FF, 0xFFF, 0x1FFF, 0x3FFF, 0x7FFF};
+    private static short[] seg_end = {0xFF, 0x1FF, 0x3FF, 0x7FF, 0xFFF, 0x1FFF, 0x3FFF, 0x7FFF};
 
 
     static short alaw2linear(byte a_val) {

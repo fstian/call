@@ -18,6 +18,8 @@ import com.example.nettytest.pub.protocol.DevQueryResPack;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.protocol.RegReqPack;
 import com.example.nettytest.pub.protocol.RegResPack;
+import com.example.nettytest.pub.protocol.SystemConfigReqPack;
+import com.example.nettytest.pub.protocol.SystemConfigResPack;
 import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.userinterface.ServerDeviceInfo;
 import com.example.nettytest.userinterface.PhoneParam;
@@ -31,6 +33,8 @@ import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -41,22 +45,22 @@ public class BackEndPhoneManager {
     public static final int MSG_REQ_TIMEOVER = 3;
 
     private final HashMap<String, BackEndPhone> serverPhoneLists;
-    Handler msgHandler=null;
+    Handler localMsgHandler=null;
+    private ArrayList<ConfigItem> systemConfigList;
 
     private BackEndCallConvergenceManager backEndCallConvergencyMgr;
 
     public BackEndPhoneManager(){
         serverPhoneLists = new HashMap<>();
-         backEndCallConvergencyMgr = new BackEndCallConvergenceManager();
+        systemConfigList = new ArrayList<>();
+        backEndCallConvergencyMgr = new BackEndCallConvergenceManager();
         BackEndPhoneThread msgProcessThread = new BackEndPhoneThread();
         msgProcessThread.start();
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
                 Message phonemsg = new Message();
-                phonemsg.arg1 = BackEndPhoneManager.MSG_SECOND_TICK;
-                phonemsg.obj = "";
-                HandlerMgr.PostBackEndPhoneMsg(phonemsg);
+                HandlerMgr.PostBackEndPhoneMsg(BackEndPhoneManager.MSG_SECOND_TICK,"");
 
                 HandlerMgr.BackEndTransactionTick();
 
@@ -118,6 +122,10 @@ public class BackEndPhoneManager {
 
         return matchedPhone;
 
+    }
+
+    public void SetMessageHandler(Handler h){
+        backEndCallConvergencyMgr.SetUserMessageHandler(h);
     }
 
     public int GetCallCount(){
@@ -231,8 +239,26 @@ public class BackEndPhoneManager {
         synchronized (BackEndPhoneManager.class){
             matchedPhone = serverPhoneLists.get(id);
             if(matchedPhone!=null)
-                serverPhoneLists.remove(matchedPhone);
+                matchedPhone.paramList.clear();
+                serverPhoneLists.remove(id);
         }
+    }
+
+    public void RemoveAllPhone(){
+        synchronized (BackEndPhoneManager.class){
+            for(Iterator<Map.Entry<String, BackEndPhone>> it = serverPhoneLists.entrySet().iterator(); it.hasNext();) {
+                Map.Entry<String, BackEndPhone>item = it.next();
+                BackEndPhone phone = item.getValue();
+                phone.paramList.clear();
+                it.remove();
+            }
+
+        }
+    }
+
+    public boolean SetSystemConfig(ArrayList<ConfigItem> list){
+        systemConfigList = list;
+        return true;
     }
 
     public boolean SetDeviceConfig(String id, ArrayList<ConfigItem> list){
@@ -261,7 +287,7 @@ public class BackEndPhoneManager {
         return result;
     }
 
-    public ArrayList<ConfigItem> GetDeviceConfig(String id){
+    private ArrayList<ConfigItem> GetDeviceConfig(String id){
         BackEndPhone matchedPhone;
         ArrayList<ConfigItem> paramList = new ArrayList<>();
         synchronized (BackEndPhoneManager.class) {
@@ -271,10 +297,18 @@ public class BackEndPhoneManager {
         }
         return paramList;
     }
+    
+    private ArrayList<ConfigItem> GetSystemConfig(){
+        return systemConfigList;
+    }
 
-    public void PostBackEndPhoneMessage(Message msg){
-        if(msgHandler!=null){
-            msgHandler.sendMessage(msg);
+    public void PostBackEndPhoneMessage(int type,Object obj){
+        
+        if(localMsgHandler!=null){
+            Message msg = localMsgHandler.obtainMessage();
+            msg.arg1 = type;
+            msg.obj = obj;
+            localMsgHandler.sendMessage(msg);
         }
     }
 
@@ -336,6 +370,15 @@ public class BackEndPhoneManager {
                 trans = new Transaction(devID,packet,configResP,Transaction.TRANSCATION_DIRECTION_S2C);
                 HandlerMgr.AddBackEndTrans(packet.msgID,trans);
                 break;
+            case ProtocolPacket.SYSTEM_CONFIG_REQ:
+                SystemConfigReqPack systemConfigReqP = (SystemConfigReqPack)packet;
+                SystemConfigResPack systemConfigResP;
+                resStatus = ProtocolPacket.STATUS_OK;
+                systemConfigResP = new SystemConfigResPack(resStatus,systemConfigReqP);
+                systemConfigResP.params = GetSystemConfig();
+                trans = new Transaction(devID,packet,systemConfigResP,Transaction.TRANSCATION_DIRECTION_S2C);
+                HandlerMgr.AddBackEndTrans(packet.msgID,trans);
+                
             case ProtocolPacket.CALL_REQ:
             case ProtocolPacket.CALL_RES:
             case ProtocolPacket.END_REQ:
@@ -356,7 +399,7 @@ public class BackEndPhoneManager {
         @Override
         public void run() {
             Looper.prepare();
-            msgHandler = new Handler(msg -> {
+            localMsgHandler = new Handler(msg -> {
                 int type = msg.arg1;
                 ProtocolPacket packet;
                 synchronized (BackEndPhoneManager.class) {

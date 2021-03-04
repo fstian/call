@@ -1,9 +1,9 @@
 package com.example.nettytest.pub.protocol;
 
 public class AnswerResPack extends ProtocolPacket{
-    String callID;
-    int status;
-    String result;
+    public String callID;
+    public int status;
+    public String result;
 
     public AnswerResPack(){
         super();

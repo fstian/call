@@ -17,35 +17,44 @@ public class    OperationResult {
         callID = "";
     }
 
+    static public int GetUserFailReason(int status){
+        int localReason;
+        switch(status){
+            case ProtocolPacket.STATUS_BUSY:
+                localReason = FailReason.FAIL_REASON_BUSY;
+                break;
+            case ProtocolPacket.STATUS_CONFILICT:
+                localReason = FailReason.FAIL_REASON_CONFLICT;
+                break;
+            case ProtocolPacket.STATUS_DECLINE:
+                localReason = FailReason.FAIL_REASON_NOTSUPPORT;
+                break;
+            case ProtocolPacket.STATUS_FORBID:
+                localReason = FailReason.FAIL_REASON_FORBID;
+                break;
+            case ProtocolPacket.STATUS_NOTFOUND:
+                localReason = FailReason.FAIL_REASON_NOTFOUND;
+                break;
+            case ProtocolPacket.STATUS_TIMEOVER:
+                localReason = FailReason.FAIL_REASON_TIMEOVER;
+                break;
+            case ProtocolPacket.STATUS_OK:
+                localReason = FailReason.FAIL_REASON_NO;
+                break;
+            default:
+                localReason = FailReason.FAIL_REASON_UNKNOW;
+                break;
+        }
+        return localReason;
+    }
+
     public OperationResult(int status){
         if(status == ProtocolPacket.STATUS_OK){
             result = OP_RESULT_OK;
             reason = FailReason.FAIL_REASON_NO;
         }else{
             result = OP_RESULT_FAIL;
-            switch(status){
-                case ProtocolPacket.STATUS_BUSY:
-                    reason = FailReason.FAIL_REASON_BUSY;
-                    break;
-                case ProtocolPacket.STATUS_CONFILICT:
-                    reason = FailReason.FAIL_REASON_CONFILICT;
-                    break;
-                case ProtocolPacket.STATUS_DECLINE:
-                    reason = FailReason.FAIL_REASON_NOTSUPPORT;
-                    break;
-                case ProtocolPacket.STATUS_FORBID:
-                    reason = FailReason.FAIL_REASON_FORBID;
-                    break;
-                case ProtocolPacket.STATUS_NOTFOUND:
-                    reason = FailReason.FAIL_REASON_NOTFOUND;
-                    break;
-                case ProtocolPacket.STATUS_TIMEOVER:
-                    reason = FailReason.FAIL_REASON_TIMEOVER;
-                    break;
-                default:
-                    reason = FailReason.FAIL_REASON_UNKNOW;
-                    break;
-            }
+            reason = GetUserFailReason(status);
         }
         callID = "";
     }

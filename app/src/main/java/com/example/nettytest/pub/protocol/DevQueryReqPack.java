@@ -7,6 +7,7 @@ public class DevQueryReqPack extends ProtocolPacket {
     public DevQueryReqPack(){
 
         super();
+        devid = "";
         type = ProtocolPacket.DEV_QUERY_REQ;
     }
 
