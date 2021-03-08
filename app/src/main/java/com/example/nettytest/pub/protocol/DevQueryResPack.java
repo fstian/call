@@ -29,7 +29,7 @@ public class DevQueryResPack extends ProtocolPacket {
     public void Release() {
         super.Release();
         if(phoneList!=null){
-            phoneList.clear();
+//            phoneList.clear();
         }
     }
 }

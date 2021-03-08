@@ -20,6 +20,7 @@ import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.userinterface.CallLogMessage;
 import com.example.nettytest.userinterface.PhoneParam;
+import com.example.nettytest.userinterface.UserInterface;
 import com.example.nettytest.userinterface.UserMessage;
 
 import org.json.JSONArray;
@@ -53,23 +54,6 @@ public class BackEndCallConvergenceManager {
         }
     }
 
-    private void PostCallLog(String endDevId,BackEndCallConvergence callConvergence){
-        CallLogMessage log = new CallLogMessage();
-
-        log.callType = callConvergence.inviteCall.callType;
-
-        log.caller = callConvergence.inviteCall.caller;
-        log.callee = callConvergence.inviteCall.callee;
-        log.answer = callConvergence.inviteCall.answer;
-        log.callId = callConvergence.inviteCall.callID;
-        log.ender = endDevId;
-
-        log.startTime = callConvergence.startTime;
-        log.answerTime = callConvergence.answerTime;
-        log.endTime = System.currentTimeMillis();
-
-        PostUserMessage(UserMessage.MESSAGE_BACKEND_CALL_LOG,log);
-    }
 
     public int GetCallCount(){
         return callConvergenceList.size();
@@ -251,12 +235,14 @@ public class BackEndCallConvergenceManager {
                 EndReqPack endReqPack = (EndReqPack)packet;
                 LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv Call End From %s for Call %s",endReqPack.endDevID,endReqPack.callID);
                 callConvergence = callConvergenceList.get(endReqPack.callID);
+                
                 if(callConvergence!=null) {
                     if(callConvergence.inviteCall.type==CommonCall.CALL_TYPE_BROADCAST) {
-                        if(endReqPack.endDevID.compareToIgnoreCase(callConvergence.inviteCall.caller)==0){
+                        if(endReqPack.endDevID.compareToIgnoreCase(callConvergence.inviteCall.caller)==0||endReqPack.endDevID.compareToIgnoreCase(PhoneParam.CALL_SERVER_ID)==0){
                             LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server End Call %s",endReqPack.callID);
                             callConvergence.EndCall(endReqPack);
-                            PostCallLog(endReqPack.endDevID,callConvergence);
+                            CallLogMessage  log = callConvergence.CreateCallLog();
+                            PostUserMessage(UserMessage.MESSAGE_BACKEND_CALL_LOG,log);
                             callConvergenceList.remove(endReqPack.callID);
                             callConvergence.Release();
                         }else{
@@ -266,7 +252,8 @@ public class BackEndCallConvergenceManager {
                     }else if(callConvergence.inviteCall.type==CommonCall.CALL_TYPE_NORMAL) {
                         LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server End Call %s",endReqPack.callID);
                         callConvergence.EndCall(endReqPack);
-                        PostCallLog(endReqPack.endDevID,callConvergence);
+                        CallLogMessage  log = callConvergence.CreateCallLog();
+                        PostUserMessage(UserMessage.MESSAGE_BACKEND_CALL_LOG,log);
                         callConvergenceList.remove(endReqPack.callID);
                         callConvergence.Release();
                     }
@@ -280,6 +267,11 @@ public class BackEndCallConvergenceManager {
             case ProtocolPacket.ANSWER_REQ:
                 AnswerReqPack answerReqPack  = (AnswerReqPack)packet;
                 BackEndPhone answerPhone = HandlerMgr.GetBackEndPhone(answerReqPack.answerer);
+                if(answerPhone!=null){
+                    answerReqPack.answerBedName = answerPhone.devInfo.bedName;
+                    answerReqPack.answerDeviceName = answerPhone.devInfo.deviceName;
+                    answerReqPack.answerRoomId = answerPhone.devInfo.roomId;
+                }
                 callConvergence = callConvergenceList.get(answerReqPack.callID);
                 LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv Call Answer From Dev %s for Call %s",answerReqPack.answerer,answerReqPack.callID);
                 error = ProtocolPacket.STATUS_OK;

@@ -5,15 +5,17 @@ public class InviteReqPack extends ProtocolPacket{
     public int callDirect;
     public String callID;
 
+    // add by caller
     public String caller;
-    public int callerType;
-    public String bedName;
+    public int callerType;   
     public String patientName;
     public String patientAge;
+
+    // add by server    
+    public String bedName;
     public String roomId;
     public String deviceName;
-
-
+   
     public String callee;
 
     public int codec;

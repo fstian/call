@@ -21,10 +21,19 @@ public class UserInterface {
     public final static int CALL_EMERGENCY_DEVICE = 4;
     public final static int CALL_DOOR_LIGHT_DEVICE = 5;
     public final static int CALL_WHITE_BOARD_DEVICE = 10;
+    public final static int CALL_SERVER_DEVICE = 90;
+    public final static int CALL_UNKNOW_DEVICE = 100;
 
     public final static int CALL_NORMAL_TYPE = 1;
     public final static int CALL_EMERGENCY_TYPE = 2;
     public final static int CALL_BROADCAST_TYPE = 3;
+
+    public final static int CALL_DIRECTION_S2C = 1;
+    public final static int CALL_DIRECTION_C2S = 2;
+
+    public final static int CALL_ANSWER_MODE_STOP = 1;
+    public final static int CALL_ANSWER_MODE_HANDLE = 2;
+    public final static int CALL_ANSWER_MODE_ANSWER = 3;
 
     public static DemoServer callServer=null;
 

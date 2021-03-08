@@ -252,7 +252,8 @@ public class TestDevice {
         }else {
             if(type==UserInterface.CALL_NURSER_DEVICE||
                     type==UserInterface.CALL_DOOR_DEVICE||
-                    type == UserInterface.CALL_BED_DEVICE) {
+                    type == UserInterface.CALL_BED_DEVICE||
+                    type == UserInterface.CALL_CORRIDOR_DEVICE) {
                 int selected = y / INCOMING_LINE_HEIGHT;
                 if (selected < inComingCallInfos.size()) {
                     if(!isCallOut) {

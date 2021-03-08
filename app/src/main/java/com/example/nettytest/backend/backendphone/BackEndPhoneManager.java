@@ -59,9 +59,7 @@ public class BackEndPhoneManager {
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                Message phonemsg = new Message();
                 HandlerMgr.PostBackEndPhoneMsg(BackEndPhoneManager.MSG_SECOND_TICK,"");
-
                 HandlerMgr.BackEndTransactionTick();
 
             }
@@ -138,6 +136,7 @@ public class BackEndPhoneManager {
 
     public ArrayList<BackEndPhone> GetListenDevices(int callType){
         ArrayList<BackEndPhone> devices = new ArrayList<>();
+        BackEndConfig backEndConfig = HandlerMgr.GetBackEndConfig();
             for(String devid:serverPhoneLists.keySet()){
                 boolean isAdd = false;
                 BackEndPhone phone = serverPhoneLists.get(devid);
@@ -147,22 +146,22 @@ public class BackEndPhoneManager {
                     case CommonCall.CALL_TYPE_BROADCAST:
                         switch(phone.type){
                             case BackEndPhone.BED_CALL_DEVICE:
-                                if(BackEndConfig.broadCallToBed)
+                                if(backEndConfig.broadCallToBed)
                                     isAdd = true;
                                 break;
                             case BackEndPhone.DOOR_CALL_DEVICE:
-                                if(BackEndConfig.broadCallToRoom)
+                                if(backEndConfig.broadCallToRoom)
                                     isAdd = true;
                                 break;
                             case BackEndPhone.CORRIDOR_CALL_DEVICE:
-                                if(BackEndConfig.broadCallToCorridor)
+                                if(backEndConfig.broadCallToCorridor)
                                     isAdd = true;
                                 break;
                             case BackEndPhone.NURSE_CALL_DEVICE:
                                 isAdd = false;
                                 break;
                             case BackEndPhone.TV_CALL_DEVICE:
-                                if(BackEndConfig.broadCallToTv)
+                                if(backEndConfig.broadCallToTv)
                                     isAdd = true;
                                 break;
                         }
@@ -170,22 +169,22 @@ public class BackEndPhoneManager {
                     case CommonCall.CALL_TYPE_EMERGENCY:
                         switch(phone.type){
                             case BackEndPhone.BED_CALL_DEVICE:
-                                if(BackEndConfig.emerCallToBed)
+                                if(backEndConfig.emerCallToBed)
                                     isAdd = true;
                                 break;
                             case BackEndPhone.DOOR_CALL_DEVICE:
-                                if(BackEndConfig.emerCallToRoom)
+                                if(backEndConfig.emerCallToRoom)
                                     isAdd = true;
                                 break;
                             case BackEndPhone.CORRIDOR_CALL_DEVICE:
-                                if(BackEndConfig.emerCallToCorridor)
+                                if(backEndConfig.emerCallToCorridor)
                                     isAdd = true;
                                 break;
                             case BackEndPhone.NURSE_CALL_DEVICE:
                                 isAdd = true;
                                 break;
                             case BackEndPhone.TV_CALL_DEVICE:
-                                if(BackEndConfig.emerCallToTv)
+                                if(backEndConfig.emerCallToTv)
                                     isAdd = true;
                                 break;
                         }
@@ -193,22 +192,22 @@ public class BackEndPhoneManager {
                     case CommonCall.CALL_TYPE_NORMAL:
                         switch(phone.type){
                             case BackEndPhone.BED_CALL_DEVICE:
-                                if(BackEndConfig.normalCallToBed)
+                                if(backEndConfig.normalCallToBed)
                                     isAdd = true;
                                 break;
                             case BackEndPhone.DOOR_CALL_DEVICE:
-                                if(BackEndConfig.normalCallToRoom)
+                                if(backEndConfig.normalCallToRoom)
                                     isAdd = true;
                                 break;
                             case BackEndPhone.CORRIDOR_CALL_DEVICE:
-                                if(BackEndConfig.normalCallToCorridor)
+                                if(backEndConfig.normalCallToCorridor)
                                     isAdd = true;
                                 break;
                             case BackEndPhone.NURSE_CALL_DEVICE:
                                 isAdd = true;
                                 break;
                             case BackEndPhone.TV_CALL_DEVICE:
-                                if(BackEndConfig.normalCallToTv)
+                                if(backEndConfig.normalCallToTv)
                                     isAdd = true;
                                 break;
                         }
