@@ -52,9 +52,9 @@ public class CommonCall {
         devID = caller;
         callID = UniqueIDManager.GetUniqueID(caller, UniqueIDManager.CALL_UNIQUE_ID);
 
-        rtpTime = PhoneParam.CALL_RTP_PTIME;
-        audioCodec = PhoneParam.CALL_RTP_CODEC;
-        audioSample = PhoneParam.CALL_RTP_SAMPLE;
+        rtpTime = PhoneParam.callRtpPTime;
+        audioCodec = PhoneParam.callRtpCodec;
+        audioSample = PhoneParam.callRtpDataRate;
         if(type==CALL_TYPE_BROADCAST){
             localRtpPort = PhoneParam.BROADCAST_CALL_RTP_PORT;
             remoteRtpPort = PhoneParam.BROADCAST_CALL_RTP_PORT;

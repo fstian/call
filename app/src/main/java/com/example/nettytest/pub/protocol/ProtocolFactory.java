@@ -102,11 +102,13 @@ public class ProtocolFactory {
                     answerReqP.answerer = context.optString(ProtocolPacket.PACKET_ANSWERER_NAME);
                     answerReqP.answererRtpIP = context.optString(ProtocolPacket.PACKET_CALLEEIP_MAME);
                     answerReqP.answererRtpPort = context.optInt(ProtocolPacket.PACKET_CALLEEPORT_NAME);
-                    answerReqP.bedID = context.optString(ProtocolPacket.PACKET_BEDID_NAME);
+                    answerReqP.answerBedName = context.optString(ProtocolPacket.PACKET_BEDID_NAME);
                     answerReqP.codec = context.optInt(ProtocolPacket.PACKET_CODEC_NAME);
                     answerReqP.pTime = context.optInt(ProtocolPacket.PACKET_PTIME_NAME);
                     answerReqP.sample= context.optInt(ProtocolPacket.PACKET_SAMPLE_NAME);
                     answerReqP.callType = context.optInt(ProtocolPacket.PACKET_CALLTYPE_NAME);
+                    answerReqP.answerDeviceName = context.optString(ProtocolPacket.PACKET_DEVICE_NAME_NAME);
+                    answerReqP.answerRoomId = context.optString(ProtocolPacket.PACKET_ROOMID_NAME);
                     p = answerReqP;
                     break;
                 case ProtocolPacket.ANSWER_RES:
@@ -280,7 +282,7 @@ public class ProtocolFactory {
                     context.putOpt(ProtocolPacket.PACKET_ANSWERER_NAME,answerReqP.answerer);
                     context.putOpt(ProtocolPacket.PACKET_CALLEEIP_MAME,answerReqP.answererRtpIP);
                     context.putOpt(ProtocolPacket.PACKET_CALLEEPORT_NAME,answerReqP.answererRtpPort);
-                    context.putOpt(ProtocolPacket.PACKET_BEDID_NAME,answerReqP.bedID);
+                    context.putOpt(ProtocolPacket.PACKET_BEDID_NAME,answerReqP.answerBedName);
                     context.putOpt(ProtocolPacket.PACKET_CODEC_NAME,answerReqP.codec);
                     context.putOpt(ProtocolPacket.PACKET_PTIME_NAME,answerReqP.pTime);
                     context.putOpt(ProtocolPacket.PACKET_SAMPLE_NAME,answerReqP.sample);

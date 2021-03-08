@@ -5,8 +5,11 @@ import com.example.nettytest.pub.protocol.ConfigItem;
 import com.example.nettytest.pub.protocol.ConfigReqPack;
 import com.example.nettytest.pub.protocol.ConfigResPack;
 import com.example.nettytest.pub.protocol.EndReqPack;
+import com.example.nettytest.pub.protocol.RegResPack;
 import com.example.nettytest.pub.protocol.SystemConfigReqPack;
 import com.example.nettytest.pub.protocol.SystemConfigResPack;
+import com.example.nettytest.pub.protocol.UpdateReqPack;
+import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
 import com.example.nettytest.userinterface.UserConfig;
 import com.example.nettytest.userinterface.UserConfigMessage;
@@ -26,6 +29,7 @@ import com.example.nettytest.pub.protocol.RegReqPack;
 import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.terminal.terminalcall.TerminalCallManager;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
+import com.example.nettytest.userinterface.UserInterface;
 import com.example.nettytest.userinterface.UserMessage;
 import com.example.nettytest.userinterface.UserRegMessage;
 
@@ -82,6 +86,38 @@ public class TerminalPhone extends PhoneDevice {
         HandlerMgr.AddPhoneTrans(configReqP.msgID,devReqTrans);
 
         return result;
+    }
+
+    public int RecvUnsupport(ProtocolPacket packet){      
+        LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_ERROR,"Phone %s Recv Unsupport %s(%d) Req!",id,ProtocolPacket.GetTypeName(packet.type),packet.type);
+        ProtocolPacket resPack = null;
+        switch(packet.type){
+            case ProtocolPacket.REG_REQ:
+                RegResPack regResP= new RegResPack(ProtocolPacket.STATUS_NOTSUPPORT,(RegReqPack)packet);
+                resPack = regResP;
+                break;
+            case ProtocolPacket.DEV_QUERY_REQ:
+                DevQueryResPack devResP= new DevQueryResPack(ProtocolPacket.STATUS_NOTSUPPORT,(DevQueryReqPack)packet);
+                resPack = devResP;
+                break;
+            case ProtocolPacket.CALL_UPDATE_REQ:
+                UpdateResPack updateResP = new UpdateResPack(ProtocolPacket.STATUS_NOTSUPPORT,(UpdateReqPack) packet);
+                resPack = updateResP;
+                break;
+            case ProtocolPacket.DEV_CONFIG_REQ:
+                ConfigResPack configResP = new ConfigResPack(ProtocolPacket.STATUS_NOTSUPPORT,(ConfigReqPack) packet);
+                resPack = configResP;
+                break;
+            case ProtocolPacket.SYSTEM_CONFIG_REQ:
+                SystemConfigResPack sysConfigResP = new SystemConfigResPack(ProtocolPacket.STATUS_NOTSUPPORT,(SystemConfigReqPack)packet);
+                resPack = sysConfigResP;
+                break;
+        }
+        if(resPack!=null){
+            Transaction devResTrans = new Transaction(id,packet,resPack,Transaction.TRANSCATION_DIRECTION_C2S);
+            HandlerMgr.AddPhoneTrans(resPack.msgID,devResTrans);
+        }
+        return 0;
     }
 
     public int GetCallCount(){

@@ -17,7 +17,10 @@ import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.protocol.UpdateReqPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.pub.transaction.Transaction;
+import com.example.nettytest.userinterface.CallLogMessage;
 import com.example.nettytest.userinterface.PhoneParam;
+import com.example.nettytest.userinterface.UserInterface;
+import com.example.nettytest.userinterface.UserMessage;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -32,6 +35,12 @@ public class BackEndCallConvergence {
 
     long answerTime;
     long startTime;
+
+    public String callerNum;
+    public String calleeNum;
+    public String answerNum;
+    public String enderNum;
+
 
     ArrayList<BackEndCall> listenCallList;
 
@@ -48,6 +57,11 @@ public class BackEndCallConvergence {
         inviteCall = new BackEndCall(caller.id,pack);
         autoAnswerTick = 0;
         autoAnswerTime = pack.autoAnswerTime;
+
+        callerNum = pack.caller;
+        calleeNum = pack.callee;
+        answerNum = "";
+        enderNum = "";
 
         listenCallList = new ArrayList<>();
         for(BackEndPhone phone:listenDevices){
@@ -82,6 +96,11 @@ public class BackEndCallConvergence {
         autoAnswerTick = 0;
         autoAnswerTime = pack.autoAnswerTime;
 
+        callerNum = pack.caller;
+        calleeNum = pack.callee;
+        answerNum = "";
+        enderNum = "";
+
         listenCallList = new ArrayList<>();
         if(callee!=null) {
             invitePacket = new InviteReqPack();
@@ -114,12 +133,85 @@ public class BackEndCallConvergence {
         return true;
     }
 
+    public CallLogMessage CreateCallLog(){
+        BackEndPhone caller;
+        BackEndPhone callee;
+        BackEndPhone answer;
+        BackEndPhone ender;
+        
+        CallLogMessage log = new CallLogMessage();
+
+        caller = HandlerMgr.GetBackEndPhone(callerNum);
+        callee = HandlerMgr.GetBackEndPhone(calleeNum);
+        answer = HandlerMgr.GetBackEndPhone(answerNum);
+        ender = HandlerMgr.GetBackEndPhone(enderNum);
+
+        log.callType = inviteCall.callType;
+        log.callId = inviteCall.callID;
+
+        log.callDirection = inviteCall.direct;
+
+        log.callerNum= callerNum;
+        if(caller!=null){
+            log.callerName = caller.devInfo.deviceName;
+            log.callerType = caller.type;
+        }else{
+            if(callerNum.compareToIgnoreCase(PhoneParam.CALL_SERVER_ID)==0){
+                log.callerType = UserInterface.CALL_SERVER_DEVICE;
+            }
+        }
+
+        log.calleeNum = calleeNum;
+        if(callee!=null){
+            log.calleeName = callee.devInfo.deviceName;
+            log.calleeType = callee.type;
+        }else{
+            if(calleeNum.compareToIgnoreCase(PhoneParam.CALL_SERVER_ID)==0){
+                log.calleeType = UserInterface.CALL_SERVER_DEVICE;
+            }
+        }
+
+        log.answerNum = answerNum;
+        if(answer!=null){
+            log.answerName= answer.devInfo.deviceName;
+            log.answerType = answer.type;
+        }else{
+            if(answerNum.compareToIgnoreCase(PhoneParam.CALL_SERVER_ID)==0){
+                log.answerType = UserInterface.CALL_SERVER_DEVICE;
+            }
+        }
+
+        log.enderNum= enderNum;
+        if(ender!=null){
+            log.enderName = ender.devInfo.deviceName;
+            log.enderType = ender.type;
+        }else{
+            if(enderNum.compareToIgnoreCase(PhoneParam.CALL_SERVER_ID)==0){
+                log.enderType = UserInterface.CALL_SERVER_DEVICE;
+            }
+        }
+
+        if(!answerNum.isEmpty()){
+            log.answerMode = UserInterface.CALL_ANSWER_MODE_ANSWER;
+        }else if(callerNum.compareToIgnoreCase(enderNum)==0){
+            log.answerMode = UserInterface.CALL_ANSWER_MODE_STOP;
+        }else{
+            log.answerMode = UserInterface.CALL_ANSWER_MODE_HANDLE;
+        }
+
+        log.startTime = startTime;
+        log.answerTime = answerTime;
+        log.endTime = System.currentTimeMillis();
+        return log;
+    }
+
     public boolean EndCall(EndReqPack endReqP){
         EndReqPack endReqForwardP;
         EndResPack endResP;
         Transaction trans;
 
         endResP = new EndResPack(ProtocolPacket.STATUS_OK,endReqP);
+        enderNum = endReqP.endDevID;
 
         if(inviteCall.caller.compareToIgnoreCase(endReqP.sender)==0) {
             trans = new Transaction(inviteCall.caller, endReqP, endResP, Transaction.TRANSCATION_DIRECTION_S2C);
@@ -242,6 +334,7 @@ public class BackEndCallConvergence {
         HandlerMgr.AddBackEndTrans(answerForwareP.msgID, trans);
 
         inviteCall.answer = packet.answerer;
+        answerNum = packet.answerer;
 
         if(inviteCall.callee.compareToIgnoreCase(PhoneParam.CALL_SERVER_ID)!=0) {
             if (inviteCall.callee.compareToIgnoreCase(packet.answerer) != 0) {
@@ -312,9 +405,9 @@ public class BackEndCallConvergence {
             answerReqPack.answererRtpIP = PhoneParam.GetLocalAddress();
         }
 
-        answerReqPack.codec = PhoneParam.CALL_RTP_CODEC;
-        answerReqPack.pTime = PhoneParam.CALL_RTP_PTIME;
-        answerReqPack.sample = PhoneParam.CALL_RTP_SAMPLE;
+        answerReqPack.codec = PhoneParam.callRtpCodec;
+        answerReqPack.pTime = PhoneParam.callRtpPTime;
+        answerReqPack.sample = PhoneParam.callRtpDataRate;
 
         return answerReqPack;
     }
@@ -326,7 +419,7 @@ public class BackEndCallConvergence {
             inviteCall.calleeWaitUpdateCount++;
         }
 
-        if(inviteCall.answer.isEmpty()){
+        if(inviteCall.callType!=CommonCall.CALL_TYPE_BROADCAST&&!inviteCall.answer.isEmpty()){
             inviteCall.answerWaitUpdateCount++;
         }
 

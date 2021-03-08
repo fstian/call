@@ -33,7 +33,7 @@ public class LogWork {
     public static boolean backEndNetModuleLogEnable = false;
 
     public static boolean transactionModuleLogEnable = false;
-    public static boolean debugModuleLogEnable = true;
+    public static boolean debugModuleLogEnable = false;
 
     public final static int LOG_VERBOSE = 1;    // for verbose
     public final static int LOG_DEBUG = 2;      // for debug

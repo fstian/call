@@ -23,6 +23,9 @@ public class SystemSnap {
     public static final int LOG_CONFIG_REQ_CMD = 7;
     public static final int LOG_CONFIG_REQ_RES = 107;
 
+    public static final int AUDIO_CONFIG_REQ_CMD = 8;
+    public static final int AUDIO_CONFIG_RES_CMD = 108;
+
     public static final String SNAP_AUTOTEST_NAME = "autoTest";
     public static final String SNAP_REALTIME_NAME = "realTime";
     public static final String SNAP_TIMEUNIT_NAME = "timeUnit";
@@ -63,5 +66,9 @@ public class SystemSnap {
     public static final String LOG_DEBUG_NAME = "debugLog";
     public static final String LOG_DBG_LEVEL_NAME = "dbgLevel";
 
+    public static final String AUDIO_RTP_CODEC_NAME = "codec";
+    public static final String AUDIO_RTP_DATARATE_NAME = "dataRate";
+    public static final String AUDIO_RTP_PTIME_NAME = "PTime";
+    public static final String AUDIO_RTP_AEC_DELAY_NAME = "aecDelay";
 
 }

@@ -29,10 +29,6 @@ public class PhoneParam {
     final public static int ANSWER_CALL_RTP_PORT = 9092;
     final public static int BROADCAST_CALL_RTP_PORT = 9094;
 
-    final public static int CALL_RTP_CODEC = Rtp.RTP_CODEC_711MU;
-    final public static int CALL_RTP_PTIME = 20;
-    final public static int CALL_RTP_SAMPLE = 8000;
-    final public static int CALL_AEC_DELAY = 100;
     final public static int DEFAULT_AEC_DELAY = 100;
 
     final public static int BROADCALL_ANSWER_WAIT = 3;
@@ -59,7 +55,11 @@ public class PhoneParam {
     public static String callServerAddress = "127.0.0.1";
     public static boolean serverActive = false;
     public static int broadcallCastMode = BROADCALL_USE_BROADCAST;
+    
     public static int aecDelay = DEFAULT_AEC_DELAY;
+    public static int callRtpCodec = Rtp.RTP_CODEC_711A;
+    public static int callRtpPTime = 20;
+    public static int callRtpDataRate = 8000;
 
     public static int snapStartPort = 11005;
 

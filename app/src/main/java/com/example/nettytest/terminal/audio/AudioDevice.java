@@ -350,7 +350,7 @@ public class AudioDevice {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-
+//                        aecData = audioReadData;
                     }
                     // rtp packet and send
                     if(audioMode==SEND_ONLY_MODE||audioMode==SEND_RECV_MODE){
@@ -362,7 +362,7 @@ public class AudioDevice {
                             DatagramSocket curSocket = audioSocket;
                             if (curSocket != null) {
                                 curSocket.send(dp);
-    //                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Send %d byte to %s:%d",rtpData.length,dstAddress,dstPort);
+                                //LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Send %d byte to %s:%d",rtpData.length,dstAddress,dstPort);
                             }
                         } catch (UnknownHostException e) {
                             e.printStackTrace();
@@ -410,7 +410,7 @@ public class AudioDevice {
             audioWriteHandler = new Handler(message -> {
                 if(message.arg1 == AUDIO_PLAY_MSG){
                     short[] rtpData = (short [])message.obj;
-//                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv Play Msg with %d Byte Data",rtpData.length);
+                    //LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv Play Msg with %d Byte Data",rtpData.length);
                     if(player!=null)
                         player.write(rtpData,0,rtpData.length);
                 }

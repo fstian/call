@@ -69,6 +69,7 @@ public class TerminalCallManager {
         TerminalCall call = callLists.get(callid);
         if(call!=null){
             result = call.EndCall();
+            callLists.remove(callid); // must del there, otherwise call will auto update
         }
 
         return result;
@@ -208,7 +209,7 @@ public class TerminalCallManager {
                     call.UpdateByEndRes(endResP);
                     callLists.remove(callid);
                 }else{
-                    LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Could not Find Call %s for DEV %s when Recv Answer Res",endResP.callId,devid);
+                    LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Could not Find Call %s for DEV %s when Recv End Res",endResP.callId,devid);
                 }
                 break;
             case ProtocolPacket.CALL_UPDATE_RES:
@@ -216,7 +217,7 @@ public class TerminalCallManager {
                 callid = updateResP.callid;
                 call = callLists.get(callid);
                 if(call!=null){
-                    LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"DEV %s Recv Call Update Res for callid %s,Status is %s",call.devID,callid,ProtocolPacket.GetResString(updateResP.status));
+                    LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Call Update Res for callid %s,Status is %s",call.devID,callid,ProtocolPacket.GetResString(updateResP.status));
                     call.UpdateByUpdateRes(updateResP);
                     if(call.state==CommonCall.CALL_STATE_DISCONNECTED){
                         callLists.remove(callid);

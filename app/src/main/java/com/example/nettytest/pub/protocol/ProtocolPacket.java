@@ -64,15 +64,18 @@ public class ProtocolPacket {
     public final static int SYSTEM_CONFIG_RES = 109;
 
     public final static int MAX_REQ_TYPE = 100;
+    public final static int UNKNOW_CMD_RES = 200;
 
     public final static int UNKNOWPROTOCOLTYPE = 0xefff;
 
     public final static int STATUS_OK = 200;
+    public final static int STATUS_BADREQ = 400;
     public final static int STATUS_FORBID = 403;
     public final static int STATUS_NOTFOUND = 404;
     public final static int STATUS_TIMEOVER = 408;
     public final static int STATUS_CONFILICT = 409;
     public final static int STATUS_BUSY = 486;
+    public final static int STATUS_NOTSUPPORT = 490;
 
     public final static int STATUS_DECLINE = 603;
 
@@ -107,7 +110,7 @@ public class ProtocolPacket {
     }
 
     public static String GetResString(int res){
-        String resName = "";
+        String resName = "Unknow Reason";
         switch(res){
             case STATUS_OK:
                 resName = "200 OK";
@@ -130,12 +133,18 @@ public class ProtocolPacket {
             case STATUS_DECLINE:
                 resName = "603 Decline";
                 break;
+            case STATUS_NOTSUPPORT:
+                resName = "490 Not Support";
+                break;
+            case STATUS_BADREQ:
+                resName = "400 Bad Req";
+                break;
         }
         return resName;
     }
 
     public static String GetTypeName(int type){
-        String packetTypeName = "";
+        String packetTypeName = "Unknow Req";
         switch(type){
             case REG_REQ:
                 packetTypeName = "Reg_Req";

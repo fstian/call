@@ -6,7 +6,9 @@ public class AnswerReqPack extends ProtocolPacket{
     public String callID;
 
     public String answerer;
-    public String bedID;
+    public String answerBedName;
+    public String answerRoomId;
+    public String answerDeviceName;
     public int callType;
 
     public int codec;
@@ -21,7 +23,9 @@ public class AnswerReqPack extends ProtocolPacket{
         callID = ans.callID;
 
         answerer = ans.answerer;
-        bedID = ans.bedID;
+        answerBedName = ans.answerBedName;
+        answerDeviceName = ans.answerDeviceName;
+        answerRoomId = ans.answerRoomId;
         callType = ans.callType;
 
         codec = ans.codec;
@@ -42,6 +46,9 @@ public class AnswerReqPack extends ProtocolPacket{
         type = ProtocolPacket.ANSWER_REQ;
         callID= "";
         answerer = "";
+        answerRoomId = "";
+        answerBedName="";
+        answerDeviceName = "";
     }
 
     public AnswerReqPack(AnswerReqPack pack,String id){

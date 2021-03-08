@@ -1,20 +1,20 @@
 package com.example.nettytest.backend.backendphone;
 
 public class BackEndConfig {
-    public static boolean normalCallToBed=false;
-    public static boolean normalCallToRoom=true;
-    public static boolean normalCallToTv=true;
-    public static boolean normalCallToCorridor=true;
+    public boolean normalCallToBed=false;
+    public boolean normalCallToRoom=true;
+    public boolean normalCallToTv=true;
+    public boolean normalCallToCorridor=true;
 
-    public static boolean emerCallToBed=false;
-    public static boolean emerCallToRoom=true;
-    public static boolean emerCallToTv=true;
-    public static boolean emerCallToCorridor=true;
+    public boolean emerCallToBed=false;
+    public boolean emerCallToRoom=true;
+    public boolean emerCallToTv=true;
+    public boolean emerCallToCorridor=true;
 
-    public static boolean broadCallToBed=true;
-    public static boolean broadCallToRoom=true;
-    public static boolean broadCallToTv=false;
-    public static boolean broadCallToCorridor=true;
+    public boolean broadCallToBed=true;
+    public boolean broadCallToRoom=true;
+    public boolean broadCallToTv=false;
+    public boolean broadCallToCorridor=true;
 
     public void Copy(BackEndConfig config){
         normalCallToBed = config.normalCallToBed;
@@ -26,5 +26,10 @@ public class BackEndConfig {
         emerCallToRoom = config.emerCallToRoom;
         emerCallToTv = config.emerCallToTv;
         emerCallToCorridor = config.emerCallToCorridor;
+
+        broadCallToBed = config.broadCallToBed;
+        broadCallToRoom = config.broadCallToRoom;
+        broadCallToCorridor = config.broadCallToCorridor;
+        broadCallToTv = config.broadCallToTv;
     }
 }

@@ -320,6 +320,9 @@ public class TerminalPhoneManager {
                     LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv System ConfigQuery Res",systemConfigResP.receiver);
                     phone.UpdateSystemConfig(systemConfigResP);
                     break;
+                default:
+//                    phone.RecvUnsupport(packet);
+                    break;
             }
         }
 

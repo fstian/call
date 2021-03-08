@@ -197,6 +197,11 @@ public class MainActivity extends AppCompatActivity {
                                 LogWork.debugModuleLogEnable = json.optInt(SystemSnap.LOG_DEBUG_NAME) == 1;
 
                                 LogWork.dbgLevel = json.optInt(SystemSnap.LOG_DBG_LEVEL_NAME);
+                            }else if(type==SystemSnap.AUDIO_CONFIG_REQ_CMD){
+                                PhoneParam.callRtpCodec = json.optInt(SystemSnap.AUDIO_RTP_CODEC_NAME);
+                                PhoneParam.callRtpDataRate = json.optInt(SystemSnap.AUDIO_RTP_DATARATE_NAME);
+                                PhoneParam.callRtpPTime = json.optInt(SystemSnap.AUDIO_RTP_PTIME_NAME);
+                                PhoneParam.aecDelay = json.optInt(SystemSnap.AUDIO_RTP_AEC_DELAY_NAME);
                             }
                         }
                     } catch (IOException e) {
@@ -559,8 +564,13 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }else if(msgType == UserMessage.MESSAGE_BACKEND_CALL_LOG){
                     CallLogMessage callLog = (CallLogMessage)terminalMsg;
-                    UserInterface.PrintLog("Recv Call Log , CallID = %s, Caller=%s, Callee=%s, Answer=%s, Ender=%s, StartTime=%d, AnswerTime=%d, EndTime=%d",
-                            callLog.callId,callLog.caller,callLog.callee,callLog.answer,callLog.ender,callLog.startTime,callLog.answerTime,callLog.endTime);
+                    UserInterface.PrintLog("Recv Call Log , CallID = %s-%d-%d-%d, Caller=%s-%s-%d, Callee=%s-%s-%d, Answer=%s-%s-%d, Ender=%s-%s-%d, StartTime=%d, AnswerTime=%d, EndTime=%d",
+                            callLog.callId,callLog.callType,callLog.callDirection,callLog.answerMode,
+                            callLog.callerNum,callLog.callerName,callLog.callerType,
+                            callLog.calleeNum,callLog.calleeName,callLog.calleeType,
+                            callLog.answerNum,callLog.answerName,callLog.answerType,
+                            callLog.enderNum,callLog.enderName,callLog.enderType,
+                            callLog.startTime,callLog.answerTime,callLog.endTime);
                 }
 
                 return false;
