@@ -191,7 +191,8 @@ public class AudioDevice {
     private void OpenAudio(){
 
         if(audioMode==SEND_RECV_MODE){
-            aec =new MobileAEC(new SamplingFrequency(sample));
+//            aec =new MobileAEC(new SamplingFrequency(sample));
+            aec =new MobileAEC(null);
             aec.setAecmMode(MobileAEC.AggressiveMode.MOST_AGGRESSIVE).prepare();
         }
 

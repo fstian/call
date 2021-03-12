@@ -20,6 +20,7 @@ import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.protocol.RegResPack;
 import com.example.nettytest.pub.protocol.SystemConfigResPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
+import com.example.nettytest.terminal.test.TestDevice;
 import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
 import com.example.nettytest.userinterface.UserMessage;
@@ -92,6 +93,47 @@ public class TerminalPhoneManager {
                                     resList = HandlerMgr.GetTerminalTransInfo();
                                     for (byte[] data : resList) {
                                         resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
+                                        testSocket.send(resPack);
+                                    }
+                                }else if(type==SystemSnap.LOG_CONFIG_REQ_CMD){
+                                    LogWork.backEndNetModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_NET_NAME) == 1;
+
+                                    LogWork.backEndDeviceModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_DEVICE_NAME) == 1;
+
+                                    LogWork.backEndCallModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_CALL_NAME) == 1;
+
+                                    LogWork.backEndPhoneModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_PHONE_NAME) == 1;
+
+                                    LogWork.terminalNetModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_NET_NAME) == 1;
+
+                                    LogWork.terminalDeviceModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_DEVICE_NAME) == 1;
+
+                                    LogWork.terminalCallModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_CALL_NAME) == 1;
+
+                                    LogWork.terminalPhoneModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_PHONE_NAME) == 1;
+
+                                    LogWork.terminalUserModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_USER_NAME) == 1;
+
+                                    LogWork.terminalAudioModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_AUDIO_NAME) ==1;
+
+                                    LogWork.transactionModuleLogEnable = json.optInt(SystemSnap.LOG_TRANSACTION_NAME) == 1;
+
+                                    LogWork.debugModuleLogEnable = json.optInt(SystemSnap.LOG_DEBUG_NAME) == 1;
+
+                                    LogWork.dbgLevel = json.optInt(SystemSnap.LOG_DBG_LEVEL_NAME);
+                                }else if(type==SystemSnap.AUDIO_CONFIG_REQ_CMD){
+                                    PhoneParam.callRtpCodec = json.optInt(SystemSnap.AUDIO_RTP_CODEC_NAME);
+                                    PhoneParam.callRtpDataRate = json.optInt(SystemSnap.AUDIO_RTP_DATARATE_NAME);
+                                    PhoneParam.callRtpPTime = json.optInt(SystemSnap.AUDIO_RTP_PTIME_NAME);
+                                    PhoneParam.aecDelay = json.optInt(SystemSnap.AUDIO_RTP_AEC_DELAY_NAME);
+                                }else if(type==SystemSnap.SNAP_DEV_REQ){
+                                    for (TerminalPhone dev : clientPhoneLists.values()) {
+                                        JSONObject resJson = new JSONObject();
+                                        resJson.putOpt(SystemSnap.SNAP_CMD_TYPE_NAME,SystemSnap.SNAP_DEV_RES);
+                                        resJson.putOpt(SystemSnap.SNAP_DEVID_NAME,dev.id);
+                                        resJson.putOpt(SystemSnap.SNAP_DEVTYPE_NAME,dev.type);
+                                        byte[] resBuf = resJson.toString().getBytes();
+                                        resPack= new DatagramPacket(resBuf,resBuf.length,recvPack.getAddress(),recvPack.getPort());
                                         testSocket.send(resPack);
                                     }
                                 }
@@ -177,6 +219,8 @@ public class TerminalPhoneManager {
             matchedDev = clientPhoneLists.get(caller);
             if(matchedDev!=null){
                 callid = matchedDev.MakeOutGoingCall(callee,callType);
+            }else{
+                LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_ERROR,"Build Call From %s to %s Fail, Could not Find DEV %s",caller,callee,caller);
             }
         }
 
@@ -207,6 +251,8 @@ public class TerminalPhoneManager {
             matchedDev = clientPhoneLists.get(devid);
             if(matchedDev!=null){
                 result = matchedDev.EndCall(callID);
+            }else{
+                LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_ERROR,"End Call DEV %s Call %s Fail, Could not Find DEV %s",devid,callID,devid);
             }
         }
         return result;
@@ -219,6 +265,8 @@ public class TerminalPhoneManager {
             matchedDev = clientPhoneLists.get(devid);
             if(matchedDev!=null){
                 result = matchedDev.AnswerCall(callID);
+            }else{
+                LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_ERROR,"Answer Call DEV %s Call %s Fail, Could not Find DEV %s",devid,callID,devid);
             }
         }
         return result;

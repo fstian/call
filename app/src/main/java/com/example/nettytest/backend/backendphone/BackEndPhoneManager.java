@@ -228,6 +228,9 @@ public class BackEndPhoneManager {
             if (matchedPhone == null) {
                 matchedPhone = new BackEndPhone(id,t);
                 serverPhoneLists.put(id,matchedPhone);
+                LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Add Phone Device %s On Server",id);
+            }else{
+                LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Add Phone Device %s On Server, but it had created",id);
             }
         }
 
@@ -237,9 +240,11 @@ public class BackEndPhoneManager {
         BackEndPhone matchedPhone;
         synchronized (BackEndPhoneManager.class){
             matchedPhone = serverPhoneLists.get(id);
-            if(matchedPhone!=null)
+            if(matchedPhone!=null) {
                 matchedPhone.paramList.clear();
                 serverPhoneLists.remove(id);
+                LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Remove Phone Device %s On Server",id);
+            }
         }
     }
 
@@ -250,8 +255,8 @@ public class BackEndPhoneManager {
                 BackEndPhone phone = item.getValue();
                 phone.paramList.clear();
                 it.remove();
+                LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Remove All Phone Devices On Server");
             }
-
         }
     }
 

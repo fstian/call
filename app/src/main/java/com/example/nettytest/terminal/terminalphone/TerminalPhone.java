@@ -29,7 +29,6 @@ import com.example.nettytest.pub.protocol.RegReqPack;
 import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.terminal.terminalcall.TerminalCallManager;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
-import com.example.nettytest.userinterface.UserInterface;
 import com.example.nettytest.userinterface.UserMessage;
 import com.example.nettytest.userinterface.UserRegMessage;
 
@@ -164,7 +163,7 @@ public class TerminalPhone extends PhoneDevice {
             if(pDevice.type == PhoneDevice.BED_CALL_DEVICE) {
                 UserDevice tDevice = new UserDevice();
                 tDevice.devid = pDevice.id;
-                tDevice.isReg = pDevice.isReg;
+                tDevice.isRegOk = pDevice.isReg;
                 tDevice.type = pDevice.type;
                 tDevice.bedName = pDevice.bedName;
                 devsMsg.deviceList.add(tDevice);
@@ -253,11 +252,11 @@ public class TerminalPhone extends PhoneDevice {
     }
 
     public int EndCall(String callid){
-        return callManager.EndCall(callid);
+        return callManager.EndCall(id,callid);
     }
 
     public int AnswerCall(String callid){
-        return callManager.AnswerCall(callid);
+        return callManager.AnswerCall(id,callid);
     }
 
 

@@ -64,22 +64,29 @@ public class TerminalCallManager {
         return json.toString().getBytes();
     }
 
-    public int EndCall(String callid){
+    public int EndCall(String id,String callid){
         int result = ProtocolPacket.STATUS_NOTFOUND;
         TerminalCall call = callLists.get(callid);
         if(call!=null){
             result = call.EndCall();
             callLists.remove(callid); // must del there, otherwise call will auto update
+        }else{
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_ERROR,"DEV %s End Call Fail, Could not find Call %s",id,callid);
+            for(TerminalCall scanCall:callLists.values()){
+                LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_ERROR,"DEV %s Has Call %s from %s to %s",id,scanCall.callID,scanCall.caller,scanCall.callee);
+            }
         }
 
         return result;
     }
 
-    public int AnswerCall(String callid){
+    public int AnswerCall(String id,String callid){
         int result = ProtocolPacket.STATUS_NOTFOUND;
         TerminalCall call = callLists.get(callid);
         if(call!=null){
             result = call.Answer();
+        }else{
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_ERROR,"DEV %s Answer Call Fail, Could not find Call %s",id,callid);
         }
 
         return result;
@@ -88,14 +95,20 @@ public class TerminalCallManager {
     public String BuildCall(String devID, TerminalDeviceInfo info,String dstID, int callType){
         String callid;
         TerminalCall call;
+        int direction;
         if (!callLists.isEmpty()) {
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_ERROR,"DEV %s Build Call Fail, Dev Has %d Calls",devID,callLists.size());
+            for(TerminalCall scanCall:callLists.values()){
+                LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_ERROR,"DEV %s Has Call %s from %s to %s",devID,scanCall.callID,scanCall.caller,scanCall.callee);
+            }
             return null;
         }
-        call = new TerminalCall(devID,info,dstID,callType);
+
         if(devType== TerminalPhone.NURSE_CALL_DEVICE)
-            call.direct = CommonCall.CALL_DIRECT_M2S;
+            direction = CommonCall.CALL_DIRECT_M2S;
         else
-            call.direct = CommonCall.CALL_DIRECT_S2M;
+            direction = CommonCall.CALL_DIRECT_S2M;
+        call = new TerminalCall(devID,info,dstID,callType,direction);
 
         callLists.put(call.callID, call);
         callid = call.callID;
@@ -110,17 +123,23 @@ public class TerminalCallManager {
             if(callLists.size()>0)
                 result = ProtocolPacket.STATUS_BUSY;
         }else if(devType==TerminalPhone.EMER_CALL_DEVICE){
-            result = ProtocolPacket.STATUS_NOTFOUND;
+            result = ProtocolPacket.STATUS_NOTSUPPORT;
         }
 
         if(result==ProtocolPacket.STATUS_OK){
-            call = new TerminalCall(packet);
-            if(devType==TerminalPhone.NURSE_CALL_DEVICE){
-                call.direct = CommonCall.CALL_DIRECT_M2S;
-            }else{
-                call.direct = CommonCall.CALL_DIRECT_S2M;
+            boolean isValidCall =true;
+            for(TerminalCall scanCall:callLists.values()){
+                if(scanCall.callID.compareToIgnoreCase(packet.callID)==0){
+                    isValidCall = false;
+                    break;
+                }
             }
-            callLists.put(call.callID,call);
+            if(isValidCall) {
+                call = new TerminalCall(packet);
+                callLists.put(call.callID, call);
+            }else{
+                result = ProtocolPacket.STATUS_DUPLICATE;
+            }
         }
 
         if(result!=ProtocolPacket.STATUS_OK){
