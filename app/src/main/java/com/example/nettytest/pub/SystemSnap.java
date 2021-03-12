@@ -2,8 +2,8 @@ package com.example.nettytest.pub;
 
 public class SystemSnap {
 
-    public static final int SNAP_DEV_REQ = 1;
-    public static final int SNAP_DEV_RES = 101;
+    public static final int SNAP_TEST_REQ = 1;
+    public static final int SNAP_TEST_RES = 101;
 
     public static final int SNAP_TERMINAL_TRANS_REQ = 2;
     public static final int SNAP_TERMINAL_TRANS_RES = 102;
@@ -25,6 +25,9 @@ public class SystemSnap {
 
     public static final int AUDIO_CONFIG_REQ_CMD = 8;
     public static final int AUDIO_CONFIG_RES_CMD = 108;
+
+    public static final int SNAP_DEV_REQ = 9;
+    public static final int SNAP_DEV_RES = 109;
 
     public static final String SNAP_AUTOTEST_NAME = "autoTest";
     public static final String SNAP_REALTIME_NAME = "realTime";

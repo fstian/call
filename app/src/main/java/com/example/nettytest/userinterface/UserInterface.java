@@ -8,6 +8,7 @@ import com.example.nettytest.backend.callserver.DemoServer;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.phonecall.CommonCall;
+import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
 
 import java.util.ArrayList;
@@ -71,10 +72,12 @@ public class UserInterface {
 
     public static OperationResult RemoveDeviceOnServer(String id){
         OperationResult result = new OperationResult();
-
         if(!HandlerMgr.RemoveBackEndPhone(id)){
             result.result = OperationResult.OP_RESULT_FAIL;
             result.reason = FailReason.FAIL_REASON_NOTFOUND;
+            PrintLog("Remove Device %s From Server Fail",id);
+        }else{
+            PrintLog("Remove Device %s From Server Success",id);
         }
         return result;
 
@@ -87,6 +90,9 @@ public class UserInterface {
         if(!HandlerMgr.RemoveAllBackEndPhone()){
             result.result = OperationResult.OP_RESULT_FAIL;
             result.reason = FailReason.FAIL_REASON_NOTFOUND;
+            PrintLog("Remove All Devices From Server Fail");
+        }else{
+            PrintLog("Remove All Devices From Server Success");
         }
         return result;
 
@@ -223,10 +229,13 @@ public class UserInterface {
         callid = HandlerMgr.BuildTerminalCall(id, peerId,terminamCallType);
         if(callid!=null){
             result.callID = callid;
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Create Call From %s to %s Success, CallID = %s",id,peerId,callid);
         }else{
             result.result = OperationResult.OP_RESULT_FAIL;
             result.reason = FailReason.FAIL_REASON_NOTSUPPORT;
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Create Call From %s to %s Fail, Reason is %s",id,peerId,FailReason.GetFailName(result.reason));
         }
+
         return result;
     }
 
@@ -236,6 +245,11 @@ public class UserInterface {
 
         operationCode = HandlerMgr.EndTerminalCall(devid,callid);
         result = new OperationResult(operationCode);
+
+        if(operationCode== ProtocolPacket.STATUS_OK)
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"End Call %s by %s success",callid,devid);
+        else
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"End Call %s by %s Fail, Reason is %s",callid,devid,FailReason.GetFailName(result.reason));
 
         result.callID = callid;
         return result;
@@ -248,6 +262,10 @@ public class UserInterface {
         operationCode = HandlerMgr.AnswerTerminalCall(devid,callid);
         result = new OperationResult(operationCode);
         result.callID = callid;
+        if(operationCode== ProtocolPacket.STATUS_OK)
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Answer Call %s by %s success",callid,devid);
+        else
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Anwser Call %s by %s Fail, Reason is %s",callid,devid,FailReason.GetFailName(result.reason));
         return result;
     }
 

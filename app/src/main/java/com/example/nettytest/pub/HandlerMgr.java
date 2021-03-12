@@ -20,9 +20,12 @@ import com.example.nettytest.terminal.terminalphone.TerminalPhoneManager;
 import com.example.nettytest.terminal.terminaltransaction.TerminalTransactionMgr;
 import com.example.nettytest.userinterface.ServerDeviceInfo;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
+import com.example.nettytest.userinterface.UserCallMessage;
 import com.example.nettytest.userinterface.UserConfig;
 import com.example.nettytest.userinterface.UserDevice;
 import com.example.nettytest.userinterface.UserInterface;
+import com.example.nettytest.userinterface.UserMessage;
+import com.example.nettytest.userinterface.UserRegMessage;
 
 import java.util.ArrayList;
 
@@ -86,6 +89,13 @@ public class HandlerMgr {
     }
 
     static public void SendMessageToUser(int type,Object obj){
+        if(type== UserMessage.MESSAGE_CALL_INFO) {
+            UserCallMessage msg = (UserCallMessage)obj;
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Send Msg %s of Call %s to dev %s", UserMessage.GetMsgName(msg.type),msg.callId,msg.devId);
+        }else if(type==UserMessage.MESSAGE_REG_INFO){
+            UserRegMessage regMsg = (UserRegMessage)obj;
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Send Msg %s to dev %s", UserMessage.GetMsgName(regMsg.type),regMsg.devId);
+        }
         terminalPhoneMgr.SendUserMessage(type,obj);
     }
 
@@ -257,7 +267,7 @@ public class HandlerMgr {
         backEndPhoneMgr.GetDeviceList(phoneLists);
         for(PhoneDevice dev:phoneLists){
             UserDevice userDev = new UserDevice();
-            userDev.isReg = dev.isReg;
+            userDev.isRegOk = dev.isReg;
             userDev.devid = dev.id;
             switch(dev.type) {
                 case PhoneDevice.BED_CALL_DEVICE:

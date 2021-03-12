@@ -4,11 +4,11 @@ public class UserDevice {
     public int type;
     public String devid;
     public String bedName;
-    public boolean isReg;
+    public boolean isRegOk;
 
     public UserDevice(){
         devid = "";
         bedName = "";
-        isReg = false;
+        isRegOk = false;
     }
 }

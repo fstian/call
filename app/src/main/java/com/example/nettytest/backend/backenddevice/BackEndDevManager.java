@@ -1,5 +1,6 @@
 package com.example.nettytest.backend.backenddevice;
 
+import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.commondevice.NetDevice;
 import com.example.nettytest.pub.commondevice.NetDeviceManager;
 
@@ -16,6 +17,9 @@ public class BackEndDevManager extends NetDeviceManager {
             if (matchedDev == null) {
                 matchedDev = new BackEndDevice(id);
                 devLists.put(id,matchedDev);
+                LogWork.Print(LogWork.BACKEND_DEVICE_MODULE,LogWork.LOG_INFO,"Add Net Device %s On Server",id);
+            }else{
+                LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Add Net Device %s On Server, but it had created",id);
             }
         }
     }
@@ -27,6 +31,7 @@ public class BackEndDevManager extends NetDeviceManager {
             if(matchedDev!=null) {
                 matchedDev.Close();
                 devLists.remove(id);
+                LogWork.Print(LogWork.BACKEND_DEVICE_MODULE,LogWork.LOG_INFO,"Remove Net Device %s On Server",id);
             }
         }
     }

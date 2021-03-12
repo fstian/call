@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void ReplaceDevice(String id,TestDevice dev){
         for(int iTmp=0;iTmp<audioTest.testDevices.length;iTmp++){
-            if(audioTest.testDevices[iTmp].id.compareToIgnoreCase(id)==0){
+            if(audioTest.testDevices[iTmp].devid.compareToIgnoreCase(id)==0){
                 if(audioTest.curDevice == audioTest.testDevices[iTmp]) {
                     audioTest.curDevice = dev;
                 }
@@ -131,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
                             JSONObject json = new JSONObject(recv);
                             TestInfo info = new TestInfo();
                             int type = json.optInt(SystemSnap.SNAP_CMD_TYPE_NAME);
-                            if(type == SystemSnap.SNAP_DEV_REQ) {
+                            if(type == SystemSnap.SNAP_TEST_REQ) {
                                 int isAuto = json.optInt(SystemSnap.SNAP_AUTOTEST_NAME);
                                 int isRealTime = json.optInt(SystemSnap.SNAP_REALTIME_NAME);
                                 int timeUnit = json.optInt(SystemSnap.SNAP_TIMEUNIT_NAME);
@@ -146,13 +146,6 @@ public class MainActivity extends AppCompatActivity {
                                         break;
                                     dev.SetTestInfo(info);
 
-                                    JSONObject resJson = new JSONObject();
-                                    resJson.putOpt(SystemSnap.SNAP_CMD_TYPE_NAME,SystemSnap.SNAP_DEV_RES);
-                                    resJson.putOpt(SystemSnap.SNAP_DEVID_NAME,dev.id);
-                                    resJson.putOpt(SystemSnap.SNAP_DEVTYPE_NAME,dev.type);
-                                    byte[] resBuf = resJson.toString().getBytes();
-                                    DatagramPacket resPack= new DatagramPacket(resBuf,resBuf.length,recvPack.getAddress(),recvPack.getPort());
-                                    audioTest.testSocket.send(resPack);
                                 }
 
                                 if(info.isAutoTest){
@@ -165,43 +158,12 @@ public class MainActivity extends AppCompatActivity {
                                 for (TestDevice dev : audioTest.testDevices) {
                                     if(dev==null)
                                         break;
-                                    if(dev.id.compareToIgnoreCase(devId)==0) {
+                                    if(dev.devid.compareToIgnoreCase(devId)==0) {
                                         byte[] resBuf = dev.MakeSnap();
                                         DatagramPacket resPack = new DatagramPacket(resBuf, resBuf.length, recvPack.getAddress(), recvPack.getPort());
                                         audioTest.testSocket.send(resPack);
                                     }
                                 }
-                            }else if(type==SystemSnap.LOG_CONFIG_REQ_CMD){
-                                LogWork.backEndNetModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_NET_NAME) == 1;
-
-                                LogWork.backEndDeviceModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_DEVICE_NAME) == 1;
-
-                                LogWork.backEndCallModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_CALL_NAME) == 1;
-
-                                LogWork.backEndPhoneModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_PHONE_NAME) == 1;
-
-                                LogWork.terminalNetModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_NET_NAME) == 1;
-
-                                LogWork.terminalDeviceModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_DEVICE_NAME) == 1;
-
-                                LogWork.terminalCallModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_CALL_NAME) == 1;
-
-                                LogWork.terminalPhoneModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_PHONE_NAME) == 1;
-
-                                LogWork.terminalUserModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_USER_NAME) == 1;
-
-                                LogWork.terminalAudioModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_AUDIO_NAME) ==1;
-
-                                LogWork.transactionModuleLogEnable = json.optInt(SystemSnap.LOG_TRANSACTION_NAME) == 1;
-
-                                LogWork.debugModuleLogEnable = json.optInt(SystemSnap.LOG_DEBUG_NAME) == 1;
-
-                                LogWork.dbgLevel = json.optInt(SystemSnap.LOG_DBG_LEVEL_NAME);
-                            }else if(type==SystemSnap.AUDIO_CONFIG_REQ_CMD){
-                                PhoneParam.callRtpCodec = json.optInt(SystemSnap.AUDIO_RTP_CODEC_NAME);
-                                PhoneParam.callRtpDataRate = json.optInt(SystemSnap.AUDIO_RTP_DATARATE_NAME);
-                                PhoneParam.callRtpPTime = json.optInt(SystemSnap.AUDIO_RTP_PTIME_NAME);
-                                PhoneParam.aecDelay = json.optInt(SystemSnap.AUDIO_RTP_AEC_DELAY_NAME);
                             }
                         }
                     } catch (IOException e) {
@@ -450,7 +412,7 @@ public class MainActivity extends AppCompatActivity {
 
         for (iTmp = 0; iTmp < deviceNum; iTmp++) {
             System.out.println("deviceList has "+PhoneParam.deviceList.size()+" items, try to get "+iTmp+ " item");
-            arr[iTmp] = UserInterface.GetDeviceTypeName(audioTest.testDevices[iTmp].type) + "    " + audioTest.testDevices[iTmp].id;
+            arr[iTmp] = UserInterface.GetDeviceTypeName(audioTest.testDevices[iTmp].type) + "    " + audioTest.testDevices[iTmp].devid;
         }
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, arr);
@@ -494,7 +456,7 @@ public class MainActivity extends AppCompatActivity {
                     for (TestDevice testDevice : audioTest.testDevices) {
                         if(testDevice==null)
                             break;
-                        if (testDevice.id.compareToIgnoreCase(terminalMsg.devId) == 0) {
+                        if (testDevice.devid.compareToIgnoreCase(terminalMsg.devId) == 0) {
                             device = testDevice;
                             break;
                         }
@@ -564,13 +526,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }else if(msgType == UserMessage.MESSAGE_BACKEND_CALL_LOG){
                     CallLogMessage callLog = (CallLogMessage)terminalMsg;
-                    UserInterface.PrintLog("Recv Call Log , CallID = %s-%d-%d-%d, Caller=%s-%s-%d, Callee=%s-%s-%d, Answer=%s-%s-%d, Ender=%s-%s-%d, StartTime=%d, AnswerTime=%d, EndTime=%d",
-                            callLog.callId,callLog.callType,callLog.callDirection,callLog.answerMode,
-                            callLog.callerNum,callLog.callerName,callLog.callerType,
-                            callLog.calleeNum,callLog.calleeName,callLog.calleeType,
-                            callLog.answerNum,callLog.answerName,callLog.answerType,
-                            callLog.enderNum,callLog.enderName,callLog.enderType,
-                            callLog.startTime,callLog.answerTime,callLog.endTime);
+                    UserInterface.PrintLog("Recv Call Log , CallID = %s Type=%d direction=%d answerMode=%d ",callLog.callId,callLog.callType,callLog.callDirection,callLog.answerMode);
                 }
 
                 return false;

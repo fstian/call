@@ -34,11 +34,12 @@ public class TerminalCall extends CommonCall {
     int autoAnswerTick;
 
     // call out
-    public TerminalCall(String caller, TerminalDeviceInfo info,String callee, int type) {
+    public TerminalCall(String caller, TerminalDeviceInfo info,String callee, int type,int direction) {
         super(caller, callee, type);
         updateTick =CommonCall.UPDATE_INTERVAL;
         autoAnswerTime = -1;
         autoAnswerTick = 0;
+        direct = direction;
 
         InviteReqPack invitePack = BuildInvitePacket(info);
         Transaction inviteTransaction = new Transaction(devID,invitePack,Transaction.TRANSCATION_DIRECTION_C2S);
@@ -202,7 +203,7 @@ public class TerminalCall extends CommonCall {
             HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
 
         }else{
-            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv OK for Update in Call %s! ",devID,callID);
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv OK for End in Call %s! ",devID,callID);
         }
 
     }

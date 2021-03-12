@@ -19,12 +19,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 
-public class TestDevice {
-
-    public int type;
-    public String id;
-
-    public boolean isRegOk;
+public class TestDevice extends UserDevice{
     public boolean isCallOut;
     public boolean isTalking;
     public String talkPeer;
@@ -40,7 +35,7 @@ public class TestDevice {
     public TestDevice(int type,String id){
         TerminalDeviceInfo info = new TerminalDeviceInfo();
         this.type = type;
-        this.id = id;
+        this.devid = id;
         UserInterface.BuildDevice(type,id);
         info.patientName = "patient"+id;
         info.patientAge = String.format("%d",18+type);
@@ -58,11 +53,11 @@ public class TestDevice {
 
     public OperationResult BuildCall(String peerId, int type){
         OperationResult result;
-        result = UserInterface.BuildCall(id,peerId,type);
+        result = UserInterface.BuildCall(devid,peerId,type);
         if(result.result == OperationResult.OP_RESULT_OK){
             isCallOut = true;
             outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_OUTGOING;
-            outGoingCall.caller = id;
+            outGoingCall.caller = devid;
             outGoingCall.callee = peerId;
             outGoingCall.callID = result.callID;
         }
@@ -80,7 +75,7 @@ public class TestDevice {
 
         try {
             snap.putOpt(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_MMI_CALL_RES);
-            snap.putOpt(SystemSnap.SNAP_DEVID_NAME, id);
+            snap.putOpt(SystemSnap.SNAP_DEVID_NAME, devid);
             if(isRegOk) {
                 snap.putOpt(SystemSnap.SNAP_REG_NAME, 1);
             }else{
@@ -118,7 +113,7 @@ public class TestDevice {
 
     public OperationResult AnswerCall(String callid){
         OperationResult result;
-        result = UserInterface.AnswerCall(id,callid);
+        result = UserInterface.AnswerCall(devid,callid);
         if(result.result == OperationResult.OP_RESULT_OK) {
             isCallOut = false;
             isTalking = true;
@@ -141,18 +136,18 @@ public class TestDevice {
     }
 
     public void QueryDevs(){
-        UserInterface.QueryDevs(id);
+        UserInterface.QueryDevs(devid);
     }
 
-    public void QueryConfig() {UserInterface.QueryDevConfig(id);}
+    public void QueryConfig() {UserInterface.QueryDevConfig(devid);}
     
     public void QuerySystemConfig() {
-        UserInterface.QuerySystemConfig(id);
+        UserInterface.QuerySystemConfig(devid);
     }
 
     private OperationResult EndCall(String callid){
         OperationResult result;
-        result = UserInterface.EndCall(id,callid);
+        result = UserInterface.EndCall(devid,callid);
         if(isTalking) {
             if(isCallOut){
                 if(outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED) {
@@ -194,14 +189,14 @@ public class TestDevice {
                     if (!isCallOut) {
                         opResult = BuildCall(PhoneParam.CALL_SERVER_ID,UserInterface.CALL_NORMAL_TYPE);
                         if(opResult.result != OperationResult.OP_RESULT_OK){
-                            UserInterface.PrintLog("DEV %s Make Call Fail",id);
+                            UserInterface.PrintLog("DEV %s Make Call Fail",devid);
                         }else{
                             result = true;
                         }
                     } else {
                         opResult = EndCall(outGoingCall.callID);
                         if(opResult.result != OperationResult.OP_RESULT_OK){
-                            UserInterface.PrintLog("DEV %s End Call %s Fail",id,outGoingCall.callID);
+                            UserInterface.PrintLog("DEV %s End Call %s Fail",devid,outGoingCall.callID);
                         }else{
                             result = true;
                         }
@@ -213,14 +208,14 @@ public class TestDevice {
                     if(isCallOut){
                         opResult = EndCall(outGoingCall.callID);
                         if(opResult.result!=OperationResult.OP_RESULT_OK){
-                            UserInterface.PrintLog("DEV %s End Call %s Fail",id,outGoingCall.callID);
+                            UserInterface.PrintLog("DEV %s End Call %s Fail",devid,outGoingCall.callID);
                         }else {
                             result = true;
                         }
                     }else{
                         opResult = BuildCall(PhoneParam.CALL_SERVER_ID, UserInterface.CALL_BROADCAST_TYPE);
                         if(opResult.result!=OperationResult.OP_RESULT_OK){
-                            UserInterface.PrintLog("DEV %s Make BroadCast Call Fail",id);
+                            UserInterface.PrintLog("DEV %s Make BroadCast Call Fail",devid);
                         }else{
                             result = true;
                         }
@@ -234,13 +229,13 @@ public class TestDevice {
                         } else {
                             UserInterface.PrintLog("Device List TextView Touch at (%d,%d),Select %d device", x, y, selected - 1);
                             if (isCallOut) {
-                                UserInterface.PrintLog("Device %s is Calling Out!!!!!!!!!!!!", id);
+                                UserInterface.PrintLog("Device %s is Calling Out!!!!!!!!!!!!", devid);
                             } else {
                                 UserDevice device = devLists.get(selected - 1);
-                                UserInterface.PrintLog("Device %s Calling %s", id, device.devid);
+                                UserInterface.PrintLog("Device %s Calling %s", devid, device.devid);
                                 opResult = BuildCall(device.devid, UserInterface.CALL_NORMAL_TYPE);
                                 if(opResult.result!=OperationResult.OP_RESULT_OK){
-                                    UserInterface.PrintLog("DEV %s Make Call to DEV %s Fail, Reason=%s",id,device.devid, FailReason.GetFailName(opResult.reason));
+                                    UserInterface.PrintLog("DEV %s Make Call to DEV %s Fail, Reason=%s",devid,device.devid, FailReason.GetFailName(opResult.reason));
                                 }else{
                                     result = true;
                                 }
@@ -264,7 +259,7 @@ public class TestDevice {
                             if(!isTalking) {
                                 opResult = AnswerCall(callInfo.callID);
                                 if(opResult.result!=OperationResult.OP_RESULT_OK){
-                                    UserInterface.PrintLog("DEV %s Answer Call  %s Fail",id,callInfo.callID);
+                                    UserInterface.PrintLog("DEV %s Answer Call  %s Fail",devid,callInfo.callID);
                                 }else{
                                     result = true;
                                 }
@@ -273,7 +268,7 @@ public class TestDevice {
                         }else {
                             opResult = EndCall(callInfo.callID);
                             if(opResult.result!=OperationResult.OP_RESULT_OK){
-                                UserInterface.PrintLog("DEV %s End Call  %s Fail",id,callInfo.callID);
+                                UserInterface.PrintLog("DEV %s End Call  %s Fail",devid,callInfo.callID);
                             }else{
                                 result = true;
                             }
@@ -359,7 +354,7 @@ public class TestDevice {
             switch (msg.type) {
                 case UserCallMessage.CALL_MESSAGE_RINGING:
                     outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_RINGING;
-                    UserInterface.PrintLog("Dev %s Set Out Goning Call %s to Ringing", id, outGoingCall.callID);
+                    UserInterface.PrintLog("Dev %s Set Out Goning Call %s to Ringing", devid, outGoingCall.callID);
                     break;
                 case UserCallMessage.CALL_MESSAGE_DISCONNECT:
                 case UserCallMessage.CALL_MESSAGE_UPDATE_FAIL:
@@ -372,7 +367,7 @@ public class TestDevice {
                             talkPeer = "";
                         }
                         outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_DISCONNECT;
-                        UserInterface.PrintLog("Dev %s Set Out Going Call %s Disconnected", id, outGoingCall.callID);
+                        UserInterface.PrintLog("Dev %s Set Out Going Call %s Disconnected", devid, outGoingCall.callID);
                         isCallOut = false;
                     } else {
                         for (LocalCallInfo info : inComingCallInfos) {
@@ -382,7 +377,7 @@ public class TestDevice {
                                     talkPeer = "";
                                 }
                                 inComingCallInfos.remove(info);
-                                UserInterface.PrintLog("Dev %s Remove Incoming Call %s", id, info.callID);
+                                UserInterface.PrintLog("Dev %s Remove Incoming Call %s", devid, info.callID);
                                 break;
                             }
                         }
@@ -391,7 +386,7 @@ public class TestDevice {
                 case UserCallMessage.CALL_MESSAGE_ANSWERED:
                     outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED;
                     outGoingCall.answer = msg.operaterId;
-                    UserInterface.PrintLog("Dev %s Set Out Going Call %s Connected", id, outGoingCall.callID);
+                    UserInterface.PrintLog("Dev %s Set Out Going Call %s Connected", devid, outGoingCall.callID);
                     isTalking = true;
                     talkPeer = outGoingCall.answer;
                     break;
@@ -402,13 +397,13 @@ public class TestDevice {
                     info.callee = msg.calleeId;
                     info.caller = msg.callerId;
                     inComingCallInfos.add(info);
-                    UserInterface.PrintLog("Dev %s Recv Incoming Call %s from room-%s , bed-%s , patient-%s, age-%s", id, info.callID,msg.roomId,msg.bedName,msg.patientName,msg.patientAge);
+                    UserInterface.PrintLog("Dev %s Recv Incoming Call %s from room-%s , bed-%s , patient-%s, age-%s", devid, info.callID,msg.roomId,msg.bedName,msg.patientName,msg.patientAge);
                     break;
                 case UserCallMessage.CALL_MESSAGE_CONNECT:
                     for (LocalCallInfo info1 : inComingCallInfos) {
                         if (info1.callID.compareToIgnoreCase(msg.callId) == 0) {
                             info1.status = LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED;
-                            UserInterface.PrintLog("Dev %s Set Incoming Call %s Connected", id, info1.callID);
+                            UserInterface.PrintLog("Dev %s Set Incoming Call %s Connected", devid, info1.callID);
                             talkPeer = info1.caller;
                             break;
                         }
@@ -429,7 +424,7 @@ public class TestDevice {
 
     private String GetDeviceName(){
 
-        return String.format("%s",id);
+        return String.format("%s",devid);
     }
 
     private String GetRandomBedDeviceId(){
@@ -442,7 +437,7 @@ public class TestDevice {
 
         bedNum =0;
         for(iTmp=0;iTmp<devLists.size();iTmp++){
-            if(devLists.get(iTmp).type == UserInterface.CALL_BED_DEVICE&&devLists.get(iTmp).isReg)
+            if(devLists.get(iTmp).type == UserInterface.CALL_BED_DEVICE&&devLists.get(iTmp).isRegOk)
                 bedNum++;
         }
         if(bedNum==0)
@@ -454,7 +449,7 @@ public class TestDevice {
 
         curBedNum = 0;
         for(iTmp=0;iTmp<devLists.size();iTmp++){
-            if(devLists.get(iTmp).type == UserInterface.CALL_BED_DEVICE&&devLists.get(iTmp).isReg) {
+            if(devLists.get(iTmp).type == UserInterface.CALL_BED_DEVICE&&devLists.get(iTmp).isRegOk) {
                 if(curBedNum==selectDev)
                     break;
                 else
@@ -476,7 +471,7 @@ public class TestDevice {
                     status.append(String.format("From %s, Incoming\n", callInfo.caller));
                     break;
                 case LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED:
-                    status.append(String.format("%s Talking with %s\n", id,talkPeer));
+                    status.append(String.format("%s Talking with %s\n", devid,talkPeer));
                     break;
                 default:
                     status.append(String.format("From %s, Unexcept\n", callInfo.caller));
@@ -554,7 +549,7 @@ public class TestDevice {
         if (devLists != null) {
             for (int iTmp = 0; iTmp < devLists.size(); iTmp++) {
                 UserDevice bedPhone = devLists.get(iTmp);
-                if (bedPhone.isReg) {
+                if (bedPhone.isRegOk) {
                     status.append(String.format("%s Register succ\n", bedPhone.devid));
                     UserInterface.PrintLog("%s-%s Register Succ",bedPhone.devid,bedPhone.bedName);
                 } else {

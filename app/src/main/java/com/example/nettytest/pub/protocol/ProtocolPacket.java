@@ -76,6 +76,7 @@ public class ProtocolPacket {
     public final static int STATUS_CONFILICT = 409;
     public final static int STATUS_BUSY = 486;
     public final static int STATUS_NOTSUPPORT = 490;
+    public final static int STATUS_DUPLICATE = 491;
 
     public final static int STATUS_DECLINE = 603;
 
@@ -135,6 +136,9 @@ public class ProtocolPacket {
                 break;
             case STATUS_NOTSUPPORT:
                 resName = "490 Not Support";
+                break;
+            case STATUS_DUPLICATE:
+                resName = "491 Duplicate";
                 break;
             case STATUS_BADREQ:
                 resName = "400 Bad Req";
