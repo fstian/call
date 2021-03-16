@@ -264,6 +264,18 @@ public class MainActivity extends AppCompatActivity {
                         if (result)
                             UpdateHMI(audioTest.curDevice);
                     }
+
+// test for all device answer one call
+//                    for(TestDevice dev:audioTest.testDevices){
+//                        synchronized (MainActivity.class){
+//                            result = dev.Operation(1,(int)x,(int)y);
+//                        }
+//                        if(result){
+//                            if(audioTest.curDevice==dev){
+//                                UpdateHMI(dev);
+//                            }
+//                        }
+//                    }
                 }
             }
             return true;
@@ -304,27 +316,27 @@ public class MainActivity extends AppCompatActivity {
         audioTest.isTestFlag = false;
     }
 
-    private void StopTest(){
-//        if(audioTest.testSocket!=null){
-//            if(!audioTest.testSocket.isClosed()){
-//                String stopCmd = "{\"type\":1,\"autoTest\":0,\"realTime\":1,\"timeUnit\":10}";
-//                byte[] sendBuf = stopCmd.getBytes();
-//                new Thread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        DatagramPacket packet;
-//                        try {
-//                            packet = new DatagramPacket(sendBuf,sendBuf.length,InetAddress.getByName("255.255.255.255"),PhoneParam.snapStartPort);
-//                            audioTest.testSocket.send(packet);
-//                        } catch (UnknownHostException e) {
-//                            e.printStackTrace();
-//                        } catch (IOException e) {
-//                            e.printStackTrace();
-//                        }
-//                    }
-//                }).start();
-//            }
-//        }
+    public static void StopTest(){
+        if(audioTest.testSocket!=null){
+            if(!audioTest.testSocket.isClosed()){
+                String stopCmd = "{\"type\":1,\"autoTest\":0,\"realTime\":1,\"timeUnit\":10}";
+                byte[] sendBuf = stopCmd.getBytes();
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        DatagramPacket packet;
+                        try {
+                            packet = new DatagramPacket(sendBuf,sendBuf.length,InetAddress.getByName("255.255.255.255"),PhoneParam.snapStartPort);
+                            audioTest.testSocket.send(packet);
+                        } catch (UnknownHostException e) {
+                            e.printStackTrace();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }).start();
+            }
+        }
     }
 
     private void InitServer(){
@@ -570,9 +582,6 @@ public class MainActivity extends AppCompatActivity {
                     tv = findViewById(R.id.callListId);
                     status = dev.GetCallInfo();
                     tv.setText(status.toString());
-                    if (audioTest.isTestFlag&&(!dev.CheckTestStatus())) {
-                        StopTest();
-                    }
                 }
             });
         }

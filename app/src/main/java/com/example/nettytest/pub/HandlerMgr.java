@@ -18,6 +18,7 @@ import com.example.nettytest.terminal.terminaldevice.TerminalDevice;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
 import com.example.nettytest.terminal.terminalphone.TerminalPhoneManager;
 import com.example.nettytest.terminal.terminaltransaction.TerminalTransactionMgr;
+import com.example.nettytest.userinterface.FailReason;
 import com.example.nettytest.userinterface.ServerDeviceInfo;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
 import com.example.nettytest.userinterface.UserCallMessage;
@@ -91,7 +92,10 @@ public class HandlerMgr {
     static public void SendMessageToUser(int type,Object obj){
         if(type== UserMessage.MESSAGE_CALL_INFO) {
             UserCallMessage msg = (UserCallMessage)obj;
-            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Send Msg %s of Call %s to dev %s", UserMessage.GetMsgName(msg.type),msg.callId,msg.devId);
+            if(msg.type<UserMessage.CALL_MESSAGE_SUCC_MAX)
+                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Send Msg %s of Call %s to dev %s", UserMessage.GetMsgName(msg.type),msg.callId,msg.devId);
+            else
+                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Send Msg %s of Call %s to dev %s, reason is %s", UserMessage.GetMsgName(msg.type),msg.callId,msg.devId, FailReason.GetFailName(msg.reason));
         }else if(type==UserMessage.MESSAGE_REG_INFO){
             UserRegMessage regMsg = (UserRegMessage)obj;
             LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Send Msg %s to dev %s", UserMessage.GetMsgName(regMsg.type),regMsg.devId);

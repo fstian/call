@@ -174,7 +174,7 @@ public class TerminalCallManager {
             call.RecvEnd(endReqP);
             callLists.remove(callid);
         }else{
-            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone Recv %s End For Call %s , but Could not Find it",devid,callid);
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone %s Recv End For Call %s , but Could not Find it",devid,callid);
             EndResPack endResP = new EndResPack(ProtocolPacket.STATUS_NOTFOUND,endReqP);
             Transaction trans = new Transaction(devid,endReqP,endResP,Transaction.TRANSCATION_DIRECTION_C2S);
             HandlerMgr.AddPhoneTrans(endResP.msgID,trans);
@@ -214,8 +214,10 @@ public class TerminalCallManager {
                 call = callLists.get(callid);
                 if(call!=null){
                     call.UpdateByAnswerRes(answerResPack);
-                    if(call.state!=CommonCall.CALL_STATE_CONNECTED)
-                        callLists.remove(callid);
+                    if(call.state!=CommonCall.CALL_STATE_CONNECTED){
+// server maybe reject answer ,but need not remove the call                        
+//                        callLists.remove(callid);
+                    }
                 }else{
                     LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Could not Find Call %s for DEV %s when Recv Answer Res",answerResPack.callID,devid);
                 }

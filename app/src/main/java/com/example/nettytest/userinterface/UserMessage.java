@@ -17,6 +17,7 @@ public class UserMessage {
     public final static int CALL_MESSAGE_DISCONNECT = 5;
     public final static int CALL_MESSAGE_RINGING = 6;
     public final static int CALL_MESSAGE_ANSWERED = 7;
+    public final static int CALL_MESSAGE_SUCC_MAX = 100;
     public final static int CALL_MESSAGE_INVITE_FAIL = 101;
     public final static int CALL_MESSAGE_ANSWER_FAIL = 102;
     public final static int CALL_MESSAGE_END_FAIL = 103;

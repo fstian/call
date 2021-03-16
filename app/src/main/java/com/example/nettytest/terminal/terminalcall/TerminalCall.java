@@ -102,7 +102,8 @@ public class TerminalCall extends CommonCall {
         Transaction answerTrans = new Transaction(devID,answerPack,Transaction.TRANSCATION_DIRECTION_C2S);
         HandlerMgr.AddPhoneTrans(answerPack.msgID,answerTrans);
 
-        state = CommonCall.CALL_STATE_CONNECTED;
+//     answer maybe rejected
+//        state = CommonCall.CALL_STATE_CONNECTED;
 
 //        Success(ProtocolPacket.ANSWER_REQ);
 

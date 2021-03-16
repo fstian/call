@@ -96,6 +96,7 @@ public class TerminalPhoneManager {
                                         testSocket.send(resPack);
                                     }
                                 }else if(type==SystemSnap.LOG_CONFIG_REQ_CMD){
+                                    int value;
                                     LogWork.backEndNetModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_NET_NAME) == 1;
 
                                     LogWork.backEndDeviceModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_DEVICE_NAME) == 1;
@@ -119,6 +120,13 @@ public class TerminalPhoneManager {
                                     LogWork.transactionModuleLogEnable = json.optInt(SystemSnap.LOG_TRANSACTION_NAME) == 1;
 
                                     LogWork.debugModuleLogEnable = json.optInt(SystemSnap.LOG_DEBUG_NAME) == 1;
+
+                                    LogWork.bLogToFiles = json.optInt(SystemSnap.LOG_WIRTE_FILES_NAME)==1;
+
+                                    value = json.optInt(SystemSnap.LOG_FILE_INTERVAL_NAME);
+                                    if(value<=0)
+                                        value = 1;
+                                    LogWork.logInterval = value;
 
                                     LogWork.dbgLevel = json.optInt(SystemSnap.LOG_DBG_LEVEL_NAME);
                                 }else if(type==SystemSnap.AUDIO_CONFIG_REQ_CMD){

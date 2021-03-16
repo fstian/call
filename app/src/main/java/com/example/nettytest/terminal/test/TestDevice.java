@@ -1,5 +1,7 @@
 package com.example.nettytest.terminal.test;
 
+import com.example.nettytest.MainActivity;
+import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.SystemSnap;
 import com.example.nettytest.userinterface.FailReason;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
@@ -11,6 +13,7 @@ import com.example.nettytest.userinterface.UserConfigMessage;
 import com.example.nettytest.userinterface.UserDevice;
 import com.example.nettytest.userinterface.UserDevsMessage;
 import com.example.nettytest.userinterface.UserInterface;
+import com.example.nettytest.userinterface.UserMessage;
 import com.example.nettytest.userinterface.UserRegMessage;
 
 import org.json.JSONArray;
@@ -21,7 +24,7 @@ import java.util.ArrayList;
 
 public class TestDevice extends UserDevice{
     public boolean isCallOut;
-    public boolean isTalking;
+    public boolean isAnswering;
     public String talkPeer;
     public LocalCallInfo outGoingCall;
     public TestInfo testInfo;
@@ -44,7 +47,6 @@ public class TestDevice extends UserDevice{
         outGoingCall = new LocalCallInfo();
         isCallOut = false;
         isRegOk = false;
-        isTalking = false;
         talkPeer = "";
         testInfo = new TestInfo();
         devLists = null;
@@ -116,8 +118,10 @@ public class TestDevice extends UserDevice{
         result = UserInterface.AnswerCall(devid,callid);
         if(result.result == OperationResult.OP_RESULT_OK) {
             isCallOut = false;
-            isTalking = true;
-            talkPeer = GetIncomingCaller(callid);
+// call status is not connected. answer maybe fail           
+// but status is not connected, phone will maybe answer other call.
+//            talkPeer = GetIncomingCaller(callid);
+//            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"%s Set talkPeer=%s when Answer Call %s ",devid,talkPeer,callid);
         }
         return result;
     }
@@ -148,30 +152,26 @@ public class TestDevice extends UserDevice{
     private OperationResult EndCall(String callid){
         OperationResult result;
         result = UserInterface.EndCall(devid,callid);
-        if(isTalking) {
-            if(isCallOut){
-                if(outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED) {
-                    if (outGoingCall.callID.compareToIgnoreCase(callid) == 0) {
-                        isTalking = false;
+        
+        if (outGoingCall.callID.compareToIgnoreCase(callid) == 0) {
+            if(outGoingCall.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED){
+                talkPeer = "";
+                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"%s Clear talkPeer when End Outgoing Call %s ",devid,callid);
+            }
+            outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_DISCONNECT;
+            isCallOut = false;
+        }else{
+            for (LocalCallInfo callInfo : inComingCallInfos) {
+                if(callInfo.callID.compareToIgnoreCase(callid)==0) {
+                    inComingCallInfos.remove(callInfo);
+                    if(callInfo.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED){
                         talkPeer = "";
+                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"%s Clear talkPeer when End Call %s in CallList",devid,callid);
                     }
-                }
-            }else{
-                for (LocalCallInfo callInfo : inComingCallInfos) {
-                    if(callInfo.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED) {
-                        if(callInfo.callID.compareToIgnoreCase(callid)==0) {
-                            isTalking = false;
-                            talkPeer = "";
-                            break;
-                        }
-                    }
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Remove Call %s from Dev %s incomingCall List",callInfo.callID,devid);
+                    break;
                 }
             }
-        }
-
-        if(isCallOut) {
-            if(outGoingCall.callID.compareToIgnoreCase(callid)==0)
-                isCallOut = false;
         }
 
         return result;
@@ -253,26 +253,36 @@ public class TestDevice extends UserDevice{
                 if (selected < inComingCallInfos.size()) {
                     if(!isCallOut) {
                         UserInterface.PrintLog("Call List TextView Touch at (%d,%d), Select %d Call", x, y, selected);
-                        LocalCallInfo callInfo;
-                        callInfo = inComingCallInfos.get(selected);
-                        if (callInfo.status == LocalCallInfo.LOCAL_CALL_STATUS_INCOMING) {
-                            if(!isTalking) {
-                                opResult = AnswerCall(callInfo.callID);
-                                if(opResult.result!=OperationResult.OP_RESULT_OK){
-                                    UserInterface.PrintLog("DEV %s Answer Call  %s Fail",devid,callInfo.callID);
-                                }else{
-                                    result = true;
-                                }
-                            }else
-                                UserInterface.PrintLog("Dev %s is Taling , Could not Answer");
-                        }else {
-                            opResult = EndCall(callInfo.callID);
-                            if(opResult.result!=OperationResult.OP_RESULT_OK){
-                                UserInterface.PrintLog("DEV %s End Call  %s Fail",devid,callInfo.callID);
-                            }else{
-                                result = true;
+//                        LocalCallInfo callInfo;
+//                        callInfo = inComingCallInfos.get(selected);
+//                        if (callInfo.status == LocalCallInfo.LOCAL_CALL_STATUS_INCOMING) {
+//                            if(talkPeer.isEmpty()) {
+//                                opResult = AnswerCall(callInfo.callID);
+//                                if(opResult.result!=OperationResult.OP_RESULT_OK){
+//                                    UserInterface.PrintLog("DEV %s Answer Call  %s Fail",devid,callInfo.callID);
+//                                }else{
+//                                    result = true;
+//                                }
+//                            }else
+//                                UserInterface.PrintLog("Dev %s is Taling , Could not Answer");
+//                        }else {
+//                            opResult = EndCall(callInfo.callID);
+//                            if(opResult.result!=OperationResult.OP_RESULT_OK){
+//                                UserInterface.PrintLog("DEV %s End Call  %s Fail",devid,callInfo.callID);
+//                            }else{
+//                                result = true;
+//                            }
+//                        }
+
+// test for device answer all calls
+                        for(LocalCallInfo callInfo:inComingCallInfos){
+                            if (callInfo.status == LocalCallInfo.LOCAL_CALL_STATUS_INCOMING) {
+                                AnswerCall(callInfo.callID);
                             }
                         }
+
+                        // test for answer 2 incoming Call
+                        
                     }else{
                         UserInterface.PrintLog("Dev %s is Outgoing Call, Could not Answer");
                     }
@@ -295,7 +305,7 @@ public class TestDevice extends UserDevice{
                 result = true;
                 synchronized (TestDevice.class) {
                     if (isCallOut) {
-//                    EndCall(outGoingCall.callID);
+                        EndCall(outGoingCall.callID);
                     } else {
                         if (inComingCallInfos.size() == 0) {
                             if (type == UserInterface.CALL_NURSER_DEVICE) {
@@ -309,13 +319,13 @@ public class TestDevice extends UserDevice{
                             int selectCall = (int) (Math.random() * inComingCallInfos.size());
                             if (selectCall >= inComingCallInfos.size())
                                 selectCall = inComingCallInfos.size() - 1;
-                            if (isTalking) {
+                            if (!talkPeer.isEmpty()) {
                                 EndCall(inComingCallInfos.get(selectCall).callID);
                             } else {
                                 if (Math.random() > 0.5)
                                     AnswerCall(inComingCallInfos.get(selectCall).callID);
-//                            else
-//                                EndCall(inComingCallInfos.get(selectCall).callID);
+                                else
+                                    EndCall(inComingCallInfos.get(selectCall).callID);
                             }
                         }
                     }
@@ -350,45 +360,64 @@ public class TestDevice extends UserDevice{
 
     public int UpdateCallInfo(UserCallMessage msg){
         int result = 0;
+        boolean isFindMatched = false;
         synchronized (TestDevice.class) {
             switch (msg.type) {
                 case UserCallMessage.CALL_MESSAGE_RINGING:
-                    outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_RINGING;
-                    UserInterface.PrintLog("Dev %s Set Out Goning Call %s to Ringing", devid, outGoingCall.callID);
+                    if(outGoingCall.status==LocalCallInfo.LOCAL_CALL_STATUS_OUTGOING) {
+                        outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_RINGING;
+                        UserInterface.PrintLog("Dev %s Set Out Goning Call %s to Ringing", devid, outGoingCall.callID);
+                        isFindMatched = true;
+                    }
+
+                    if(!isFindMatched){
+                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_ERROR,"%s Recv %s for Call %s, but couldn't find matched Call",devid,UserMessage.GetMsgName(msg.type),msg.callId);
+                    }
                     break;
                 case UserCallMessage.CALL_MESSAGE_DISCONNECT:
                 case UserCallMessage.CALL_MESSAGE_UPDATE_FAIL:
                 case UserCallMessage.CALL_MESSAGE_END_FAIL:    
                 case UserCallMessage.CALL_MESSAGE_INVITE_FAIL:
                 case UserCallMessage.CALL_MESSAGE_UNKNOWFAIL:
-                    if (msg.callId.compareToIgnoreCase(outGoingCall.callID) == 0) {
+                    if (outGoingCall.status!=LocalCallInfo.LOCAL_CALL_STATUS_DISCONNECT&&msg.callId.compareToIgnoreCase(outGoingCall.callID) == 0) {
                         if (outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED) {
-                            isTalking = false;
                             talkPeer = "";
+                            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"%s Clear talkPeer when Recv Outgoing Call %s Disconnect",devid,msg.callId);
                         }
                         outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_DISCONNECT;
                         UserInterface.PrintLog("Dev %s Set Out Going Call %s Disconnected", devid, outGoingCall.callID);
                         isCallOut = false;
+                        isFindMatched = true;
                     } else {
                         for (LocalCallInfo info : inComingCallInfos) {
                             if (info.callID.compareToIgnoreCase(msg.callId) == 0) {
                                 if (info.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED) {
-                                    isTalking = false;
                                     talkPeer = "";
+                                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"%s Clear talkPeer when Recv Call %s Disconnect in CallList",devid,msg.callId);
                                 }
                                 inComingCallInfos.remove(info);
-                                UserInterface.PrintLog("Dev %s Remove Incoming Call %s", devid, info.callID);
+                                UserInterface.PrintLog("Dev %s Recv End and Remove Incoming Call %s", devid, info.callID);
+                                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Recv End and Remove Call %s from Dev %s incomingCall List",info.callID,devid);
+                                isFindMatched = true;
                                 break;
                             }
                         }
                     }
+
+                    if(!isFindMatched){
+                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_ERROR,"%s Recv %s for Call %s, but couldn't find matched Call",devid,UserMessage.GetMsgName(msg.type),msg.callId);
+                    }
                     break;
                 case UserCallMessage.CALL_MESSAGE_ANSWERED:
-                    outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED;
-                    outGoingCall.answer = msg.operaterId;
-                    UserInterface.PrintLog("Dev %s Set Out Going Call %s Connected", devid, outGoingCall.callID);
-                    isTalking = true;
-                    talkPeer = outGoingCall.answer;
+                    if(outGoingCall.status==LocalCallInfo.LOCAL_CALL_STATUS_RINGING&&outGoingCall.callID.compareToIgnoreCase(msg.callId)==0) {
+                        outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED;
+                        outGoingCall.answer = msg.operaterId;
+                        UserInterface.PrintLog("Dev %s Set Out Going Call %s Connected", devid, outGoingCall.callID);
+                        talkPeer = outGoingCall.answer;
+                        LogWork.Print(LogWork.DEBUG_MODULE, LogWork.LOG_DEBUG, "%s Set talkPeer=%s when Recv Call %s Answered ", devid, talkPeer, msg.callId);
+                    }else{
+                        LogWork.Print(LogWork.DEBUG_MODULE, LogWork.LOG_ERROR, "%s Recv Answered of Call %s , but outgoingcall status = %d", devid, msg.callId,outGoingCall.status);
+                    }
                     break;
                 case UserCallMessage.CALL_MESSAGE_INCOMING:
                     LocalCallInfo info = new LocalCallInfo();
@@ -397,6 +426,7 @@ public class TestDevice extends UserDevice{
                     info.callee = msg.calleeId;
                     info.caller = msg.callerId;
                     inComingCallInfos.add(info);
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Add Call %s to Dev %s incomingCall List",info.callID,devid);
                     UserInterface.PrintLog("Dev %s Recv Incoming Call %s from room-%s , bed-%s , patient-%s, age-%s", devid, info.callID,msg.roomId,msg.bedName,msg.patientName,msg.patientAge);
                     break;
                 case UserCallMessage.CALL_MESSAGE_CONNECT:
@@ -405,18 +435,23 @@ public class TestDevice extends UserDevice{
                             info1.status = LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED;
                             UserInterface.PrintLog("Dev %s Set Incoming Call %s Connected", devid, info1.callID);
                             talkPeer = info1.caller;
+                            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"%s Set talkPeer=%s when Recv Call %s Connected ",devid,talkPeer,msg.callId);
+                            isFindMatched = true;
                             break;
                         }
                     }
+                    if(!isFindMatched){
+                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_ERROR,"%s Recv %s for Call %s, but couldn't find matched Call",devid,UserMessage.GetMsgName(msg.type),msg.callId);
+                    }
+                    break;
+                case UserCallMessage.CALL_MESSAGE_ANSWER_FAIL:
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Dev %s Recv Answer Fail For Call %s , reason is %s",devid,msg.callId,UserMessage.GetMsgName(msg.reason));
+                    // do nothing
                     break;
             }
 
-            int talkingCount = 0;
-            for (LocalCallInfo info : inComingCallInfos) {
-                if (info.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
-                    talkingCount++;
-            }
-            if (talkingCount > 1)
+
+            if(!CheckTestStatus())
                 result = -1;
         }
         return result;
@@ -472,6 +507,9 @@ public class TestDevice extends UserDevice{
                     break;
                 case LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED:
                     status.append(String.format("%s Talking with %s\n", devid,talkPeer));
+                    if(talkPeer.isEmpty()){
+                        MainActivity.StopTest();
+                    }
                     break;
                 default:
                     status.append(String.format("From %s, Unexcept\n", callInfo.caller));
@@ -482,39 +520,43 @@ public class TestDevice extends UserDevice{
         return status;
     }
 
-    public boolean CheckTestStatus(){
+    private boolean CheckTestStatus(){
         int talkNum = 0;
         boolean isRight = true;
-        synchronized (TestDevice.class) {
-            if(outGoingCall.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
-                talkNum++;
+        if(outGoingCall.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
+            talkNum++;
 
-            for (LocalCallInfo callInfo : inComingCallInfos) {
-                switch (callInfo.status) {
-                    case LocalCallInfo.LOCAL_CALL_STATUS_INCOMING:
-                        break;
-                    case LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED:
-                        talkNum++;
-                        if (talkNum > 1) {
-                            isRight = false;
-                            break;
-                        }
-                        break;
-                }
-            }
-
-            if(isRight) {
-                for (int iTmp = 0; iTmp < inComingCallInfos.size(); iTmp++) {
-                    LocalCallInfo cp1 = inComingCallInfos.get(iTmp);
-                    for (int jTmp = iTmp+1; jTmp < inComingCallInfos.size(); jTmp++) {
-                        LocalCallInfo cp2 = inComingCallInfos.get(jTmp);
-                        if (cp1.callID.compareToIgnoreCase(cp2.callID) == 0) {
-                            isRight = false;
-                            break;
-                        }
-                        if (!isRight)
-                            break;
+        for (LocalCallInfo callInfo : inComingCallInfos) {
+            switch (callInfo.status) {
+                case LocalCallInfo.LOCAL_CALL_STATUS_INCOMING:
+                    break;
+                case LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED:
+                    talkNum++;
+                    if (talkNum > 1) {
+                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Find Dev %s have %d Connected Call",devid,talkNum);
+                        isRight = false;
                     }
+                    break;
+            }
+        }
+        
+        if(talkNum==0&&!talkPeer.isEmpty()){
+            isRight = false;
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Find Dev %s have 0 Connected Call, but talkPeer is %s Not empty",devid,talkPeer);
+        }
+
+        if(isRight) {
+            for (int iTmp = 0; iTmp < inComingCallInfos.size(); iTmp++) {
+                LocalCallInfo cp1 = inComingCallInfos.get(iTmp);
+                for (int jTmp = iTmp+1; jTmp < inComingCallInfos.size(); jTmp++) {
+                    LocalCallInfo cp2 = inComingCallInfos.get(jTmp);
+                    if (cp1.callID.compareToIgnoreCase(cp2.callID) == 0) {
+                        isRight = false;
+                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Find Dev %s have Duplicate Call ID %s",devid,cp1.callID);
+                        break;
+                    }
+                    if (!isRight)
+                        break;
                 }
             }
         }
@@ -528,8 +570,12 @@ public class TestDevice extends UserDevice{
                 status = new StringBuilder(String.format("%s Call to %s\n", GetDeviceName(), outGoingCall.callee));
             else if (outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_RINGING)
                 status = new StringBuilder(String.format("%s Call to %s, Ringing....\n", GetDeviceName(), outGoingCall.callee));
-            else if (outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
+            else if (outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED){
                 status = new StringBuilder(String.format("%s Talking with %s\n", GetDeviceName(), talkPeer));
+                if(talkPeer.isEmpty()){
+                    MainActivity.StopTest();
+                }
+            }
             else
                 status = new StringBuilder(String.format("%s Call to %s, Unknow....\n", GetDeviceName(), outGoingCall.callee));
         } else {
