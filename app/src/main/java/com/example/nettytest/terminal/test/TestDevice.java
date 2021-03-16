@@ -253,33 +253,33 @@ public class TestDevice extends UserDevice{
                 if (selected < inComingCallInfos.size()) {
                     if(!isCallOut) {
                         UserInterface.PrintLog("Call List TextView Touch at (%d,%d), Select %d Call", x, y, selected);
-//                        LocalCallInfo callInfo;
-//                        callInfo = inComingCallInfos.get(selected);
-//                        if (callInfo.status == LocalCallInfo.LOCAL_CALL_STATUS_INCOMING) {
-//                            if(talkPeer.isEmpty()) {
-//                                opResult = AnswerCall(callInfo.callID);
-//                                if(opResult.result!=OperationResult.OP_RESULT_OK){
-//                                    UserInterface.PrintLog("DEV %s Answer Call  %s Fail",devid,callInfo.callID);
-//                                }else{
-//                                    result = true;
-//                                }
-//                            }else
-//                                UserInterface.PrintLog("Dev %s is Taling , Could not Answer");
-//                        }else {
-//                            opResult = EndCall(callInfo.callID);
-//                            if(opResult.result!=OperationResult.OP_RESULT_OK){
-//                                UserInterface.PrintLog("DEV %s End Call  %s Fail",devid,callInfo.callID);
-//                            }else{
-//                                result = true;
-//                            }
-//                        }
-
-// test for device answer all calls
-                        for(LocalCallInfo callInfo:inComingCallInfos){
-                            if (callInfo.status == LocalCallInfo.LOCAL_CALL_STATUS_INCOMING) {
-                                AnswerCall(callInfo.callID);
+                        LocalCallInfo callInfo;
+                        callInfo = inComingCallInfos.get(selected);
+                        if (callInfo.status == LocalCallInfo.LOCAL_CALL_STATUS_INCOMING) {
+                            if(talkPeer.isEmpty()) {
+                                opResult = AnswerCall(callInfo.callID);
+                                if(opResult.result!=OperationResult.OP_RESULT_OK){
+                                    UserInterface.PrintLog("DEV %s Answer Call  %s Fail",devid,callInfo.callID);
+                                }else{
+                                    result = true;
+                                }
+                            }else
+                                UserInterface.PrintLog("Dev %s is Taling , Could not Answer");
+                        }else {
+                            opResult = EndCall(callInfo.callID);
+                            if(opResult.result!=OperationResult.OP_RESULT_OK){
+                                UserInterface.PrintLog("DEV %s End Call  %s Fail",devid,callInfo.callID);
+                            }else{
+                                result = true;
                             }
                         }
+
+// test for device answer all calls
+//                        for(LocalCallInfo callInfo:inComingCallInfos){
+//                            if (callInfo.status == LocalCallInfo.LOCAL_CALL_STATUS_INCOMING) {
+//                                AnswerCall(callInfo.callID);
+//                            }
+//                        }
 
                         // test for answer 2 incoming Call
                         

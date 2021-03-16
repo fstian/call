@@ -166,6 +166,11 @@ public class AudioDevice {
 
     private void OpenSocket(){
         int count = 0;
+
+        jb = new JitterBuffer();
+        jb.initJb();
+        jbIndex = jb.openJb(codec,ptime,sample);
+
         try {
             if(audioMode==RECV_ONLY_MODE||audioMode==SEND_RECV_MODE){
                 audioSocket = new DatagramSocket(srcPort);
@@ -228,9 +233,6 @@ public class AudioDevice {
             aec.setAecmMode(MobileAEC.AggressiveMode.MOST_AGGRESSIVE).prepare();
         }
 
-        jb = new JitterBuffer();
-        jb.initJb();
-        jbIndex = jb.openJb(codec,ptime,sample);
 
         packSize = sample*ptime/1000;
 
@@ -354,7 +356,10 @@ public class AudioDevice {
                         if(recvPack.getLength()>0){
 //                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv %d byte from %s:%d",recvPack.getLength(),recvPack.getAddress().getHostName(),recvPack.getPort());
                             if(recvPack.getPort()==dstPort&&recvPack.getAddress().getHostAddress().compareToIgnoreCase(dstAddress)==0){
-                                jb.addPackage(jbIndex,recvPack.getData(),recvPack.getLength());
+                                if(jb==null){
+                                    System.out.println("jb is NULL!!!!!!!!!!!!!!!!!!");
+                                }else
+                                    jb.addPackage(jbIndex,recvPack.getData(),recvPack.getLength());
                             }
                         }
                     } catch (IOException e) {
