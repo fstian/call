@@ -40,7 +40,7 @@ public class LogWork {
     public static boolean backEndNetModuleLogEnable = false;
 
     public static boolean transactionModuleLogEnable = false;
-    public static boolean debugModuleLogEnable = false;
+    public static boolean debugModuleLogEnable = true;
 
     public final static int LOG_VERBOSE = 1;    // for verbose
     public final static int LOG_DEBUG = 2;      // for debug
@@ -52,11 +52,17 @@ public class LogWork {
     public static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-mm-dd HH:mm:ss.SSS");
 
     public static int dbgLevel = LOG_DEBUG;
-    public static File logWriteFile = new File("/storage/self/primary/CallModuleLog.txt");
+
+    public static boolean bLogToFiles = false;
+    private static long begineLogTime = System.currentTimeMillis();
+    public static long logInterval = 1; //hour
+    private static int logIndex = 1;
+    private static File logWriteFile = new File(String.format("/storage/self/primary/CallModuleLog%04d.txt",logIndex));
 
     public static int Print(int module,int degLevel,String buf){
         return Print(module,degLevel,buf,"");
     }
+
 
     public static int Print(int module,int degLevel,String format,Object...param){
         boolean isPrint = false;
@@ -141,21 +147,30 @@ public class LogWork {
                         levelString = " F/ ";
                         break;
                 }
-                Date date = new Date(System.currentTimeMillis());
-                String writeString = dateFormat.format(date)+ levelString+tag+":  "+dbgString+"\r\n";
-                BufferedWriter bw = null;
-                try {
-                    bw = new BufferedWriter(new FileWriter(logWriteFile, true));
-                    bw.write(writeString);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
+
+                if(bLogToFiles){
+                    long curTime = System.currentTimeMillis();
+                    if(curTime>begineLogTime+logInterval*3600*1000){
+                        begineLogTime = curTime;
+                        logIndex++;
+                        logWriteFile = new File(String.format("/storage/self/primary/CallModuleLog%04d.txt",logIndex));
+                    }
+                    Date date = new Date(curTime);
+                    String writeString = dateFormat.format(date)+ levelString+tag+":  "+dbgString+"\r\n";
+                    BufferedWriter bw = null;
                     try {
-                        if (bw != null) {
-                            bw.close();
-                        }
+                        bw = new BufferedWriter(new FileWriter(logWriteFile, true));
+                        bw.write(writeString);
                     } catch (IOException e) {
                         e.printStackTrace();
+                    } finally {
+                        try {
+                            if (bw != null) {
+                                bw.close();
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }

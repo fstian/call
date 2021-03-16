@@ -68,6 +68,8 @@ public class SystemSnap {
     public static final String LOG_TRANSACTION_NAME = "transactionLog";
     public static final String LOG_DEBUG_NAME = "debugLog";
     public static final String LOG_DBG_LEVEL_NAME = "dbgLevel";
+    public static final String LOG_WIRTE_FILES_NAME = "logToFiles";
+    public static final String LOG_FILE_INTERVAL_NAME = "logFileInterval";
 
     public static final String AUDIO_RTP_CODEC_NAME = "codec";
     public static final String AUDIO_RTP_DATARATE_NAME = "dataRate";

@@ -494,6 +494,10 @@ public class BackEndCallConvergence {
                 else if(inviteCall.answer.compareToIgnoreCase(phone.id)==0)
                     result = false;
             }
+        }else{
+            if(inviteCall.state==CommonCall.CALL_STATE_CONNECTED){
+                result = false;
+            }
         }
 
         return result;

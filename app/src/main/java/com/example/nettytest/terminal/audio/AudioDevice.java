@@ -65,6 +65,10 @@ public class AudioDevice {
 
     MobileAEC aec;
 
+    boolean isSockReadRuning = false;
+    boolean isAudioReadRuning = false;
+    boolean isAudioWriteRuning = false;
+
     int audioMode;
 
     static{
@@ -161,11 +165,25 @@ public class AudioDevice {
     }
 
     private void OpenSocket(){
+        int count = 0;
         try {
-            audioSocket = new DatagramSocket(srcPort);
             if(audioMode==RECV_ONLY_MODE||audioMode==SEND_RECV_MODE){
+                audioSocket = new DatagramSocket(srcPort);
                 socketReadThread = new SocketReadThread();
                 socketReadThread.start();
+                while(!isSockReadRuning){
+                    try {
+                        Thread.sleep(100);
+                        count++;
+                        if(count>200){
+                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Audio Socket Thread is Still not Runing");
+                            count = 0;
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                
             }else{
                 socketReadThread = null;
             }
@@ -177,19 +195,33 @@ public class AudioDevice {
     }
 
     private void CloseSocket(){
+        int count = 0;
         if(audioSocket!=null) {
+            if(!audioSocket.isClosed()){
+                audioSocket.close();
+            }
             if(socketReadThread!=null)
                 socketReadThread.interrupt();
-            audioSocket.close();
+            while(isSockReadRuning){
+                try {
+                    Thread.sleep(100);
+                    count++;
+                    if(count>200){
+                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Audio Socket Thread is Still Runing");
+                        count = 0;
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
             socketReadThread = null;
-            audioSocket = null;
             socketOpenCount--;
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"After CloseSocket Count =%d",socketOpenCount);
         }
     }
 
     private void OpenAudio(){
-
+        int count = 0;
         if(audioMode==SEND_RECV_MODE){
 //            aec =new MobileAEC(new SamplingFrequency(sample));
             aec =new MobileAEC(null);
@@ -205,10 +237,35 @@ public class AudioDevice {
         if(audioMode==SEND_RECV_MODE||audioMode==RECV_ONLY_MODE){
             audioWriteThread = new AudioWriteThread();
             audioWriteThread.start();
+
+            while(!isAudioWriteRuning){
+                try {
+                    Thread.sleep(100);
+                    count++;
+                    if(count>200){
+                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Audio Write Thread is Still not Runing");
+                        count = 0;
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
 
         audioReadThread = new AudioReadThread();
         audioReadThread.start();
+        while(!isAudioReadRuning){
+            try {
+                Thread.sleep(100);
+                count++;
+                if(count>200){
+                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Audio Read Thread is Still not Runing");
+                    count = 0;
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
         
         audioOpenCount++;
         LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"After OpenAudio Count =%d",audioOpenCount);
@@ -225,27 +282,48 @@ public class AudioDevice {
             audioReadThread = null;
         }
 
-        if(socketReadThread!=null) {
-            socketReadThread.interrupt();
-            socketReadThread = null;
+        while(isAudioReadRuning){
+            try {
+                Thread.sleep(100);
+                waitCount++;
+                if(waitCount>200){
+                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Audio Read Thread Still Runing after interrupt");
+                    waitCount = 0;
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
+
 
         audioWriteHandlerEnabled = false;
         if(audioWriteHandler !=null) {
             audioWriteHandler.getLooper().quit();
         }
-
-        try {
-            while(recorder!=null||player!=null) {
-                if(waitCount<50) {
-                    Thread.sleep(20);
-                }else{
-                    break;
-                }
+        while(isAudioWriteRuning){
+            try {
+                Thread.sleep(100);
                 waitCount++;
+                if(waitCount>200){
+                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Audio Write Thread Still Runing after interrupt");
+                    waitCount = 0;
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        }
+
+        while(recorder!=null||player!=null) {
+            try {
+                Thread.sleep(100);
+                waitCount++;
+                if(waitCount>200){
+                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"recorder and player is not NULL after Close");
+                    waitCount = 0;
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
 
         jb.closeJb(jbIndex);
@@ -267,12 +345,12 @@ public class AudioDevice {
             byte[] recvBuf=new byte[1024];
             DatagramPacket recvPack;
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Audio SocketReadThread");
+            isSockReadRuning = true;
             while(!isInterrupted()){
-                DatagramSocket curSocket = audioSocket;
-                if(curSocket!=null){
+                if(!audioSocket.isClosed()){
                     recvPack = new DatagramPacket(recvBuf, recvBuf.length);
                     try {
-                        curSocket.receive(recvPack);
+                        audioSocket.receive(recvPack);
                         if(recvPack.getLength()>0){
 //                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv %d byte from %s:%d",recvPack.getLength(),recvPack.getAddress().getHostName(),recvPack.getPort());
                             if(recvPack.getPort()==dstPort&&recvPack.getAddress().getHostAddress().compareToIgnoreCase(dstAddress)==0){
@@ -283,15 +361,12 @@ public class AudioDevice {
                         e.printStackTrace();
                     }
                 }else{
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                    break;
                 }
 
             }
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Exit Audio SocketReadThread");
+            isSockReadRuning = false;
         }
     }
 
@@ -308,6 +383,9 @@ public class AudioDevice {
             int readNum;
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Audio AudioReadThread");
 
+
+            isAudioReadRuning = true;
+            
             int audioInBufSize = AudioRecord.getMinBufferSize(sample,
                     AudioFormat.CHANNEL_IN_MONO,
                     AudioFormat.ENCODING_PCM_16BIT);
@@ -354,15 +432,14 @@ public class AudioDevice {
 //                        aecData = audioReadData;
                     }
                     // rtp packet and send
-                    if(audioMode==SEND_ONLY_MODE||audioMode==SEND_RECV_MODE){
+                    if(audioMode==SEND_ONLY_MODE||audioMode==SEND_RECV_MODE&&audioSocket!=null){
                         rtpData = Rtp.EncloureRtp(aecData, codec);
                         DatagramPacket dp = new DatagramPacket(rtpData, rtpData.length);
                         try {
                             dp.setAddress(InetAddress.getByName(dstAddress));
                             dp.setPort(dstPort);
-                            DatagramSocket curSocket = audioSocket;
-                            if (curSocket != null) {
-                                curSocket.send(dp);
+                            if (!audioSocket.isClosed()) {
+                                audioSocket.send(dp);
                                 //LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Send %d byte to %s:%d",rtpData.length,dstAddress,dstPort);
                             }
                         } catch (UnknownHostException e) {
@@ -384,6 +461,7 @@ public class AudioDevice {
             recorder.stop();
             recorder.release();
             recorder = null;
+            isAudioReadRuning = false;
         }
     }
 
@@ -393,6 +471,7 @@ public class AudioDevice {
         public void run() {
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Audio AudioWriteThread");
 
+            isAudioWriteRuning = true;
             int audioOutBufSize = AudioTrack.getMinBufferSize(sample,
                     AudioFormat.CHANNEL_OUT_MONO,
                     AudioFormat.ENCODING_PCM_16BIT);
@@ -426,7 +505,7 @@ public class AudioDevice {
             player = null;
 
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Exit Audio AudioWriteThread");
-
+            isAudioWriteRuning = false;
         }
     }
 }
