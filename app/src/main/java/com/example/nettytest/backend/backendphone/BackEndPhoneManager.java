@@ -47,6 +47,7 @@ public class BackEndPhoneManager {
     private final HashMap<String, BackEndPhone> serverPhoneLists;
     Handler localMsgHandler=null;
     private ArrayList<ConfigItem> systemConfigList;
+    static Thread snapThread = null;
 
     private BackEndCallConvergenceManager backEndCallConvergencyMgr;
 
@@ -65,52 +66,6 @@ public class BackEndPhoneManager {
             }
         },0,1000);
 
-        new Thread(() -> {
-            try {
-                byte[] recvBuf = new byte[1024];
-                DatagramPacket recvPack;
-                DatagramSocket testSocket;
-                ArrayList<byte[]> resList;
-                testSocket = new DatagramSocket(PhoneParam.snapStartPort+2);
-                DatagramPacket resPack;
-                while (!testSocket.isClosed()) {
-                    recvPack = new DatagramPacket(recvBuf, recvBuf.length);
-                    try {
-                        testSocket.receive(recvPack);
-                        if (recvPack.getLength() > 0) {
-                            if(PhoneParam.serverActive) {
-                                String recv = new String(recvBuf, "UTF-8");
-                                JSONObject json = new JSONObject(recv);
-                                int type = json.optInt(SystemSnap.SNAP_CMD_TYPE_NAME);
-                                synchronized (BackEndPhoneManager.class) {
-                                    if (type == SystemSnap.SNAP_BACKEND_CALL_REQ) {
-                                        String devid = json.optString(SystemSnap.SNAP_DEVID_NAME);
-                                        byte[] result;
-                                        result = backEndCallConvergencyMgr.MakeCallConvergenceSnap(devid);
-                                        if(result!=null) {
-                                            resPack = new DatagramPacket(result, result.length, recvPack.getAddress(), recvPack.getPort());
-                                            testSocket.send(resPack);
-                                        }
-                                    } else if (type == SystemSnap.SNAP_BACKEND_TRANS_REQ) {
-                                        resList = HandlerMgr.GetBackEndTransInfo();
-                                        for (byte[] data : resList) {
-                                            resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
-                                            testSocket.send(resPack);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                }
-            } catch (SocketException e) {
-                e.printStackTrace();
-            }
-        }).start();
     }
 
     public BackEndPhone GetDevice(String id){
@@ -232,6 +187,55 @@ public class BackEndPhoneManager {
             }else{
                 LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Add Phone Device %s On Server, but it had created",id);
             }
+
+            snapThread = new Thread(() -> {
+                try {
+                    byte[] recvBuf = new byte[1024];
+                    DatagramPacket recvPack;
+                    DatagramSocket testSocket;
+                    ArrayList<byte[]> resList;
+                    testSocket = new DatagramSocket(PhoneParam.snapStartPort+2);
+                    DatagramPacket resPack;
+                    while (!testSocket.isClosed()) {
+                        recvPack = new DatagramPacket(recvBuf, recvBuf.length);
+                        try {
+                            testSocket.receive(recvPack);
+                            if (recvPack.getLength() > 0) {
+                                if(PhoneParam.serverActive) {
+                                    String recv = new String(recvBuf, "UTF-8");
+                                    JSONObject json = new JSONObject(recv);
+                                    int type = json.optInt(SystemSnap.SNAP_CMD_TYPE_NAME);
+                                    synchronized (BackEndPhoneManager.class) {
+                                        if (type == SystemSnap.SNAP_BACKEND_CALL_REQ) {
+                                            String devid = json.optString(SystemSnap.SNAP_DEVID_NAME);
+                                            byte[] result;
+                                            result = backEndCallConvergencyMgr.MakeCallConvergenceSnap(devid);
+                                            if(result!=null) {
+                                                resPack = new DatagramPacket(result, result.length, recvPack.getAddress(), recvPack.getPort());
+                                                testSocket.send(resPack);
+                                            }
+                                        } else if (type == SystemSnap.SNAP_BACKEND_TRANS_REQ) {
+                                            resList = HandlerMgr.GetBackEndTransInfo();
+                                            for (byte[] data : resList) {
+                                                resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
+                                                testSocket.send(resPack);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                } catch (SocketException e) {
+                    e.printStackTrace();
+                }
+            });
+            snapThread.start();
+            
         }
 
     }

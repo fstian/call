@@ -44,6 +44,7 @@ public class TerminalPhoneManager {
     public static final int MSG_NEW_PACKET = 1;
     public static final int MSG_SECOND_TICK = 2;
     public static final int MSG_REQ_TIMEOVER = 3;
+    static Thread snapThread = null;
 
 
     public TerminalPhoneManager(){
@@ -64,99 +65,6 @@ public class TerminalPhoneManager {
             }
         },0,1000);
 
-        new Thread(() -> {
-            try {
-                byte[] recvBuf = new byte[1024];
-                DatagramPacket recvPack;
-                DatagramSocket testSocket;
-                byte[] snapResult;
-                testSocket = new DatagramSocket(PhoneParam.snapStartPort+1);
-                DatagramPacket resPack;
-                while (!testSocket.isClosed()) {
-                    recvPack = new DatagramPacket(recvBuf, recvBuf.length);
-                    try {
-                        testSocket.receive(recvPack);
-                        if (recvPack.getLength() > 0) {
-                            String recv = new String(recvBuf, "UTF-8");
-                            JSONObject json = new JSONObject(recv);
-                            int type = json.optInt(SystemSnap.SNAP_CMD_TYPE_NAME);
-                            synchronized (TerminalPhoneManager.class) {
-                                if (type == SystemSnap.SNAP_TERMINAL_CALL_REQ) {
-                                    String devId = json.optString(SystemSnap.SNAP_DEVID_NAME);
-                                    snapResult = MakeCallsSnap(devId);
-                                    if(snapResult!=null) {
-                                        resPack = new DatagramPacket(snapResult, snapResult.length, recvPack.getAddress(), recvPack.getPort());
-                                        testSocket.send(resPack);
-                                    }
-                                } else if (type == SystemSnap.SNAP_TERMINAL_TRANS_REQ) {
-                                    ArrayList<byte[]>resList;
-                                    resList = HandlerMgr.GetTerminalTransInfo();
-                                    for (byte[] data : resList) {
-                                        resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
-                                        testSocket.send(resPack);
-                                    }
-                                }else if(type==SystemSnap.LOG_CONFIG_REQ_CMD){
-                                    int value;
-                                    LogWork.backEndNetModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_NET_NAME) == 1;
-
-                                    LogWork.backEndDeviceModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_DEVICE_NAME) == 1;
-
-                                    LogWork.backEndCallModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_CALL_NAME) == 1;
-
-                                    LogWork.backEndPhoneModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_PHONE_NAME) == 1;
-
-                                    LogWork.terminalNetModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_NET_NAME) == 1;
-
-                                    LogWork.terminalDeviceModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_DEVICE_NAME) == 1;
-
-                                    LogWork.terminalCallModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_CALL_NAME) == 1;
-
-                                    LogWork.terminalPhoneModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_PHONE_NAME) == 1;
-
-                                    LogWork.terminalUserModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_USER_NAME) == 1;
-
-                                    LogWork.terminalAudioModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_AUDIO_NAME) ==1;
-
-                                    LogWork.transactionModuleLogEnable = json.optInt(SystemSnap.LOG_TRANSACTION_NAME) == 1;
-
-                                    LogWork.debugModuleLogEnable = json.optInt(SystemSnap.LOG_DEBUG_NAME) == 1;
-
-                                    LogWork.bLogToFiles = json.optInt(SystemSnap.LOG_WIRTE_FILES_NAME)==1;
-
-                                    value = json.optInt(SystemSnap.LOG_FILE_INTERVAL_NAME);
-                                    if(value<=0)
-                                        value = 1;
-                                    LogWork.logInterval = value;
-
-                                    LogWork.dbgLevel = json.optInt(SystemSnap.LOG_DBG_LEVEL_NAME);
-                                }else if(type==SystemSnap.AUDIO_CONFIG_REQ_CMD){
-                                    PhoneParam.callRtpCodec = json.optInt(SystemSnap.AUDIO_RTP_CODEC_NAME);
-                                    PhoneParam.callRtpDataRate = json.optInt(SystemSnap.AUDIO_RTP_DATARATE_NAME);
-                                    PhoneParam.callRtpPTime = json.optInt(SystemSnap.AUDIO_RTP_PTIME_NAME);
-                                    PhoneParam.aecDelay = json.optInt(SystemSnap.AUDIO_RTP_AEC_DELAY_NAME);
-                                }else if(type==SystemSnap.SNAP_DEV_REQ){
-                                    for (TerminalPhone dev : clientPhoneLists.values()) {
-                                        JSONObject resJson = new JSONObject();
-                                        resJson.putOpt(SystemSnap.SNAP_CMD_TYPE_NAME,SystemSnap.SNAP_DEV_RES);
-                                        resJson.putOpt(SystemSnap.SNAP_DEVID_NAME,dev.id);
-                                        resJson.putOpt(SystemSnap.SNAP_DEVTYPE_NAME,dev.type);
-                                        byte[] resBuf = resJson.toString().getBytes();
-                                        resPack= new DatagramPacket(resBuf,resBuf.length,recvPack.getAddress(),recvPack.getPort());
-                                        testSocket.send(resPack);
-                                    }
-                                }
-                            }
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                }
-            } catch (SocketException e) {
-                e.printStackTrace();
-            }
-        }).start();
     }
 
     public void AddDevice(TerminalPhone phone){
@@ -166,6 +74,103 @@ public class TerminalPhoneManager {
             matchedDev = clientPhoneLists.get(phone.id);
             if(matchedDev==null)
                 clientPhoneLists.put(phone.id,phone);
+
+            if(snapThread==null){
+                snapThread = new Thread(() -> {
+                    try {
+                        byte[] recvBuf = new byte[1024];
+                        DatagramPacket recvPack;
+                        DatagramSocket testSocket;
+                        byte[] snapResult;
+                        testSocket = new DatagramSocket(PhoneParam.snapStartPort+1);
+                        DatagramPacket resPack;
+                        while (!testSocket.isClosed()) {
+                            recvPack = new DatagramPacket(recvBuf, recvBuf.length);
+                            try {
+                                testSocket.receive(recvPack);
+                                if (recvPack.getLength() > 0) {
+                                    String recv = new String(recvBuf, "UTF-8");
+                                    JSONObject json = new JSONObject(recv);
+                                    int type = json.optInt(SystemSnap.SNAP_CMD_TYPE_NAME);
+                                    synchronized (TerminalPhoneManager.class) {
+                                        if (type == SystemSnap.SNAP_TERMINAL_CALL_REQ) {
+                                            String devId = json.optString(SystemSnap.SNAP_DEVID_NAME);
+                                            snapResult = MakeCallsSnap(devId);
+                                            if(snapResult!=null) {
+                                                resPack = new DatagramPacket(snapResult, snapResult.length, recvPack.getAddress(), recvPack.getPort());
+                                                testSocket.send(resPack);
+                                            }
+                                        } else if (type == SystemSnap.SNAP_TERMINAL_TRANS_REQ) {
+                                            ArrayList<byte[]>resList;
+                                            resList = HandlerMgr.GetTerminalTransInfo();
+                                            for (byte[] data : resList) {
+                                                resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
+                                                testSocket.send(resPack);
+                                            }
+                                        }else if(type==SystemSnap.LOG_CONFIG_REQ_CMD){
+                                            int value;
+                                            LogWork.backEndNetModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_NET_NAME) == 1;
+
+                                            LogWork.backEndDeviceModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_DEVICE_NAME) == 1;
+
+                                            LogWork.backEndCallModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_CALL_NAME) == 1;
+
+                                            LogWork.backEndPhoneModuleLogEnable = json.optInt(SystemSnap.LOG_BACKEND_PHONE_NAME) == 1;
+
+                                            LogWork.terminalNetModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_NET_NAME) == 1;
+
+                                            LogWork.terminalDeviceModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_DEVICE_NAME) == 1;
+
+                                            LogWork.terminalCallModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_CALL_NAME) == 1;
+
+                                            LogWork.terminalPhoneModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_PHONE_NAME) == 1;
+
+                                            LogWork.terminalUserModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_USER_NAME) == 1;
+
+                                            LogWork.terminalAudioModuleLogEnable = json.optInt(SystemSnap.LOG_TERMINAL_AUDIO_NAME) ==1;
+
+                                            LogWork.transactionModuleLogEnable = json.optInt(SystemSnap.LOG_TRANSACTION_NAME) == 1;
+
+                                            LogWork.debugModuleLogEnable = json.optInt(SystemSnap.LOG_DEBUG_NAME) == 1;
+
+                                            LogWork.bLogToFiles = json.optInt(SystemSnap.LOG_WIRTE_FILES_NAME)==1;
+
+                                            value = json.optInt(SystemSnap.LOG_FILE_INTERVAL_NAME);
+                                            if(value<=0)
+                                                value = 1;
+                                            LogWork.logInterval = value;
+
+                                            LogWork.dbgLevel = json.optInt(SystemSnap.LOG_DBG_LEVEL_NAME);
+                                        }else if(type==SystemSnap.AUDIO_CONFIG_REQ_CMD){
+                                            PhoneParam.callRtpCodec = json.optInt(SystemSnap.AUDIO_RTP_CODEC_NAME);
+                                            PhoneParam.callRtpDataRate = json.optInt(SystemSnap.AUDIO_RTP_DATARATE_NAME);
+                                            PhoneParam.callRtpPTime = json.optInt(SystemSnap.AUDIO_RTP_PTIME_NAME);
+                                            PhoneParam.aecDelay = json.optInt(SystemSnap.AUDIO_RTP_AEC_DELAY_NAME);
+                                        }else if(type==SystemSnap.SNAP_DEV_REQ){
+                                            for (TerminalPhone dev : clientPhoneLists.values()) {
+                                                JSONObject resJson = new JSONObject();
+                                                resJson.putOpt(SystemSnap.SNAP_CMD_TYPE_NAME,SystemSnap.SNAP_DEV_RES);
+                                                resJson.putOpt(SystemSnap.SNAP_DEVID_NAME,dev.id);
+                                                resJson.putOpt(SystemSnap.SNAP_DEVTYPE_NAME,dev.type);
+                                                byte[] resBuf = resJson.toString().getBytes();
+                                                resPack= new DatagramPacket(resBuf,resBuf.length,recvPack.getAddress(),recvPack.getPort());
+                                                testSocket.send(resPack);
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    } catch (SocketException e) {
+                        e.printStackTrace();
+                    }
+                });
+                snapThread.start();
+            }
         }
 
     }
