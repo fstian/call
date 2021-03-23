@@ -1,5 +1,7 @@
 package com.example.nettytest.terminal.test;
 
+import com.example.nettytest.userinterface.UserCallMessage;
+
 public class LocalCallInfo {
 
     public final static int LOCAL_CALL_STATUS_OUTGOING = 1;
@@ -10,11 +12,13 @@ public class LocalCallInfo {
     public String caller;
     public String callee;
     public String answer;
+    public int callType;
 
     public int status;
     public String callID;
 
     public LocalCallInfo(){
+        callType = UserCallMessage.NORMAL_CALL_TYPE;
         caller = "";
         callee = "";
         answer = "";

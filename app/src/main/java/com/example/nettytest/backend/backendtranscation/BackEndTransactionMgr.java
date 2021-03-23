@@ -7,7 +7,7 @@ import com.example.nettytest.pub.transaction.TransManager;
 
 import io.netty.buffer.ByteBuf;
 
-public class BackEndTransactionMgr extends TransManager {
+public class BackEndTransactionMgr extends TransManager{
 
     @Override
     public void TransactionTimeOver(ProtocolPacket packet) {

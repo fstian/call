@@ -1,7 +1,13 @@
 package com.example.nettytest;
 
 import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
+import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -37,6 +43,7 @@ import com.example.nettytest.userinterface.UserRegMessage;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -70,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
     
     Handler terminalCallMessageHandler = null;
     Timer uiUpdateTimer = null;
-    
+    NetworkStateChangedReceiver wifiReceiver = null;
 
     private void CreateAudioTest(){
         if(!isAudioTestCreate){
@@ -106,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
             for (iTmp = 0; iTmp < deviceNum; iTmp++) {
                 System.out.println("deviceList has "+PhoneParam.deviceList.size()+" items, try to get "+iTmp+ " item");
                 UserDevice dev = PhoneParam.deviceList.get(iTmp);
-                audioTest.testDevices[iTmp] = new TestDevice(dev.type, dev.devid);
+                audioTest.testDevices[iTmp] = new TestDevice(dev.type, dev.devid,dev.netMode);
             }
         }else{
             audioTest.testDevices = new TestDevice[1];
@@ -163,6 +170,22 @@ public class MainActivity extends AppCompatActivity {
                                         DatagramPacket resPack = new DatagramPacket(resBuf, resBuf.length, recvPack.getAddress(), recvPack.getPort());
                                         audioTest.testSocket.send(resPack);
                                     }
+                                }
+                            }else if(type==SystemSnap.SNAP_DEL_LOG_REQ){
+                                String logFileName;
+                                int logIndex = 1;
+                                File logFile;
+                                while(true){
+                                    logFileName = String.format("/storage/self/primary/CallModuleLog%04d.txt",logIndex);
+                                    logFile = new File(logFileName);
+                                    if(logFile.exists()&&logFile.isFile()){
+                                        logFile.delete();
+                                    }else{
+                                        break;
+                                    }
+                                    logIndex++;
+                                    if(logIndex>1000)
+                                        break;
                                 }
                             }
                         }
@@ -303,6 +326,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+        filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
+        wifiReceiver = new NetworkStateChangedReceiver();
+        registerReceiver(wifiReceiver,filter);
     }
 
     private void StartTestTimer(){
@@ -316,10 +344,10 @@ public class MainActivity extends AppCompatActivity {
         audioTest.isTestFlag = false;
     }
 
-    public static void StopTest(){
+    public static void StopTest(String reason){
         if(audioTest.testSocket!=null){
             if(!audioTest.testSocket.isClosed()){
-                String stopCmd = "{\"type\":1,\"autoTest\":0,\"realTime\":1,\"timeUnit\":10}";
+                String stopCmd = "{\"type\":1,\"autoTest\":0,\"realTime\":1,\"timeUnit\":10,\"reason\":\""+reason+"\"}";
                 byte[] sendBuf = stopCmd.getBytes();
                 new Thread(new Runnable() {
                     @Override
@@ -327,6 +355,8 @@ public class MainActivity extends AppCompatActivity {
                         DatagramPacket packet;
                         try {
                             packet = new DatagramPacket(sendBuf,sendBuf.length,InetAddress.getByName("255.255.255.255"),PhoneParam.snapStartPort);
+                            audioTest.testSocket.send(packet);
+                            packet = new DatagramPacket(sendBuf,sendBuf.length,InetAddress.getByName("255.255.255.255"),PhoneParam.DEFAULT_SNAP_PORT);
                             audioTest.testSocket.send(packet);
                         } catch (UnknownHostException e) {
                             e.printStackTrace();
@@ -361,7 +391,7 @@ public class MainActivity extends AppCompatActivity {
             UserInterface.StartServer();
             for(int iTmp=0;iTmp<PhoneParam.devicesOnServer.size();iTmp++){
                 UserDevice dev = PhoneParam.devicesOnServer.get(iTmp);
-                UserInterface.AddDeviceOnServer(dev.devid,dev.type);
+                UserInterface.AddDeviceOnServer(dev.devid,dev.type,dev.netMode);
                 UserInterface.ConfigDeviceParamOnServer(dev.devid,paramList);
                 devInfo.roomId = "2001";
                 devInfo.bedName = "bed"+(iTmp+1);
@@ -396,6 +426,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if(wifiReceiver!=null)
+            unregisterReceiver(wifiReceiver);
 /*
         if(terminalCallMessageHandler!=null) {
             terminalCallMessageHandler.getLooper().quit();
@@ -476,7 +508,7 @@ public class MainActivity extends AppCompatActivity {
                     if (device != null) {
                         switch (msgType) {
                             case UserMessage.MESSAGE_CALL_INFO:
-                                int result;
+                                String result;
                                 synchronized (MainActivity.class) {
                                     result = device.UpdateCallInfo((UserCallMessage) terminalMsg);
                                 }
@@ -484,8 +516,8 @@ public class MainActivity extends AppCompatActivity {
                                     if((!audioTest.isTestFlag)||device.testInfo.isRealTimeFlash)
                                         UpdateHMI(device);
                                 }
-                                if(result<0){
-                                    StopTest();
+                                if(!result.isEmpty()){
+                                    StopTest(result);
                                 }
                                 break;
                             case UserMessage.MESSAGE_REG_INFO:
@@ -584,6 +616,47 @@ public class MainActivity extends AppCompatActivity {
                     tv.setText(status.toString());
                 }
             });
+        }
+    }
+
+    class NetworkStateChangedReceiver extends BroadcastReceiver{
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if(WifiManager.WIFI_STATE_CHANGED_ACTION.equals(intent.getAction())){
+                int state = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE,-1);
+                switch(state){
+                    case WifiManager.WIFI_STATE_DISABLED:
+                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Disabled!!");
+                        break;
+                    case WifiManager.WIFI_STATE_DISABLING:
+                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Disabling!!");
+                        break;
+                    case WifiManager.WIFI_STATE_ENABLED:
+                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Enabled!!");
+                        break;
+                    case WifiManager.WIFI_STATE_ENABLING:
+                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Enabling!!");
+                        break;
+                }
+            }
+            if(WifiManager.NETWORK_STATE_CHANGED_ACTION.equals(intent.getAction())){
+                NetworkInfo networkInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+                NetworkInfo.State state = networkInfo.getState();
+                if(state ==NetworkInfo.State.CONNECTING){
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Connecting!!");
+                }else if(state == NetworkInfo.State.CONNECTED){
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Connected!!");
+                }else if(state == NetworkInfo.State.DISCONNECTING){
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Disconnecting!!");
+                }else if(state == NetworkInfo.State.DISCONNECTED){
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Disconnected!!");
+                }else if(state == NetworkInfo.State.SUSPENDED){
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Suspended!!");
+                }else if(state == NetworkInfo.State.UNKNOWN){
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Unknow!!");
+                }
+            }
         }
     }
 }

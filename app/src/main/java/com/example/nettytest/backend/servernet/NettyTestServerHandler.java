@@ -10,6 +10,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 
 public class NettyTestServerHandler extends ChannelInboundHandlerAdapter {
 
+    String devId = "";
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
@@ -18,6 +19,7 @@ public class NettyTestServerHandler extends ChannelInboundHandlerAdapter {
             ProtocolPacket packet = ProtocolFactory.ParseData(buf);
             if(packet!=null) {
                 HandlerMgr.UpdateBackEndDevChannel(packet.sender,ctx.channel());
+                devId = packet.sender;
                 HandlerMgr.BackEndProcessPacket(packet);
             }
         }finally {
@@ -40,6 +42,9 @@ public class NettyTestServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        if(!devId.isEmpty()){
+            HandlerMgr.UpdateBackEndDevChannel(devId,null);
+        }
         super.channelInactive(ctx);
     }
 

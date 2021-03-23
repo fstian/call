@@ -5,6 +5,7 @@ public class UserDevice {
     public String devid;
     public String bedName;
     public boolean isRegOk;
+    public int netMode;
 
     public UserDevice(){
         devid = "";

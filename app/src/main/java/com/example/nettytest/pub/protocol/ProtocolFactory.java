@@ -6,15 +6,32 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.UnsupportedEncodingException;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.util.CharsetUtil;
 
 public class ProtocolFactory {
 
     public static ProtocolPacket ParseData(ByteBuf data) {
+        return ParseData(data.toString(CharsetUtil.UTF_8));
+    }
+
+    public static ProtocolPacket ParseData(byte[] data) {
+        ProtocolPacket packet = null;
+        try {
+            String dataString = new String(data,"UTF-8");
+            packet = ParseData(dataString);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return packet;
+    }
+
+    public static ProtocolPacket ParseData(String data) {
         ProtocolPacket p = null;
         try {
-            JSONObject json = new JSONObject(data.toString(CharsetUtil.UTF_8));
+            JSONObject json = new JSONObject(data);
             JSONObject context;
             int type = json.getInt(ProtocolPacket.PACKET_TYPE_NAME);
             switch(type){
@@ -392,9 +409,9 @@ public class ProtocolFactory {
     }
 
     private static void PutDefaultData(ProtocolPacket packet,JSONObject json) throws JSONException {
-        packet.type = json.getInt(ProtocolPacket.PACKET_TYPE_NAME);
-        packet.msgID = json.getString(ProtocolPacket.PACKET_MSGID_NAME);
-        packet.sender = json.getString(ProtocolPacket.PACKET_SENDERID_NAME);
-        packet.receiver = json.getString(ProtocolPacket.PACKET_RECEIVERID_NAME);
+        packet.type = json.optInt(ProtocolPacket.PACKET_TYPE_NAME);
+        packet.msgID = json.optString(ProtocolPacket.PACKET_MSGID_NAME);
+        packet.sender = json.optString(ProtocolPacket.PACKET_SENDERID_NAME);
+        packet.receiver = json.optString(ProtocolPacket.PACKET_RECEIVERID_NAME);
     }
 }

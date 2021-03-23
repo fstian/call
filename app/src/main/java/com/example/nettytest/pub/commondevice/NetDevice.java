@@ -1,33 +1,26 @@
 package com.example.nettytest.pub.commondevice;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.Channel;
-
 public class NetDevice {
+    final static int UDP_NET_DEVICE  = 1;
+    final static int TCP_NET_DEVICE = 2;
+    final static int UNKNOW_NET_DEVICE = 0xff;
     protected String id;
-    protected Channel channel;
+    int netType;
 
     public NetDevice(String id){
         this.id = id;
-        channel = null;
+        netType = UNKNOW_NET_DEVICE;
     }
 
-    public void SendBuffer(ByteBuf buf){
-        if(channel!=null) {
-            if(channel.isActive()) {
-                channel.writeAndFlush(buf);
-            }
-        }
-    }
-
-    public void UpdateChannel(Channel ch){
-        channel= ch;
+    public int SendBuffer(byte[] data){
+        return  0;
     }
 
     public void Close(){
-        if(channel!=null) {
-            channel.close();
-            channel = null;
-        }
+
+    }
+
+    public void Stop(){
+
     }
 }

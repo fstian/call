@@ -67,6 +67,17 @@ public class TerminalCall extends CommonCall {
         callMsg.callId = pack.callID;
         callMsg.callerId = pack.caller;
         callMsg.calleeId = pack.callee;
+        switch(pack.callerType){
+            case CALL_TYPE_EMERGENCY:
+                callMsg.callerType = UserCallMessage.EMERGENCY_CALL_TYPE;
+                break;
+            case CALL_TYPE_BROADCAST:
+                callMsg.callerType = UserCallMessage.BROADCAST_CALL_TYPE;
+                break;
+            default:
+                callMsg.callerType = UserCallMessage.NORMAL_CALL_TYPE;
+                break;
+        }
         callMsg.callerType = pack.callerType;
         callMsg.callType = pack.callType;
 
@@ -227,7 +238,8 @@ public class TerminalCall extends CommonCall {
     }
 
 
-   public void RecvAnswer(AnswerReqPack pack){
+   public int RecvAnswer(AnswerReqPack pack){
+        int status = ProtocolPacket.STATUS_OK;
         AnswerResPack answerResPack = new AnswerResPack(ProtocolPacket.STATUS_OK,pack);
         UserCallMessage callMsg = new UserCallMessage();
         int audioMode;
@@ -255,6 +267,7 @@ public class TerminalCall extends CommonCall {
         HandlerMgr.AddPhoneTrans(answerResPack.msgID,answerResTrans);
 
         HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
+        return status;
 
     }
 

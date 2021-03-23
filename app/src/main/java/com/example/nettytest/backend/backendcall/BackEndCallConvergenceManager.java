@@ -66,6 +66,7 @@ public class BackEndCallConvergenceManager {
         try {
             json.putOpt(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_BACKEND_CALL_RES);
             json.putOpt(SystemSnap.SNAP_DEVID_NAME, devid);
+            json.putOpt(SystemSnap.SNAP_VER_NAME,PhoneParam.VER_STR);
             JSONArray outCalls = new JSONArray();
             JSONArray incomingCalls = new JSONArray();
             JSONObject calljson;
@@ -249,7 +250,7 @@ public class BackEndCallConvergenceManager {
                             LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Remove %s From Call %s",endReqPack.endDevID,endReqPack.callID);
                             callConvergence.SingleEnd(endReqPack);
                         }
-                    }else if(callConvergence.inviteCall.type==CommonCall.CALL_TYPE_NORMAL) {
+                    }else if(callConvergence.inviteCall.type==CommonCall.CALL_TYPE_NORMAL||callConvergence.inviteCall.type==CommonCall.CALL_TYPE_EMERGENCY) {
                         LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server End Call %s",endReqPack.callID);
                         callConvergence.EndCall(endReqPack);
                         CallLogMessage  log = callConvergence.CreateCallLog();
@@ -278,6 +279,9 @@ public class BackEndCallConvergenceManager {
                 if(callConvergence==null){
                     LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_ERROR, "Server Recv Call Answer From %s for CallID %s, But Could not Find this Call", answerReqPack.answerer, answerReqPack.callID);
                     error = ProtocolPacket.STATUS_NOTFOUND;
+                }else if(callConvergence.inviteCall.callType==CommonCall.CALL_TYPE_EMERGENCY){
+                    LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_ERROR, "Server Recv Call Answer From %s for CallID %s, But Type is %d , Couldn't be Answered", answerReqPack.answerer, answerReqPack.callID,callConvergence.inviteCall.callType);
+                    error = ProtocolPacket.STATUS_NOTSUPPORT;
                 }else{
                     if(callConvergence.inviteCall.callType==CommonCall.CALL_TYPE_BROADCAST){
                         callConvergence.AnswerBroadCall(answerReqPack);
