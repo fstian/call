@@ -14,7 +14,7 @@ import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.terminal.audio.AudioMgr;
 import com.example.nettytest.terminal.terminaldevice.TerminalDevManager;
-import com.example.nettytest.terminal.terminaldevice.TerminalDevice;
+import com.example.nettytest.terminal.terminaldevice.TerminalTcpDevice;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
 import com.example.nettytest.terminal.terminalphone.TerminalPhoneManager;
 import com.example.nettytest.terminal.terminaltransaction.TerminalTransactionMgr;
@@ -28,6 +28,8 @@ import com.example.nettytest.userinterface.UserInterface;
 import com.example.nettytest.userinterface.UserMessage;
 import com.example.nettytest.userinterface.UserRegMessage;
 
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.util.ArrayList;
 
 import io.netty.buffer.ByteBuf;
@@ -44,7 +46,7 @@ public class HandlerMgr {
     static private BackEndConfig backEndConfig = new BackEndConfig();
 
 
-//for terminal NetDevice
+//for terminal TcpNetDevice
 
     static public void UpdatePhoneDevChannel(String ID, Channel channel){
         terminalDevManager.UpdateDevChannel(ID,channel);
@@ -98,17 +100,15 @@ public class HandlerMgr {
                 LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Send Msg %s of Call %s to dev %s, reason is %s", UserMessage.GetMsgName(msg.type),msg.callId,msg.devId, FailReason.GetFailName(msg.reason));
         }else if(type==UserMessage.MESSAGE_REG_INFO){
             UserRegMessage regMsg = (UserRegMessage)obj;
-            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Send Msg %s to dev %s", UserMessage.GetMsgName(regMsg.type),regMsg.devId);
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Send Msg %s to dev %s", UserMessage.GetMsgName(regMsg.type),regMsg.devId);
         }
         terminalPhoneMgr.SendUserMessage(type,obj);
     }
 
-    static public void CreateTerminalPhone(String id,int type){
-        TerminalDevice dev = new TerminalDevice(id);
-        TerminalPhone phone = new TerminalPhone(id,type);
-        terminalDevManager.AddDevice(id,dev);
-        dev.Start();
+    static public void CreateTerminalPhone(String id,int type,int netMode){
+        terminalDevManager.AddDevice(id,netMode);
 
+        TerminalPhone phone = new TerminalPhone(id,type);
         terminalPhoneMgr.AddDevice(phone);
     }
 
@@ -151,9 +151,13 @@ public class HandlerMgr {
     }
 
 
-// for backend NetDevice
+// for backend TcpNetDevice
     static public void UpdateBackEndDevChannel(String ID,Channel ch){
         backEndDevMgr.UpdateDevChannel(ID,ch);
+    }
+
+    static public void UpdateBackEndDevSocket(String ID, DatagramSocket socket,InetAddress hostAddr, int port){
+        backEndDevMgr.UpdateDevSocket(ID,socket,hostAddr,port);
     }
 
     static public void BackEndDevSendBuf(String ID,ByteBuf buf){
@@ -205,8 +209,8 @@ public class HandlerMgr {
     }
     
 // create backend device
-    static public boolean AddBackEndPhone(String ID,int type){
-        backEndDevMgr.AddDevice(ID);
+    static public boolean AddBackEndPhone(String ID,int type,int netMode){
+        backEndDevMgr.AddDevice(ID,netMode);
         backEndPhoneMgr.AddPhone(ID,type);
         return true;
     }

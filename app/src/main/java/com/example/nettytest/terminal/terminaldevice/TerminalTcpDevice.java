@@ -1,14 +1,14 @@
 package com.example.nettytest.terminal.terminaldevice;
 
-import com.example.nettytest.pub.commondevice.NetDevice;
+import com.example.nettytest.pub.commondevice.TcpNetDevice;
 import com.example.nettytest.terminal.clientnet.NettyTestClient;
 import com.example.nettytest.userinterface.PhoneParam;
 
-public class TerminalDevice extends NetDevice {
+public class TerminalTcpDevice extends TcpNetDevice {
     NettyTestClient client;
     boolean isActive;
 
-    public TerminalDevice(String id){
+    public TerminalTcpDevice(String id){
         super(id);
         isActive = true;
     }

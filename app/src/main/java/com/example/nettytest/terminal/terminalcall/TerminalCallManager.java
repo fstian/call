@@ -15,6 +15,7 @@ import com.example.nettytest.pub.protocol.UpdateReqPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
+import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
 
 import org.json.JSONArray;
@@ -47,6 +48,7 @@ public class TerminalCallManager {
                 json.putOpt(SystemSnap.SNAP_REG_NAME,1);
             else
                 json.putOpt(SystemSnap.SNAP_REG_NAME,0);
+            json.putOpt(SystemSnap.SNAP_VER_NAME, PhoneParam.VER_STR);
             for(TerminalCall call:callLists.values()){
                 JSONObject callJson = new JSONObject();
                 callJson.putOpt(SystemSnap.SNAP_CALLID_NAME,call.callID);
@@ -154,12 +156,16 @@ public class TerminalCallManager {
     public void RecvAnswerCall(String devid,AnswerReqPack answerReqPack){
         String callid = answerReqPack.callID;
         TerminalCall call = callLists.get(callid);
-        
+        int result;
         if(call!=null){
-            call.RecvAnswer(answerReqPack);
+            result = call.RecvAnswer(answerReqPack);
         }else{
-            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone Recv %s Answer For Call %s , but Could not Find it",devid,callid);
-            AnswerResPack answerResP = new AnswerResPack(ProtocolPacket.STATUS_NOTFOUND,answerReqPack);
+            result = ProtocolPacket.STATUS_NOTFOUND;
+        }
+        
+        if(result!=ProtocolPacket.STATUS_OK){
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone %s Recv %s Answer For Call %s , but %s",devid,answerReqPack.answerer,callid,ProtocolPacket.GetResString(result));
+            AnswerResPack answerResP = new AnswerResPack(result,answerReqPack);
             Transaction trans = new Transaction(devid,answerReqPack,answerResP,Transaction.TRANSCATION_DIRECTION_C2S);
             HandlerMgr.AddPhoneTrans(answerResP.msgID,trans);
 

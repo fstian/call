@@ -32,7 +32,7 @@ public class NettyTestClientInHandler extends ChannelInboundHandlerAdapter {
         super.channelActive(ctx);
         HandlerMgr.UpdatePhoneDevChannel(devID,ctx.channel());
         LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_DEBUG,"Client %s Connect Success in Handler",devID);
-        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Device %s Connect to Server Success",devID);
+        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Device %s Connect to Server Success",devID);
     }
 
     @Override
@@ -40,6 +40,6 @@ public class NettyTestClientInHandler extends ChannelInboundHandlerAdapter {
         super.channelInactive(ctx);
         LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_DEBUG,"Client %s Recv Inactive in Handler",devID);
         HandlerMgr.UpdatePhoneDevChannel(devID,null);
-        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Device %s Disconnect From Server",devID);
+        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_WARN,"Device %s Disconnect From Server",devID);
     }
 }

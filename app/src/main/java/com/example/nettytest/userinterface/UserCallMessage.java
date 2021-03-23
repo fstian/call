@@ -4,9 +4,9 @@ import com.example.nettytest.pub.phonecall.CommonCall;
 
 public class UserCallMessage extends UserMessage {
 
-    public final int NORMAL_CALL_TYPE = 1;
-    public final int EMERGENCY_CALL_TYPE = 2;
-    public final int BROADCAST_CALL_TYPE = 3;
+    public static final int NORMAL_CALL_TYPE = 1;
+    public static final int EMERGENCY_CALL_TYPE = 2;
+    public static final int BROADCAST_CALL_TYPE = 3;
 
     public int callType;
     public String callId;

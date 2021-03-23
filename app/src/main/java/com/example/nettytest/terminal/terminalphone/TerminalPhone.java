@@ -1,6 +1,7 @@
 package com.example.nettytest.terminal.terminalphone;
 
 import com.example.nettytest.pub.protocol.AnswerReqPack;
+import com.example.nettytest.pub.protocol.AnswerResPack;
 import com.example.nettytest.pub.protocol.ConfigItem;
 import com.example.nettytest.pub.protocol.ConfigReqPack;
 import com.example.nettytest.pub.protocol.ConfigResPack;
@@ -217,11 +218,26 @@ public class TerminalPhone extends PhoneDevice {
     }
 
     public void RecvAnswerCall(AnswerReqPack packet){
-        callManager.RecvAnswerCall(id,packet);
+        if(CheckAnsweredEnable()){
+            callManager.RecvAnswerCall(id,packet);
+        }else{
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone %s Type %d Recv %s Answer For Call %s , but %s",id,type,packet.answerer,packet.callID,ProtocolPacket.GetResString(ProtocolPacket.STATUS_NOTSUPPORT));
+            AnswerResPack answerResP = new AnswerResPack(ProtocolPacket.STATUS_NOTSUPPORT,packet);
+            Transaction trans = new Transaction(id,packet,answerResP,Transaction.TRANSCATION_DIRECTION_C2S);
+            HandlerMgr.AddPhoneTrans(answerResP.msgID,trans);
+        }
     }
 
     public void RecvEndCall(EndReqPack packet){
         callManager.RecvEndCall(id,packet);
+    }
+
+    public boolean CheckAnsweredEnable(){
+        boolean result = false;
+        if(type==BED_CALL_DEVICE||type==NURSE_CALL_DEVICE||type==CORRIDOR_CALL_DEVICE){
+            result = true;
+        }
+        return result;
     }
 
     public String MakeOutGoingCall(String dst,int callType){

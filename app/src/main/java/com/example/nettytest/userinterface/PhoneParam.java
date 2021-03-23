@@ -41,12 +41,18 @@ public class PhoneParam {
     final static String JSON_SERVER_PORT_NAME = "port";
     final static String JSON_SERVER_ACTIVE_NAME = "active";
     final static String JSON_SNAP_PORT_NAME = "snapPort";
+    final static String JSON_NET_MODE_NAME = "netMode";
+    final static String JSON_UDP_MODE_NAME = "UDP";
+    final static String JSON_TCP_MODE_NAME = "TCP";
 
     final static String JSON_CLIENT_NAME = "client";
 
     final static String JSON_DEVICES_NAME = "devices";
     final static String JSON_DEVICES_ID_NAME = "id";
     final static String JSON_DEVICE_TYPE_NAME = "type";
+
+    public final static int UDP_PROTOCOL = 1;
+    public final static int TCP_PROTOCOL = 2;
 
     public static ArrayList<UserDevice> devicesOnServer = new ArrayList<>();
     public static ArrayList<UserDevice> deviceList = new ArrayList<>();
@@ -63,6 +69,10 @@ public class PhoneParam {
 
     public static int snapStartPort = 11005;
 
+    public static int DEFAULT_SNAP_PORT = 11004;
+
+    public final static String VER_STR = "1.0.0";
+
     static void InitServerAndDevicesConfig(String info){
         JSONObject json;
         JSONObject serverJson;
@@ -70,11 +80,13 @@ public class PhoneParam {
         JSONArray devicesJson;
         JSONObject device;
         UserDevice userdev;
+        String netMode;
         int iTmp;
         try {
             json = new JSONObject(info);
             snapStartPort = json.getInt(JSON_SNAP_PORT_NAME);
             serverJson = json.getJSONObject(JSON_SERVE_NAME);
+
             clientJson = json.getJSONObject(JSON_CLIENT_NAME);
             callServerPort = serverJson.optInt(JSON_SERVER_PORT_NAME);
             serverActive = serverJson.optBoolean(JSON_SERVER_ACTIVE_NAME);
@@ -84,6 +96,11 @@ public class PhoneParam {
                 device = devicesJson.getJSONObject(iTmp);
                 userdev = new UserDevice();
                 userdev.devid = device.optString(JSON_DEVICES_ID_NAME);
+                netMode = device.optString(JSON_NET_MODE_NAME);
+                if(netMode.compareToIgnoreCase(JSON_UDP_MODE_NAME)==0)
+                    userdev.netMode = UserInterface.NET_MODE_UDP;
+                else
+                    userdev.netMode = UserInterface.NET_MODE_TCP;
                 userdev.type = UserInterface.GetDeviceType(device.optString(JSON_DEVICE_TYPE_NAME));
                 devicesOnServer.add(userdev);
             }
@@ -96,6 +113,11 @@ public class PhoneParam {
                 device = devicesJson.getJSONObject(iTmp);
                 userdev = new UserDevice();
                 userdev.devid = device.optString(JSON_DEVICES_ID_NAME);
+                netMode = device.optString(JSON_NET_MODE_NAME);
+                if(netMode.compareToIgnoreCase(JSON_UDP_MODE_NAME)==0)
+                    userdev.netMode = UserInterface.NET_MODE_UDP;
+                else
+                    userdev.netMode = UserInterface.NET_MODE_TCP;
                 userdev.type = UserInterface.GetDeviceType(device.optString(JSON_DEVICE_TYPE_NAME));
                 deviceList.add(userdev);
             }

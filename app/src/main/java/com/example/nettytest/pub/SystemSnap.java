@@ -29,6 +29,8 @@ public class SystemSnap {
     public static final int SNAP_DEV_REQ = 9;
     public static final int SNAP_DEV_RES = 109;
 
+    public static final int SNAP_DEL_LOG_REQ = 10;
+
     public static final String SNAP_AUTOTEST_NAME = "autoTest";
     public static final String SNAP_REALTIME_NAME = "realTime";
     public static final String SNAP_TIMEUNIT_NAME = "timeUnit";
@@ -42,6 +44,7 @@ public class SystemSnap {
     public static final String SNAP_RECEIVER_NAME = "receiver";
     public static final String SNAP_MSGID_NAME = "msgId";
     public static final String SNAP_REG_NAME = "reg";
+    public static final String SNAP_VER_NAME = "ver";
 
     public static final String SNAP_INCOMINGS_NAME = "incomingCalls";
     public static final String SNAP_OUTGOINGS_NAME = "outGoingCalls";

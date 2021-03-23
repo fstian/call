@@ -36,6 +36,9 @@ public class UserInterface {
     public final static int CALL_ANSWER_MODE_HANDLE = 2;
     public final static int CALL_ANSWER_MODE_ANSWER = 3;
 
+    public final static int NET_MODE_TCP = 1;
+    public final static int NET_MODE_UDP = 2;
+
     public static DemoServer callServer=null;
 
     // backend
@@ -110,8 +113,18 @@ public class UserInterface {
     }
 
     public static OperationResult AddDeviceOnServer(String id,int type){
+        return AddDeviceOnServer(id,type,UserInterface.NET_MODE_TCP);
+    }
+
+    public static OperationResult AddDeviceOnServer(String id,int type,int netMode){
         OperationResult result = new OperationResult();
         int typeInServer = CALL_BED_DEVICE;
+        int netType;
+
+        if(netMode == UserInterface.NET_MODE_UDP)
+            netType = PhoneParam.UDP_PROTOCOL;
+        else
+            netType = PhoneParam.TCP_PROTOCOL;
 
         switch(type){
             case CALL_BED_DEVICE:
@@ -140,7 +153,7 @@ public class UserInterface {
                 break;
         }
 
-        if(!callServer.AddBackEndPhone(id, typeInServer)){
+        if(!callServer.AddBackEndPhone(id, typeInServer,netType)){
             result.result = OperationResult.OP_RESULT_FAIL;
             result.reason = FailReason.FAIL_REASON_UNKNOW;
         }
@@ -167,33 +180,41 @@ public class UserInterface {
         return true;
     }
 
+    public static OperationResult BuildDevice(int type, String ID) {
+        return BuildDevice(type,ID,UserInterface.NET_MODE_TCP);
+    }
 
-    public static OperationResult BuildDevice(int type, String ID){
+    public static OperationResult BuildDevice(int type, String ID,int netMode){
         OperationResult result = new OperationResult();
+        int netType;
+        if(netMode == UserInterface.NET_MODE_UDP)
+            netType = PhoneParam.UDP_PROTOCOL;
+        else
+            netType = PhoneParam.TCP_PROTOCOL;
         switch(type) {
             case CALL_BED_DEVICE:
-                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.BED_CALL_DEVICE);
+                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.BED_CALL_DEVICE,netType);
                 break;
             case CALL_NURSER_DEVICE:
-                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.NURSE_CALL_DEVICE);
+                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.NURSE_CALL_DEVICE,netType);
                 break;
             case CALL_DOOR_DEVICE:
-                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.DOOR_CALL_DEVICE);
+                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.DOOR_CALL_DEVICE,netType);
                 break;
             case CALL_TV_DEVICE:
-                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.TV_CALL_DEVICE);
+                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.TV_CALL_DEVICE,netType);
                 break;
             case CALL_CORRIDOR_DEVICE:
-                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.CORRIDOR_CALL_DEVICE);
+                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.CORRIDOR_CALL_DEVICE,netType);
                 break;
             case CALL_WHITE_BOARD_DEVICE:
-                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.WHITE_BOARD_DEVICE);
+                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.WHITE_BOARD_DEVICE,netType);
                 break;
             case CALL_EMERGENCY_DEVICE:
-                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.EMER_CALL_DEVICE);
+                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.EMER_CALL_DEVICE,netType);
                 break;
             case CALL_DOOR_LIGHT_DEVICE:
-                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.DOOR_LIGHT_CALL_DEVICE);
+                HandlerMgr.CreateTerminalPhone(ID, TerminalPhone.DOOR_LIGHT_CALL_DEVICE,netType);
                 break;
             default:
                 result.result = OperationResult.OP_RESULT_FAIL;

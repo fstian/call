@@ -3,19 +3,23 @@ package com.example.nettytest.backend.backenddevice;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.commondevice.NetDevice;
 import com.example.nettytest.pub.commondevice.NetDeviceManager;
+import com.example.nettytest.userinterface.PhoneParam;
 
 import java.util.Iterator;
 import java.util.Map;
 
 public class BackEndDevManager extends NetDeviceManager {
 
-    public void AddDevice(String id){
-        BackEndDevice matchedDev;
+    public void AddDevice(String id,int netMode){
+        NetDevice matchedDev;
 
         synchronized (NetDeviceManager.class) {
-            matchedDev = (BackEndDevice)devLists.get(id);
+            matchedDev = (NetDevice)devLists.get(id);
             if (matchedDev == null) {
-                matchedDev = new BackEndDevice(id);
+                if(netMode == PhoneParam.TCP_PROTOCOL)
+                    matchedDev = new BackEndTcpDevice(id);
+                else if(netMode == PhoneParam.UDP_PROTOCOL)
+                    matchedDev = new BackEndUdpDevice(id);
                 devLists.put(id,matchedDev);
                 LogWork.Print(LogWork.BACKEND_DEVICE_MODULE,LogWork.LOG_INFO,"Add Net Device %s On Server",id);
             }else{
@@ -25,9 +29,9 @@ public class BackEndDevManager extends NetDeviceManager {
     }
 
     public void RemoveDevice(String id){
-        BackEndDevice matchedDev;
+        NetDevice matchedDev;
         synchronized (NetDeviceManager.class){
-            matchedDev = (BackEndDevice)devLists.get(id);
+            matchedDev = (NetDevice)devLists.get(id);
             if(matchedDev!=null) {
                 matchedDev.Close();
                 devLists.remove(id);

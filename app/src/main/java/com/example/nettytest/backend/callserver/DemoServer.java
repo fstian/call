@@ -2,12 +2,16 @@ package com.example.nettytest.backend.callserver;
 
 import com.example.nettytest.backend.servernet.NettyTestServer;
 import com.example.nettytest.pub.HandlerMgr;
+import com.example.nettytest.userinterface.PhoneParam;
+
 
 public class DemoServer {
 
-    Thread serverThread;
+    Thread serverThread = null;
+    UdpServer udpServer = null;
 
     public DemoServer(int port){
+        
         serverThread = new Thread(){
             @Override
             public void run() {
@@ -21,19 +25,22 @@ public class DemoServer {
                 }
             }
         };
-
         serverThread.start();
 
-
+        udpServer = new UdpServer(port);
+        udpServer.start();
 
     }
 
-    public boolean AddBackEndPhone(String id,int type){
-        return HandlerMgr.AddBackEndPhone(id,type);
+    public boolean AddBackEndPhone(String id,int type,int netMode){
+        return HandlerMgr.AddBackEndPhone(id,type,netMode);
     }
 
     public void StopServer(){
-        serverThread.interrupt();
+        if(serverThread!=null)
+            serverThread.interrupt();
+        if(udpServer!=null)
+            udpServer.interrupt();
     }
 
 }

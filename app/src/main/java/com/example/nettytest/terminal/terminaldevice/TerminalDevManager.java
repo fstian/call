@@ -1,6 +1,8 @@
 package com.example.nettytest.terminal.terminaldevice;
 
+import com.example.nettytest.pub.commondevice.NetDevice;
 import com.example.nettytest.pub.commondevice.NetDeviceManager;
+import com.example.nettytest.userinterface.PhoneParam;
 
 public class TerminalDevManager extends NetDeviceManager {
 
@@ -8,22 +10,30 @@ public class TerminalDevManager extends NetDeviceManager {
         super();
     }
 
-    public void AddDevice(String id, TerminalDevice device){
-        TerminalDevice matchedDev;
+    public void AddDevice(String id,int netMode){
+        NetDevice matchedDev;
 
         synchronized (NetDeviceManager.class) {
-            matchedDev = (TerminalDevice)devLists.get(id);
-            if(matchedDev==null)
-                devLists.put(id,device);
+            matchedDev = devLists.get(id);
+            if(matchedDev==null) {
+                if(netMode==PhoneParam.TCP_PROTOCOL) {
+                    TerminalTcpDevice dev = new TerminalTcpDevice(id);
+                    devLists.put(id, dev);
+                    dev.Start();
+                }else if(netMode == PhoneParam.UDP_PROTOCOL){
+                    TerminalUdpDevice dev = new TerminalUdpDevice(id);
+                    devLists.put(id,dev);
+                }
+            }
         }
 
     }
 
 
     public void RemovePhone(String id){
-        TerminalDevice matchedDev;
+        NetDevice matchedDev;
         synchronized (NetDeviceManager.class) {
-            matchedDev = (TerminalDevice)devLists.get(id);
+            matchedDev = devLists.get(id);
             if(matchedDev!=null){
                 matchedDev.Stop();
                 matchedDev.Close();
