@@ -62,4 +62,17 @@ public class TerminalUdpDevice extends UdpNetDevice {
         readThread = new TerminalUdpReadThread();
         readThread.start();
     }
+
+    @Override
+    public void Close() {
+        super.Close();
+        if(readThread!=null){
+            readThread.interrupt();
+        }
+        if(localSocket!=null){
+            if(!localSocket.isClosed()){
+                localSocket.close();
+            }
+        }
+    }
 }
