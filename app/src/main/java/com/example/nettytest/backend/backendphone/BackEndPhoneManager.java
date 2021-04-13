@@ -175,6 +175,35 @@ public class BackEndPhoneManager {
         return devices;
     }
 
+    private DatagramSocket OpenSnapSocket(int group){
+        DatagramSocket socket=null;
+        int iTmp;
+        int port =PhoneParam.snapStartPort;
+        switch(group){
+            case PhoneParam.SNAP_MMI_GROUP:
+                port = PhoneParam.snapStartPort;
+                break;
+            case PhoneParam.SNAP_TERMINAL_GROUP:
+                port = PhoneParam.snapStartPort+PhoneParam.SNAP_PORT_INTERVAL;
+                break;
+            case PhoneParam.SNAP_BACKEND_GROUP:
+                port = PhoneParam.snapStartPort+2*PhoneParam.SNAP_PORT_INTERVAL;
+                break;
+        }
+        for(iTmp = 0;iTmp<=PhoneParam.SNAP_PORT_INTERVAL;iTmp++){
+            socket = null;
+            try {
+                socket = new DatagramSocket(port+iTmp);
+            } catch (SocketException e) {
+                e.printStackTrace();
+            }
+            if(socket!=null)
+                break;
+        }
+        return socket;
+    }
+
+
     public void AddPhone(String id, int t){
         BackEndPhone matchedPhone;
 
@@ -188,53 +217,54 @@ public class BackEndPhoneManager {
                 LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Add Phone Device %s On Server, but it had created",id);
             }
 
-            snapThread = new Thread(() -> {
-                try {
+            if(snapThread!=null){
+                snapThread = new Thread(() -> {
                     byte[] recvBuf = new byte[1024];
                     DatagramPacket recvPack;
-                    DatagramSocket testSocket;
                     ArrayList<byte[]> resList;
-                    testSocket = new DatagramSocket(PhoneParam.snapStartPort+2);
-                    DatagramPacket resPack;
-                    while (!testSocket.isClosed()) {
-                        recvPack = new DatagramPacket(recvBuf, recvBuf.length);
-                        try {
-                            testSocket.receive(recvPack);
-                            if (recvPack.getLength() > 0) {
-                                if(PhoneParam.serverActive) {
-                                    String recv = new String(recvBuf, "UTF-8");
-                                    JSONObject json = new JSONObject(recv);
-                                    int type = json.optInt(SystemSnap.SNAP_CMD_TYPE_NAME);
-                                    synchronized (BackEndPhoneManager.class) {
-                                        if (type == SystemSnap.SNAP_BACKEND_CALL_REQ) {
-                                            String devid = json.optString(SystemSnap.SNAP_DEVID_NAME);
-                                            byte[] result;
-                                            result = backEndCallConvergencyMgr.MakeCallConvergenceSnap(devid);
-                                            if(result!=null) {
-                                                resPack = new DatagramPacket(result, result.length, recvPack.getAddress(), recvPack.getPort());
-                                                testSocket.send(resPack);
-                                            }
-                                        } else if (type == SystemSnap.SNAP_BACKEND_TRANS_REQ) {
-                                            resList = HandlerMgr.GetBackEndTransInfo();
-                                            for (byte[] data : resList) {
-                                                resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
-                                                testSocket.send(resPack);
+                    DatagramSocket testSocket;
+                    testSocket = OpenSnapSocket(PhoneParam.SNAP_BACKEND_GROUP);
+                    if(testSocket!=null){
+                        DatagramPacket resPack;
+                        while (!testSocket.isClosed()) {
+                            recvPack = new DatagramPacket(recvBuf, recvBuf.length);
+                            try {
+                                testSocket.receive(recvPack);
+                                if (recvPack.getLength() > 0) {
+                                    if(PhoneParam.serverActive) {
+                                        String recv = new String(recvBuf, "UTF-8");
+                                        JSONObject json = new JSONObject(recv);
+                                        int type = json.optInt(SystemSnap.SNAP_CMD_TYPE_NAME);
+                                        synchronized (BackEndPhoneManager.class) {
+                                            if (type == SystemSnap.SNAP_BACKEND_CALL_REQ) {
+                                                String devid = json.optString(SystemSnap.SNAP_DEVID_NAME);
+                                                byte[] result;
+                                                result = backEndCallConvergencyMgr.MakeCallConvergenceSnap(devid);
+                                                if(result!=null) {
+    //                                                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Get BackEnd Call Snap for dev %s, total %d bytes, send to %s:%d",devid,result.length,recvPack.getAddress().getHostName(),recvPack.getPort());
+                                                    resPack = new DatagramPacket(result, result.length, recvPack.getAddress(), recvPack.getPort());
+                                                    testSocket.send(resPack);
+                                                }
+                                            } else if (type == SystemSnap.SNAP_BACKEND_TRANS_REQ) {
+                                                resList = HandlerMgr.GetBackEndTransInfo();
+                                                for (byte[] data : resList) {
+                                                    resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
+                                                    testSocket.send(resPack);
+                                                }
                                             }
                                         }
                                     }
                                 }
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            } catch (JSONException e) {
+                                e.printStackTrace();
                             }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        } catch (JSONException e) {
-                            e.printStackTrace();
                         }
                     }
-                } catch (SocketException e) {
-                    e.printStackTrace();
-                }
-            });
-            snapThread.start();
+                });
+                snapThread.start();
+            }
             
         }
 

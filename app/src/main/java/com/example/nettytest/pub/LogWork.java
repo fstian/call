@@ -49,7 +49,7 @@ public class LogWork {
     public final static int LOG_ERROR = 5;      // for unreasonable error
     public final static int LOG_FATAL = 6;      // for fatal
 
-    public static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-mm-dd HH:mm:ss.SSS");
+    public static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
     public static int dbgLevel = LOG_DEBUG;
 
