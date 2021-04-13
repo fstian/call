@@ -24,7 +24,6 @@ import java.util.ArrayList;
 
 public class TestDevice extends UserDevice{
     public boolean isCallOut;
-    public boolean isAnswering;
     public String talkPeer;
     public LocalCallInfo outGoingCall;
     public TestInfo testInfo;
@@ -40,7 +39,6 @@ public class TestDevice extends UserDevice{
         TerminalDeviceInfo info = new TerminalDeviceInfo();
         this.type = type;
         this.devid = id;
-        netMode = UserInterface.NET_MODE_TCP;
         UserInterface.BuildDevice(type,id,netMode);
         info.patientName = "patient"+id;
         info.patientAge = String.format("%d",18+type);
@@ -52,7 +50,7 @@ public class TestDevice extends UserDevice{
         talkPeer = "";
         testInfo = new TestInfo();
         devLists = null;
-        testWaitTick = (int)(Math.random()*testInfo.timeUnit)+1;
+        testWaitTick = (int)(Math.random()*testInfo.timeUnit)+5;
     }
 
     public TestDevice(int type,String id,int netMode){
@@ -71,7 +69,7 @@ public class TestDevice extends UserDevice{
         talkPeer = "";
         testInfo = new TestInfo();
         devLists = null;
-        testWaitTick = (int)(Math.random()*testInfo.timeUnit)+1;
+        testWaitTick = (int)(Math.random()*testInfo.timeUnit)+5;
     }
 
     public OperationResult BuildCall(String peerId, int type){
@@ -175,6 +173,7 @@ public class TestDevice extends UserDevice{
     private OperationResult EndCall(String callid){
         OperationResult result;
         result = UserInterface.EndCall(devid,callid);
+//        UserInterface.EndCall("20105105",callid);
         
         if (outGoingCall.callID.compareToIgnoreCase(callid) == 0) {
             if(outGoingCall.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED){
@@ -338,7 +337,7 @@ public class TestDevice extends UserDevice{
             testTickCount++;
             if (testTickCount >= testWaitTick) {
                 testTickCount = 0;
-                testWaitTick = (int) (Math.random() * testInfo.timeUnit) + 1;
+                testWaitTick = (int) (Math.random() * testInfo.timeUnit) + 5;
                 result = true;
                 synchronized (TestDevice.class) {
                     if (isCallOut) {
@@ -354,7 +353,21 @@ public class TestDevice extends UserDevice{
                             }else if(type==UserInterface.CALL_EMERGENCY_DEVICE){
                                 BuildCall(PhoneParam.CALL_SERVER_ID, UserInterface.CALL_EMERGENCY_TYPE);
                             }
-                        } else {
+                        } else if(type == UserInterface.CALL_NURSER_DEVICE){
+                            boolean hasConnectedCall = false;
+                            for(LocalCallInfo callInfo:inComingCallInfos){
+                                if(callInfo.status==LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED){
+                                    hasConnectedCall = true;
+                                    EndCall(callInfo.callID);
+                                    break;
+                                }
+                            }
+                            if(!hasConnectedCall) {
+                                LocalCallInfo callInfo= inComingCallInfos.get(0);
+                                if(callInfo.status!=LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
+                                    AnswerCall(callInfo.callID);
+                            }
+
                             int selectCall = (int) (Math.random() * inComingCallInfos.size());
                             if (selectCall >= inComingCallInfos.size())
                                 selectCall = inComingCallInfos.size() - 1;
@@ -362,10 +375,11 @@ public class TestDevice extends UserDevice{
                             if (!talkPeer.isEmpty()) {
                                 EndCall(callInfo.callID);
                             } else {
-                                if (Math.random() > 0.5&&callInfo.callType==UserCallMessage.NORMAL_CALL_TYPE)
+                                if (Math.random() > 0.5&&callInfo.callType==UserCallMessage.NORMAL_CALL_TYPE) {
                                     AnswerCall(callInfo.callID);
-                                else
+                                }else {
                                     EndCall(callInfo.callID);
+                                }
                             }
                         }
                     }

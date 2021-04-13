@@ -68,10 +68,14 @@ public class PhoneParam {
     public static int callRtpDataRate = 8000;
 
     public static int snapStartPort = 11005;
+    public final static int SNAP_MMI_GROUP = 1;
+    public final static int SNAP_TERMINAL_GROUP = 2;
+    public final static int SNAP_BACKEND_GROUP = 3;
+    public final static int SNAP_PORT_INTERVAL = 5;
 
     public static int DEFAULT_SNAP_PORT = 11004;
 
-    public final static String VER_STR = "1.0.0";
+    public final static String VER_STR = "1.0.1";
 
     static void InitServerAndDevicesConfig(String info){
         JSONObject json;

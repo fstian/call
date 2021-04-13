@@ -28,6 +28,7 @@ import com.example.nettytest.userinterface.UserMessage;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -67,6 +68,34 @@ public class TerminalPhoneManager {
 
     }
 
+    private DatagramSocket OpenSnapSocket(int group){
+        DatagramSocket socket=null;
+        int iTmp;
+        int port =PhoneParam.snapStartPort;
+        switch(group){
+            case PhoneParam.SNAP_MMI_GROUP:
+                port = PhoneParam.snapStartPort;
+                break;
+            case PhoneParam.SNAP_TERMINAL_GROUP:
+                port = PhoneParam.snapStartPort+PhoneParam.SNAP_PORT_INTERVAL;
+                break;
+            case PhoneParam.SNAP_BACKEND_GROUP:
+                port = PhoneParam.snapStartPort+2*PhoneParam.SNAP_PORT_INTERVAL;
+                break;
+        }
+        for(iTmp = 0;iTmp<=PhoneParam.SNAP_PORT_INTERVAL;iTmp++){
+            socket = null;
+            try {
+                socket = new DatagramSocket(port+iTmp);
+            } catch (SocketException e) {
+                e.printStackTrace();
+            }
+            if(socket!=null)
+                break;
+        }
+        return socket;
+    }
+
     public void AddDevice(TerminalPhone phone){
         TerminalPhone matchedDev;
 
@@ -77,13 +106,13 @@ public class TerminalPhoneManager {
 
             if(snapThread==null){
                 snapThread = new Thread(() -> {
-                    try {
-                        byte[] recvBuf = new byte[1024];
-                        DatagramPacket recvPack;
-                        DatagramSocket testSocket;
-                        byte[] snapResult;
-                        testSocket = new DatagramSocket(PhoneParam.snapStartPort+1);
-                        DatagramPacket resPack;
+                    byte[] recvBuf = new byte[1024];
+                    DatagramPacket recvPack;
+                    DatagramSocket testSocket;
+                    byte[] snapResult;
+                    testSocket = OpenSnapSocket(PhoneParam.SNAP_TERMINAL_GROUP);
+                    DatagramPacket resPack;
+                    if(testSocket!=null){
                         while (!testSocket.isClosed()) {
                             recvPack = new DatagramPacket(recvBuf, recvBuf.length);
                             try {
@@ -97,6 +126,7 @@ public class TerminalPhoneManager {
                                             String devId = json.optString(SystemSnap.SNAP_DEVID_NAME);
                                             snapResult = MakeCallsSnap(devId);
                                             if(snapResult!=null) {
+//                                                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Get Terminal Call Snap for dev %s, total %d bytes, send to %s:%d",devId,snapResult.length,recvPack.getAddress().getHostName(),recvPack.getPort());
                                                 resPack = new DatagramPacket(snapResult, snapResult.length, recvPack.getAddress(), recvPack.getPort());
                                                 testSocket.send(resPack);
                                             }
@@ -156,6 +186,22 @@ public class TerminalPhoneManager {
                                                 resPack= new DatagramPacket(resBuf,resBuf.length,recvPack.getAddress(),recvPack.getPort());
                                                 testSocket.send(resPack);
                                             }
+                                        }else if(type==SystemSnap.SNAP_DEL_LOG_REQ){
+                                            String logFileName;
+                                            int logIndex = 1;
+                                            File logFile;
+                                            while(true){
+                                                logFileName = String.format("/storage/self/primary/CallModuleLog%04d.txt",logIndex);
+                                                logFile = new File(logFileName);
+                                                if(logFile.exists()&&logFile.isFile()){
+                                                    logFile.delete();
+                                                }else{
+                                                    break;
+                                                }
+                                                logIndex++;
+                                                if(logIndex>1000)
+                                                    break;
+                                            }
                                         }
                                     }
                                 }
@@ -165,8 +211,6 @@ public class TerminalPhoneManager {
                                 e.printStackTrace();
                             }
                         }
-                    } catch (SocketException e) {
-                        e.printStackTrace();
                     }
                 });
                 snapThread.start();

@@ -396,4 +396,8 @@ public class UserInterface {
             type = CALL_WHITE_BOARD_DEVICE;
         return type;
     }
+
+    public static String GetModuleVer(){
+        return PhoneParam.VER_STR;
+    }
 }

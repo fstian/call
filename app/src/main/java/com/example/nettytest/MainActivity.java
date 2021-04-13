@@ -167,25 +167,10 @@ public class MainActivity extends AppCompatActivity {
                                         break;
                                     if(dev.devid.compareToIgnoreCase(devId)==0) {
                                         byte[] resBuf = dev.MakeSnap();
+//                                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Get User Call Snap for dev %s, total %d bytes, send to %s:%d",devId,resBuf.length,recvPack.getAddress().getHostName(),recvPack.getPort());
                                         DatagramPacket resPack = new DatagramPacket(resBuf, resBuf.length, recvPack.getAddress(), recvPack.getPort());
                                         audioTest.testSocket.send(resPack);
                                     }
-                                }
-                            }else if(type==SystemSnap.SNAP_DEL_LOG_REQ){
-                                String logFileName;
-                                int logIndex = 1;
-                                File logFile;
-                                while(true){
-                                    logFileName = String.format("/storage/self/primary/CallModuleLog%04d.txt",logIndex);
-                                    logFile = new File(logFileName);
-                                    if(logFile.exists()&&logFile.isFile()){
-                                        logFile.delete();
-                                    }else{
-                                        break;
-                                    }
-                                    logIndex++;
-                                    if(logIndex>1000)
-                                        break;
                                 }
                             }
                         }
