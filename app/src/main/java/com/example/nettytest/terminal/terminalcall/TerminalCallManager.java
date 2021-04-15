@@ -204,8 +204,10 @@ public class TerminalCallManager {
                 call = callLists.get(callid);
                 if(call!=null){
                     call.UpdateByInviteRes(inviteResPack);
-                    if(call.state!=CommonCall.CALL_STATE_RINGING)
+                    if(call.state!=CommonCall.CALL_STATE_RINGING){
+                        call.ReleaseCall();
                         callLists.remove(callid);
+                    }
                 }else{
                     LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Could not Find Call %s for DEV %s",inviteResPack.callID,devid);
                     LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"DEV %s have %d Calls",devid,callLists.size());
@@ -247,6 +249,7 @@ public class TerminalCallManager {
                     LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Call Update Res for callid %s,Status is %s",call.devID,callid,ProtocolPacket.GetResString(updateResP.status));
                     call.UpdateByUpdateRes(updateResP);
                     if(call.state==CommonCall.CALL_STATE_DISCONNECTED){
+                        call.ReleaseCall();
                         callLists.remove(callid);
                     }
                 }else{
