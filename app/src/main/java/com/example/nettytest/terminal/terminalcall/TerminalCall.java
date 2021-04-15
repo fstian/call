@@ -237,6 +237,11 @@ public class TerminalCall extends CommonCall {
         
     }
 
+    public void ReleaseCall(){
+        if(!audioId.isEmpty())
+            AudioMgr.CloseAudio(audioId);
+    }
+
 
    public int RecvAnswer(AnswerReqPack pack){
         int status = ProtocolPacket.STATUS_OK;
@@ -331,6 +336,8 @@ public class TerminalCall extends CommonCall {
         callMsg.type = UserCallMessage.CALL_MESSAGE_UPDATE_FAIL;
         callMsg.reason = OperationResult.GetUserFailReason(ProtocolPacket.STATUS_TIMEOVER);
         HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
+        if(!audioId.isEmpty())
+            AudioMgr.CloseAudio(audioId);
     }
    
     private InviteReqPack BuildInvitePacket(TerminalDeviceInfo info){
