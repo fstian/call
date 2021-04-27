@@ -236,7 +236,24 @@ public class AudioDevice {
 
         packSize = sample*ptime/1000;
 
+        // create audio read device and write device int synchronized
+
         if(audioMode==SEND_RECV_MODE||audioMode==RECV_ONLY_MODE){
+
+            int audioOutBufSize = AudioTrack.getMinBufferSize(sample,
+                    AudioFormat.CHANNEL_OUT_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT);
+
+
+            player = new AudioTrack(AudioManager.STREAM_MUSIC, sample,
+                    AudioFormat.CHANNEL_OUT_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT,
+                    packSize,
+                    AudioTrack.MODE_STREAM);
+
+
+            player.play();
+
             audioWriteThread = new AudioWriteThread();
             audioWriteThread.start();
 
@@ -244,7 +261,7 @@ public class AudioDevice {
                 try {
                     Thread.sleep(100);
                     count++;
-                    if(count>200){
+                    if(count>20){
                         LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Audio Write Thread is Still not Runing");
                         count = 0;
                     }
@@ -254,13 +271,25 @@ public class AudioDevice {
             }
         }
 
+
+        int audioInBufSize = AudioRecord.getMinBufferSize(sample,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT);
+
+        recorder = new AudioRecord(MediaRecorder.AudioSource.MIC,sample,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                packSize);
+
+        recorder.startRecording();
+
         audioReadThread = new AudioReadThread();
         audioReadThread.start();
         while(!isAudioReadRuning){
             try {
                 Thread.sleep(100);
                 count++;
-                if(count>200){
+                if(count>20){
                     LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Audio Read Thread is Still not Runing");
                     count = 0;
                 }
@@ -391,17 +420,6 @@ public class AudioDevice {
 
             isAudioReadRuning = true;
             
-            int audioInBufSize = AudioRecord.getMinBufferSize(sample,
-                    AudioFormat.CHANNEL_IN_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT);
-
-            recorder = new AudioRecord(MediaRecorder.AudioSource.MIC,sample,
-                    AudioFormat.CHANNEL_IN_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT,
-                    packSize);
-
-            recorder.startRecording();
-
             if(audioMode==SEND_RECV_MODE){
                 aecData = new short[packSize];
             }else{
@@ -477,19 +495,6 @@ public class AudioDevice {
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Audio AudioWriteThread");
 
             isAudioWriteRuning = true;
-            int audioOutBufSize = AudioTrack.getMinBufferSize(sample,
-                    AudioFormat.CHANNEL_OUT_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT);
-
-
-            player = new AudioTrack(AudioManager.STREAM_MUSIC, sample,
-                    AudioFormat.CHANNEL_OUT_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT,
-                    packSize,
-                    AudioTrack.MODE_STREAM);
-
-
-            player.play();
 
             Looper.prepare();
             audioWriteHandler = new Handler(message -> {

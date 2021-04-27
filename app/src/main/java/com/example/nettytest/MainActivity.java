@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
+import android.media.AudioManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -54,7 +55,9 @@ import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
+
 public class MainActivity extends AppCompatActivity {
+
 
 
     private class AudioTest{
@@ -78,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
     Handler terminalCallMessageHandler = null;
     Timer uiUpdateTimer = null;
     NetworkStateChangedReceiver wifiReceiver = null;
+    int testCount = 0;
 
     private void CreateAudioTest(){
         if(!isAudioTestCreate){
@@ -293,6 +297,28 @@ public class MainActivity extends AppCompatActivity {
         bt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
+                if(testCount==0){
+                    testCount = 1;
+//                    SerialPort.SetGpioStatus(45,1);
+                    bt.setText("MIC Hand");
+                }else if(testCount==1){
+                    testCount = 2;
+//                    SerialPort.SetGpioStatus(45,0);
+                    bt.setText("MIC Main");
+                }else if(testCount==2){
+                    testCount = 3;
+                    bt.setText("MIC Off");
+//                    AudioManager audioManager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
+//                    audioManager.setMicrophoneMute(false);
+                }else if(testCount==3){
+                    testCount = 0;
+                    bt.setText("MIC On");
+//                    AudioManager audioManager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
+//                    audioManager.setMicrophoneMute(true);
+                }
+
+
 //                UserInterface.RemoveAllDeviceOnServer();
                 if (audioTest != null) {
                     if (audioTest.curDevice != null) {
