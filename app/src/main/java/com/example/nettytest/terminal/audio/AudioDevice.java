@@ -227,6 +227,7 @@ public class AudioDevice {
 
     private void OpenAudio(){
         int count = 0;
+        int state;
         if(audioMode==SEND_RECV_MODE){
 //            aec =new MobileAEC(new SamplingFrequency(sample));
             aec =new MobileAEC(null);
@@ -248,9 +249,16 @@ public class AudioDevice {
             player = new AudioTrack(AudioManager.STREAM_MUSIC, sample,
                     AudioFormat.CHANNEL_OUT_MONO,
                     AudioFormat.ENCODING_PCM_16BIT,
-                    packSize,
+//                    packSize,
+                    audioOutBufSize,
                     AudioTrack.MODE_STREAM);
 
+            state =  player.getState();
+            if(state!=AudioTrack.STATE_INITIALIZED){
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"AudioTrack Init Fail State=%d, sample=%d,PTime=%d,packSize=%d,audioOutBufSize=%d",state,sample,ptime,packSize,audioOutBufSize);
+            }else{
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"AudioTrack Init Success, sample=%d,PTime=%d,packSize=%d,audioOutBufSize=%d",sample,ptime,packSize,audioOutBufSize);
+            }
 
             player.play();
 
@@ -279,7 +287,15 @@ public class AudioDevice {
         recorder = new AudioRecord(MediaRecorder.AudioSource.MIC,sample,
                 AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
-                packSize);
+                audioInBufSize);
+//                packSize);
+
+        state = recorder.getState();
+        if(state!=AudioRecord.STATE_INITIALIZED){
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"AudioRecord Init Fail state=%d, sample=%d,PTime=%d,packSize=%d,audioInBufSize=%d",state,sample,ptime,packSize,audioInBufSize);
+        }else{
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"AudioRecord Init Success, sample=%d,PTime=%d,packSize=%d,audioInBufSize=%d",sample,ptime,packSize,audioInBufSize);
+        }
 
         recorder.startRecording();
 
@@ -496,7 +512,7 @@ public class AudioDevice {
 
             isAudioWriteRuning = true;
 
-            Looper.prepare();
+           Looper.prepare();
             audioWriteHandler = new Handler(message -> {
                 if(message.arg1 == AUDIO_PLAY_MSG){
                     short[] rtpData = (short [])message.obj;

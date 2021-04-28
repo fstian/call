@@ -107,9 +107,8 @@ public class TerminalCall extends CommonCall {
             audioMode = AudioDevice.SEND_RECV_MODE;
         }
 
+        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Answer Call %s! sample=%d,ptime=%d,codec=%d",devID,callID,audioSample,rtpTime,audioCodec);
         audioId = AudioMgr.OpenAudio(devID,localRtpPort,remoteRtpPort,remoteRtpAddress,audioSample,rtpTime,audioCodec,audioMode);
-
-        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Answer Call %s! ",devID,callID);
         Transaction answerTrans = new Transaction(devID,answerPack,Transaction.TRANSCATION_DIRECTION_C2S);
         HandlerMgr.AddPhoneTrans(answerPack.msgID,answerTrans);
 
@@ -265,10 +264,12 @@ public class TerminalCall extends CommonCall {
         }else{
             audioMode = AudioDevice.SEND_RECV_MODE;
         }
+        
+        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Call Answer Req for CallID = %s, and Send Answer Res to Server! ",devID,callID);
+        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Open Audio sample=%d,ptime=%d,codec=%d",devID,pack.sample,pack.pTime,pack.codec);
         audioId = AudioMgr.OpenAudio(devID,localRtpPort,remoteRtpPort,remoteRtpAddress,pack.sample,pack.pTime,pack.codec,audioMode);
 
         Transaction answerResTrans = new Transaction(devID,pack,answerResPack,Transaction.TRANSCATION_DIRECTION_C2S);
-        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Call Answer Req for CallID = %s, and Send Answer Res to Server! ",devID,callID);
         HandlerMgr.AddPhoneTrans(answerResPack.msgID,answerResTrans);
 
         HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);

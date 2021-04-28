@@ -276,6 +276,8 @@ public class TestDevice extends UserDevice{
                     type == UserInterface.CALL_CORRIDOR_DEVICE) {
                 int selected = y / INCOMING_LINE_HEIGHT;
 //                MainActivity.StopTest("Stop Test.......");
+                if(inComingCallInfos.size()==1)
+                    selected = 0;
                 if (selected < inComingCallInfos.size()) {
                     if(!isCallOut) {
                         UserInterface.PrintLog("Call List TextView Touch at (%d,%d), Select %d Call", x, y, selected);
@@ -363,22 +365,18 @@ public class TestDevice extends UserDevice{
                                 }
                             }
                             if(!hasConnectedCall) {
-                                LocalCallInfo callInfo= inComingCallInfos.get(0);
-                                if(callInfo.status!=LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
-                                    AnswerCall(callInfo.callID);
-                            }
-
-                            int selectCall = (int) (Math.random() * inComingCallInfos.size());
-                            if (selectCall >= inComingCallInfos.size())
-                                selectCall = inComingCallInfos.size() - 1;
-                            LocalCallInfo callInfo= inComingCallInfos.get(selectCall);
-                            if (!talkPeer.isEmpty()) {
-                                EndCall(callInfo.callID);
-                            } else {
-                                if (Math.random() > 0.5&&callInfo.callType==UserCallMessage.NORMAL_CALL_TYPE) {
-                                    AnswerCall(callInfo.callID);
-                                }else {
+                                int selectCall = (int) (Math.random() * inComingCallInfos.size());
+                                if (selectCall >= inComingCallInfos.size())
+                                    selectCall = inComingCallInfos.size() - 1;
+                                LocalCallInfo callInfo= inComingCallInfos.get(selectCall);
+                                if (!talkPeer.isEmpty()) {
                                     EndCall(callInfo.callID);
+                                } else {
+                                    if (Math.random() > 0.001&&callInfo.callType==UserCallMessage.NORMAL_CALL_TYPE) {
+                                        AnswerCall(callInfo.callID);
+                                    }else {
+                                        EndCall(callInfo.callID);
+                                    }
                                 }
                             }
                         }
