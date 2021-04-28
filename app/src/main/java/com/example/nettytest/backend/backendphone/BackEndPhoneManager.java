@@ -217,7 +217,7 @@ public class BackEndPhoneManager {
                 LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Add Phone Device %s On Server, but it had created",id);
             }
 
-            if(snapThread!=null){
+            if(snapThread==null){
                 snapThread = new Thread(() -> {
                     byte[] recvBuf = new byte[1024];
                     DatagramPacket recvPack;

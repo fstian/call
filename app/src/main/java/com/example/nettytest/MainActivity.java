@@ -27,6 +27,9 @@ import com.example.nettytest.backend.backendphone.BackEndConfig;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.SystemSnap;
+import com.example.nettytest.terminal.audio.AudioDevice;
+import com.example.nettytest.terminal.audio.AudioMgr;
+import com.example.nettytest.terminal.audio.Rtp;
 import com.example.nettytest.userinterface.CallLogMessage;
 import com.example.nettytest.userinterface.ServerDeviceInfo;
 import com.example.nettytest.userinterface.PhoneParam;
@@ -74,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     int iTestCount = 0;
+    String audioTestId="";
 
     static AudioTest audioTest = null;
     static boolean isAudioTestCreate = false;
@@ -297,26 +301,49 @@ public class MainActivity extends AppCompatActivity {
         bt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+//                if(testCount==0) {
+//                    testCount = 1;
+//                    audioTestId = AudioMgr.OpenAudio("201051A1", 9090, 9092, "172.16.2.79", 8000, 20, Rtp.RTP_CODEC_711A, AudioDevice.SEND_RECV_MODE);
+//                }else {
+//                    new Thread() {
+//                        @Override
+//                        public void run() {
+//                            AudioMgr.CloseAudio(audioTestId);
+//                            audioTestId = AudioMgr.OpenAudio("201051A1", 9090, 9092, "172.16.2.79", 8000, 20, Rtp.RTP_CODEC_711A, AudioDevice.SEND_RECV_MODE);
+//                        }
+//                    }.start();
+//                }
+//                bt.setText("Audio test");
 
-                if(testCount==0){
-                    testCount = 1;
-//                    SerialPort.SetGpioStatus(45,1);
-                    bt.setText("MIC Hand");
-                }else if(testCount==1){
-                    testCount = 2;
-//                    SerialPort.SetGpioStatus(45,0);
-                    bt.setText("MIC Main");
-                }else if(testCount==2){
-                    testCount = 3;
-                    bt.setText("MIC Off");
-//                    AudioManager audioManager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
-//                    audioManager.setMicrophoneMute(false);
-                }else if(testCount==3){
-                    testCount = 0;
-                    bt.setText("MIC On");
-//                    AudioManager audioManager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
-//                    audioManager.setMicrophoneMute(true);
-                }
+//                if(testCount==0) {
+//                    audioTestId = AudioMgr.OpenAudio("201051A1", 9090, 9092, "172.16.2.79", 8000, 20, Rtp.RTP_CODEC_711A, AudioDevice.SEND_RECV_MODE);
+//                    testCount = 1;
+//                    bt.setText("Audio Start");
+//                }else{
+//                    AudioMgr.CloseAudio(audioTestId);
+//                    testCount = 0;
+//                    bt.setText("Audio Stop");
+//                }
+//                AudioMgr.CloseAudio(audioId);
+//                if(testCount==0){
+//                    testCount = 1;
+////                    SerialPort.SetGpioStatus(45,1);
+////                    bt.setText("MIC Hand");
+//                }else if(testCount==1){
+//                    testCount = 2;
+////                    SerialPort.SetGpioStatus(45,0);
+////                    bt.setText("MIC Main");
+//                }else if(testCount==2){
+//                    testCount = 3;
+////                    bt.setText("MIC Off");
+////                    AudioManager audioManager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
+////                    audioManager.setMicrophoneMute(false);
+//                }else if(testCount==3){
+//                    testCount = 0;
+////                    bt.setText("MIC On");
+////                    AudioManager audioManager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
+////                    audioManager.setMicrophoneMute(true);
+//                }
 
 
 //                UserInterface.RemoveAllDeviceOnServer();
