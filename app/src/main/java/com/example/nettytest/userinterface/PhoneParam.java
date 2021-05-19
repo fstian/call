@@ -162,7 +162,14 @@ public class PhoneParam {
     }
 
     public static String GetLocalAddress(){
-        String  address = "";
+        String address= "";
+        String curAddress;
+        int iMatchNum = 0;
+        String[] serverIp;
+
+        serverIp = callServerAddress.split("\\.");
+        int len = serverIp.length;
+
         try {
             for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
                 NetworkInterface intf = en.nextElement();
@@ -171,7 +178,27 @@ public class PhoneParam {
                     InetAddress inetAddress = enumIpAddr.nextElement();
                     if (!inetAddress.isLoopbackAddress() && (inetAddress instanceof Inet4Address))
                     {
-                        address =  inetAddress.getHostAddress();
+                        curAddress =  inetAddress.getHostAddress();
+                        String[] localAddress = curAddress.split("\\.");
+                        if(serverIp.length==4&&localAddress.length==4) {
+                            int curMatched = 0;
+                            if(serverIp[0].compareToIgnoreCase(localAddress[0])==0){
+                                curMatched = 1;
+                                if(serverIp[1].compareToIgnoreCase(localAddress[1])==0){
+                                    curMatched = 2;
+                                    if(serverIp[2].compareToIgnoreCase(localAddress[2])==0){
+                                        curMatched = 3;
+                                    }
+                                }
+                            }
+                            if(curMatched>iMatchNum){
+                                iMatchNum = curMatched;
+                                address = curAddress;
+                            }
+                        }else {
+                            if(iMatchNum==0)
+                                address=curAddress;
+                        }
                     }
                 }
             }
