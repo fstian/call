@@ -29,7 +29,7 @@ public class LogWork {
 
     public static boolean terminalPhoneModuleLogEnable = false;
     public static boolean terminalDeviceModuleLogEnable = false;
-    public static boolean terminalNetModuleLogEnable = false;
+    public static boolean terminalNetModuleLogEnable = true;
     public static boolean terminalCallModuleLogEnable = false;
     public static boolean terminalUserModuleLogEnable = false;
     public static boolean terminalAudioModuleLogEnable = false;
