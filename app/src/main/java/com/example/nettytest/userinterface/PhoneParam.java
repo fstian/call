@@ -169,6 +169,7 @@ public class PhoneParam {
 
         serverIp = callServerAddress.split("\\.");
         int len = serverIp.length;
+        String prioName = "wlan";
 
         try {
             for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
@@ -182,6 +183,9 @@ public class PhoneParam {
                         String[] localAddress = curAddress.split("\\.");
                         if(serverIp.length==4&&localAddress.length==4) {
                             int curMatched = 0;
+                            if(intf.getName().contains(prioName)){
+                                curMatched = 1;
+                            }
                             if(serverIp[0].compareToIgnoreCase(localAddress[0])==0){
                                 curMatched = 1;
                                 if(serverIp[1].compareToIgnoreCase(localAddress[1])==0){
