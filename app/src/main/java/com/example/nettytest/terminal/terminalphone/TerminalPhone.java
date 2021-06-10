@@ -2,21 +2,34 @@ package com.example.nettytest.terminal.terminalphone;
 
 import com.example.nettytest.pub.protocol.AnswerReqPack;
 import com.example.nettytest.pub.protocol.AnswerResPack;
+import com.example.nettytest.pub.protocol.AnswerVideoReqPack;
+import com.example.nettytest.pub.protocol.AnswerVideoResPack;
 import com.example.nettytest.pub.protocol.ConfigItem;
 import com.example.nettytest.pub.protocol.ConfigReqPack;
 import com.example.nettytest.pub.protocol.ConfigResPack;
 import com.example.nettytest.pub.protocol.EndReqPack;
+import com.example.nettytest.pub.protocol.ListenCallReqPack;
+import com.example.nettytest.pub.protocol.ListenCallResPack;
 import com.example.nettytest.pub.protocol.RegResPack;
+import com.example.nettytest.pub.protocol.StartVideoReqPack;
+import com.example.nettytest.pub.protocol.StartVideoResPack;
+import com.example.nettytest.pub.protocol.StopVideoReqPack;
+import com.example.nettytest.pub.protocol.StopVideoResPack;
 import com.example.nettytest.pub.protocol.SystemConfigReqPack;
 import com.example.nettytest.pub.protocol.SystemConfigResPack;
+import com.example.nettytest.pub.protocol.TransferReqPack;
+import com.example.nettytest.pub.protocol.TransferResPack;
 import com.example.nettytest.pub.protocol.UpdateReqPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
+import com.example.nettytest.pub.result.OperationResult;
+import com.example.nettytest.userinterface.ListenCallMessage;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
+import com.example.nettytest.userinterface.TransferMessage;
 import com.example.nettytest.userinterface.UserConfig;
 import com.example.nettytest.userinterface.UserConfigMessage;
 import com.example.nettytest.userinterface.UserDevice;
 import com.example.nettytest.userinterface.UserDevsMessage;
-import com.example.nettytest.userinterface.FailReason;
+import com.example.nettytest.pub.result.FailReason;
 import com.example.nettytest.userinterface.UserCallMessage;
 import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.pub.HandlerMgr;
@@ -57,6 +70,31 @@ public class TerminalPhone extends PhoneDevice {
         Transaction devReqTrans = new Transaction(id,devReqP,Transaction.TRANSCATION_DIRECTION_C2S);
         LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Send Dev Query Req!",id);
         HandlerMgr.AddPhoneTrans(devReqP.msgID,devReqTrans);
+
+        return result;
+    }
+
+    public int CallTransfer(String areaId,boolean state){
+        int result = ProtocolPacket.STATUS_OK;
+
+        TransferReqPack transferReqP = BuildCallTransferPacket(id,areaId,state);
+        Transaction transferReqTrans = new Transaction(id,transferReqP,Transaction.TRANSCATION_DIRECTION_C2S);
+        LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Send Dev Query Req!",id);
+        HandlerMgr.AddPhoneTrans(transferReqP.msgID,transferReqTrans);
+
+        return result;
+    }
+
+    public int ListenCall(boolean state){
+        int result = ProtocolPacket.STATUS_OK;
+
+        ListenCallReqPack listenReqP = BuildListenCallPacket(id,state);
+        Transaction listenReqTrans = new Transaction(id,listenReqP,Transaction.TRANSCATION_DIRECTION_C2S);
+        if(state)
+            LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Enable Call Listen!",id);
+        else
+            LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Disable Call Listen!",id);
+        HandlerMgr.AddPhoneTrans(listenReqP.msgID,listenReqTrans);
 
         return result;
     }
@@ -124,7 +162,7 @@ public class TerminalPhone extends PhoneDevice {
         return callManager.GetCallCount();
     }
 
-    public void UpdateRegStatus(int status){
+    public void UpdateRegStatus(int status,String areaId,String transferAreaId,boolean listenState){
         UserRegMessage regMsg = new UserRegMessage();
 
         regMsg.devId = id;
@@ -134,7 +172,9 @@ public class TerminalPhone extends PhoneDevice {
             isReg = true;
             regWaitCount = PhoneParam.CLIENT_REG_EXPIRE;
             regMsg.type = UserCallMessage.REGISTER_MESSAGE_SUCC;
-
+            regMsg.areaId = areaId;
+            regMsg.transferAreaId = transferAreaId;
+            regMsg.enableListenCall = listenState;
         }else if(status==ProtocolPacket.STATUS_TIMEOVER){
             LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_WARN,"Phone %s Reg TimerOver ",id);
             isReg = false;
@@ -173,9 +213,57 @@ public class TerminalPhone extends PhoneDevice {
         HandlerMgr.SendMessageToUser(UserMessage.MESSAGE_DEVICES_INFO,devsMsg);
     }
 
+    public void UpdateCallTransfer(TransferResPack p){
+        TransferMessage transferMsg = new TransferMessage();
+
+        if(p.status == ProtocolPacket.STATUS_OK){
+
+            transferMsg.type = UserMessage.CALL_TRANSFER_SUCC;
+            transferMsg.devId = id;
+            transferMsg.state = p.state;
+            transferMsg.transferAreaId = p.transferAreaId;
+            transferMsg.reason = OperationResult.GetUserFailReason(p.status);
+
+            if(transferMsg.state)
+                LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Set Call Transfer to %s Success ",id,transferMsg.transferAreaId);
+            else
+                LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Clear Call Transfer to %s Success ",id,transferMsg.transferAreaId);
+
+        }else{
+            transferMsg.type = UserMessage.CALL_TRANSFER_FAIL;
+            transferMsg.devId = id;
+            transferMsg.reason = OperationResult.GetUserFailReason(p.status);
+            LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Set Call Transfer Fail, result is %s ",id,p.result);
+        }
+        HandlerMgr.SendMessageToUser(UserMessage.MESSAGE_TRANSFER_INFO,transferMsg);
+    }
+
+    public void UpdateListenCall(ListenCallResPack p){
+        ListenCallMessage listenMsg = new ListenCallMessage();
+
+        listenMsg.devId = id;
+        listenMsg.reason = OperationResult.GetUserFailReason(p.status);
+
+        if(p.status==ProtocolPacket.STATUS_OK){
+            listenMsg.type = UserMessage.CALL_LISTEN_SUCC;
+            listenMsg.state = p.state;
+            if(p.state)
+                LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Set Call Listen Succ",id);
+            else
+                LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Clear Call Listen Succ",id);
+
+        }else{
+            listenMsg.type = UserMessage.CALL_LISTEN_SUCC;
+            LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Set Call Listen Fail, result is %s ",id,p.result);
+        }
+
+        HandlerMgr.SendMessageToUser(UserMessage.MESSAGE_LISTEN_CALL_INFO,listenMsg);
+        
+    }
+
     public void UpdateConfig(ConfigResPack res){
         UserConfigMessage configMsg = new UserConfigMessage();
-        configMsg.type = UserMessage.CONFIG_MESSAGE_LIST;
+        configMsg.type = UserMessage.TRANSFER_MESSAGE_RESULT;
         configMsg.devId = res.devId;
         for(int iTmp=0;iTmp<res.params.size();iTmp++){
             ConfigItem item = res.params.get(iTmp);
@@ -214,7 +302,7 @@ public class TerminalPhone extends PhoneDevice {
     }
 
     public void RecvIncomingCall(InviteReqPack packet){
-        callManager.RecvIncomingCall(packet);
+        callManager.RecvIncomingCall(id,packet);
     }
 
     public void RecvAnswerCall(AnswerReqPack packet){
@@ -232,6 +320,29 @@ public class TerminalPhone extends PhoneDevice {
         callManager.RecvEndCall(id,packet);
     }
 
+    public void RecvStartVideoReq(StartVideoReqPack packet){
+        callManager.RecvStartVideoReq(id,packet);
+    }
+
+    public void RecvStartVideoRes(StartVideoResPack pack){
+        // do nothing;
+    }
+
+    public void RecvAnswerVideoReq(AnswerVideoReqPack packet){
+        callManager.RecvAnswerVideoReq(id,packet);
+    }
+
+    public void RecvAnswerVideoRes(AnswerVideoResPack pack){
+        // do nothing;
+    }
+
+    public void RecvStopVideoReq(StopVideoReqPack packet){
+        callManager.RecvStopVideoReq(id,packet);
+    }
+
+    public void RecvStopVideoRes(StopVideoResPack pack){
+        // do nothing;
+    }
     public boolean CheckAnsweredEnable(){
         boolean result = false;
         if(type==BED_CALL_DEVICE||type==NURSE_CALL_DEVICE||type==CORRIDOR_CALL_DEVICE){
@@ -275,6 +386,17 @@ public class TerminalPhone extends PhoneDevice {
         return callManager.AnswerCall(id,callid);
     }
 
+    public int StartVideo(String callid){
+        return callManager.StartVideo(id,callid);
+    }
+
+    public int AnswerVideo(String callid){
+        return callManager.AnswerVideo(id,callid);
+    }
+
+    public int StopVideo(String callid){
+        return callManager.StopVideo(id,callid);
+    }
 
     private RegReqPack BuildRegPacket(String devid, int type){
         RegReqPack regPack = new RegReqPack();
@@ -303,6 +425,25 @@ public class TerminalPhone extends PhoneDevice {
         devReqP.devid = devid;
         return devReqP;
     }
+
+    private TransferReqPack BuildCallTransferPacket(String devid,String areaid,boolean state){
+        TransferReqPack transferReqP = new TransferReqPack(devid,areaid);
+        
+        transferReqP.sender = devid;
+        transferReqP.receiver = PhoneParam.CALL_SERVER_ID;
+        transferReqP.transferEnabled = state;
+        transferReqP.msgID = UniqueIDManager.GetUniqueID(devid,UniqueIDManager.MSG_UNIQUE_ID);
+        return transferReqP;
+    }
+
+    private ListenCallReqPack BuildListenCallPacket(String devid,boolean state){
+        ListenCallReqPack listenReqP = new ListenCallReqPack(devid, state);
+        
+        listenReqP.sender = devid;
+        listenReqP.receiver = PhoneParam.CALL_SERVER_ID;
+        listenReqP.msgID = UniqueIDManager.GetUniqueID(devid,UniqueIDManager.MSG_UNIQUE_ID);
+        return listenReqP;
+   }
 
     private ConfigReqPack BuildConfigReqPacket(String devid){
         ConfigReqPack configReqP = new ConfigReqPack();

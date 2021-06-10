@@ -1,6 +1,5 @@
 package com.example.nettytest.pub.commondevice;
 
-import com.example.nettytest.pub.LogWork;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;

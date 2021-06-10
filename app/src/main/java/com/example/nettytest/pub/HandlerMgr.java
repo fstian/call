@@ -1,9 +1,8 @@
 package com.example.nettytest.pub;
 
-import android.os.Handler;
-import android.os.Message;
 
 import com.example.nettytest.backend.backenddevice.BackEndDevManager;
+import com.example.nettytest.backend.backendphone.BackEndZone;
 import com.example.nettytest.backend.backendphone.BackEndConfig;
 import com.example.nettytest.backend.backendphone.BackEndPhone;
 import com.example.nettytest.backend.backendphone.BackEndPhoneManager;
@@ -12,13 +11,11 @@ import com.example.nettytest.pub.commondevice.PhoneDevice;
 import com.example.nettytest.pub.protocol.ConfigItem;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.transaction.Transaction;
-import com.example.nettytest.terminal.audio.AudioMgr;
 import com.example.nettytest.terminal.terminaldevice.TerminalDevManager;
-import com.example.nettytest.terminal.terminaldevice.TerminalTcpDevice;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
 import com.example.nettytest.terminal.terminalphone.TerminalPhoneManager;
 import com.example.nettytest.terminal.terminaltransaction.TerminalTransactionMgr;
-import com.example.nettytest.userinterface.FailReason;
+import com.example.nettytest.pub.result.FailReason;
 import com.example.nettytest.userinterface.ServerDeviceInfo;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
 import com.example.nettytest.userinterface.UserCallMessage;
@@ -27,6 +24,7 @@ import com.example.nettytest.userinterface.UserDevice;
 import com.example.nettytest.userinterface.UserInterface;
 import com.example.nettytest.userinterface.UserMessage;
 import com.example.nettytest.userinterface.UserRegMessage;
+import com.example.nettytest.userinterface.UserVideoMessage;
 
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -43,7 +41,8 @@ public class HandlerMgr {
     static private TerminalTransactionMgr terminalTransMgr = new TerminalTransactionMgr();
     static private TerminalDevManager terminalDevManager = new TerminalDevManager();
     static private TerminalPhoneManager terminalPhoneMgr = new TerminalPhoneManager();
-    static private BackEndConfig backEndConfig = new BackEndConfig();
+
+    static private DevicesQuery deviceQuery= null;
 
 
 //for terminal TcpNetDevice
@@ -83,12 +82,16 @@ public class HandlerMgr {
         return terminalPhoneMgr.GetDevice(ID);
     }
 
-    static public void PostTerminalPhoneMsg(Message msg){
+    static public void PostTerminalPhoneMsg(CallPubMessage msg){
         terminalPhoneMgr.PostTerminalPhoneMessage(msg);
     }
 
-    static public void SetTerminalMessageHandler(Handler h){
+    static public void SetTerminalMessageHandler(ArrayList<CallPubMessage> h){
         terminalPhoneMgr.SetMessageHandler(h);
+    }
+
+    static public void SetBackEndMessageHandler(ArrayList<CallPubMessage> h){
+        backEndPhoneMgr.SetMessageHandler(h);
     }
 
     static public void SendMessageToUser(int type,Object obj){
@@ -101,6 +104,9 @@ public class HandlerMgr {
         }else if(type==UserMessage.MESSAGE_REG_INFO){
             UserRegMessage regMsg = (UserRegMessage)obj;
             LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Send Msg %s to dev %s", UserMessage.GetMsgName(regMsg.type),regMsg.devId);
+        }else if(type == UserMessage.MESSAGE_VIDEO_INFO){
+            UserVideoMessage videoMsg = (UserVideoMessage)obj;
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Send Msg %s to dev %s", UserMessage.GetMsgName(videoMsg.type),videoMsg.devId);
         }
         terminalPhoneMgr.SendUserMessage(type,obj);
     }
@@ -134,12 +140,32 @@ public class HandlerMgr {
         return terminalPhoneMgr.AnswerCall(devid,callID);
     }
 
+    static public int StartTerminalVideo(String devid,String callID){
+        return terminalPhoneMgr.StartVideoCall(devid,callID);
+    }
+
+    static public int AnswerTerminalVideo(String devid,String callID){
+        return terminalPhoneMgr.AnswerVideoCall(devid,callID);
+    }
+
+    static public int StopTerminalVideo(String devid,String callID){
+        return terminalPhoneMgr.StopVideoCall(devid,callID);
+    }
+
     static public int GetTermCallCount(){
         return terminalPhoneMgr.GetCallCount();
     }
 
     static public int QueryTerminalLists(String devid){
         return terminalPhoneMgr.QueryDevs(devid);
+    }
+
+    static public int RequireCallTransfer(String devId,String areaId,boolean state){
+        return terminalPhoneMgr.RequireCallTransfer(devId,areaId,state);
+    }
+
+    static public int RequireBedListen(String devId,boolean state){
+        return terminalPhoneMgr.RequireBedListen(devId,state);
     }
 
     static public int QueryTerminalConfig(String devid){
@@ -151,7 +177,16 @@ public class HandlerMgr {
     }
 
 
+
 // for backend TcpNetDevice
+    // for devices check
+    static public void StartCheckDevices(String server,int port){
+        if(deviceQuery==null){
+            deviceQuery = new DevicesQuery(server,port);
+            deviceQuery.StartQuery();
+        }
+    }
+
     static public void UpdateBackEndDevChannel(String ID,Channel ch){
         backEndDevMgr.UpdateDevChannel(ID,ch);
     }
@@ -192,27 +227,50 @@ public class HandlerMgr {
         return backEndPhoneMgr.GetDevice(ID);
     }
        
-    static public void SetBackEndConfig(BackEndConfig config){
-        backEndConfig.Copy(config);
-    }
+    static public void SetBackEndConfig(String areaId,BackEndConfig config){
+        CallParams param = new CallParams();
+        
+        param.normalCallToBed = config.normalCallToBed;
+        param.normalCallToCorridor = config.normalCallToCorridor;
+        param.normalCallToRoom = config.normalCallToRoom;
+        param.normalCallToTV = config.normalCallToTv;
+        param.emerCallToBed = config.emerCallToBed;
+        param.emerCallToCorridor = config.emerCallToCorridor;
+        param.emerCallToRoom = config.emerCallToRoom;
+        param.emerCallToTV = config.emerCallToTv;
 
-    static public BackEndConfig GetBackEndConfig(){
-        return backEndConfig;
+        backEndPhoneMgr.UpdateAreaParams(areaId, param);
     }
 
     static public void PostBackEndPhoneMsg(int type,Object obj){
         backEndPhoneMgr.PostBackEndPhoneMessage(type,obj);
     }
 
-    static public void SetBackEndlMessageHandler(Handler h){
-        backEndPhoneMgr.SetMessageHandler(h);
+    static public void UpdateAreas(ArrayList<BackEndZone> list) {
+    	backEndPhoneMgr.UpdateAreas(list);
+    }
+    
+    static public void UpdateAreaDevices(String areaId,ArrayList<UserDevice> devList,ArrayList<ServerDeviceInfo> infoList) {
+    	backEndPhoneMgr.UpdateAreaDevices(areaId,devList,infoList);
+    }
+
+    static public void UpdateAreaParam(String areaId,CallParams params){
+        backEndPhoneMgr.UpdateAreaParams(areaId,params);
+    }
+// create backend area
+
+    static public int AddBackEndArea(String areaId,String areaName){
+        return backEndPhoneMgr.AddArea(areaId,areaName);
     }
     
 // create backend device
-    static public boolean AddBackEndPhone(String ID,int type,int netMode){
-        backEndDevMgr.AddDevice(ID,netMode);
-        backEndPhoneMgr.AddPhone(ID,type);
-        return true;
+    static public int  AddBackEndPhone(String ID,int type,int netMode,String area){
+        int result;
+
+        result = backEndPhoneMgr.AddPhone(ID,type,area);
+        if(result== FailReason.FAIL_REASON_NO)
+            backEndDevMgr.AddDevice(ID,netMode);
+        return result;
     }
 
     static public boolean SetBackEndPhoneConfig(String id, ArrayList<UserConfig>list){
@@ -270,9 +328,10 @@ public class HandlerMgr {
         return true;
     }
 
-    static public boolean GetBackEndPhoneInfo(ArrayList<UserDevice> lists){
-        ArrayList<PhoneDevice> phoneLists = new ArrayList<>();
-        backEndPhoneMgr.GetDeviceList(phoneLists);
+    static public ArrayList<UserDevice> GetBackEndPhoneInfo(String areaId){
+        
+        ArrayList<PhoneDevice> phoneLists = backEndPhoneMgr.GetDeviceList(areaId);
+        ArrayList<UserDevice> userListList = new ArrayList<>();
         for(PhoneDevice dev:phoneLists){
             UserDevice userDev = new UserDevice();
             userDev.isRegOk = dev.isReg;
@@ -307,14 +366,19 @@ public class HandlerMgr {
                     break;
             }
             userDev.bedName = dev.bedName;
-            lists.add(userDev);
+            userListList.add(userDev);
         }
-        return true;
+        return userListList;
     }
 
 // get listen phone
-    static public ArrayList<BackEndPhone> GetBackEndListenDevices(int callType){
-        return backEndPhoneMgr.GetListenDevices(callType);
+
+    static public String GetListenAreaId(String phoneId){
+        return backEndPhoneMgr.GetListenAreaId(phoneId);
+    }
+
+    static public ArrayList<BackEndPhone> GetBackEndListenDevices(String areaId,int callType){
+        return backEndPhoneMgr.GetListenDevices(areaId,callType);
     }
 
     static public boolean CheckForwardEnable(BackEndPhone phone, int callType){
@@ -327,7 +391,4 @@ public class HandlerMgr {
 
 // get audio Owner
 
-    public static String GetAudioOwner(){
-        return AudioMgr.GetAudioOwnwer();
-    }
 }

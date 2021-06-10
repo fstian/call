@@ -1,4 +1,4 @@
-package com.example.nettytest.terminal.audio;
+package com.usecomcalllib.androidPort.audio;
 
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -9,10 +9,12 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 
+import androidx.annotation.NonNull;
+
 import com.android.webrtc.audio.MobileAEC;
-import com.android.webrtc.audio.MobileAEC.SamplingFrequency;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.UniqueIDManager;
+import com.example.nettytest.pub.AudioMode;
 import com.example.nettytest.userinterface.PhoneParam;
 import com.witted.ptt.JitterBuffer;
 
@@ -25,11 +27,6 @@ import java.net.UnknownHostException;
 
 public class AudioDevice {
 
-    public final static int NO_SEND_RECV_MODE = 0;
-    public final static int RECV_ONLY_MODE = 1;
-    public final static int SEND_ONLY_MODE = 2;
-    public final static int SEND_RECV_MODE = 3;
-    
     int dstPort ;
     int srcPort ;
     int ptime ;
@@ -73,7 +70,6 @@ public class AudioDevice {
 
     static{
         System.loadLibrary("JitterBuffer");
-        System.loadLibrary("webrtc_aecm");
     }
 
     public AudioDevice(String devId,int src,int dst,String address,int sample,int ptime,int codec,int mode){
@@ -164,6 +160,38 @@ public class AudioDevice {
         }
     }
 
+    public boolean AudioSuspend(String id){
+        if(this.id.compareToIgnoreCase(id)==0){
+            if(audioOpenCount<=0){
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_ERROR, String.format("Dev %s Audio had Closed , Could't Close Again", id));
+            }else{
+                CloseAudio();
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, String.format("Audio %s is Suspend", id));
+            }
+            return true;
+        }else{
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, String.format("Suspend Audio %s but is invalid", id));
+            return false;
+        }
+    }
+
+    public boolean AudioResume(String id){
+        if(this.id.compareToIgnoreCase(id)==0){
+            if(audioOpenCount>=1){
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_ERROR, String.format("Dev %s Audio had Open , Could't Open Again", id));
+            }else{
+                jb.resetJb(jbIndex);
+                OpenAudio();
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, String.format("Audio %s is Resume", id));
+            }
+            return true;
+        }else{
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, String.format("Resume Audio %s but is invalid", id));
+            return false;
+        }
+    }
+
+
     private void OpenSocket(){
         int count = 0;
 
@@ -172,7 +200,7 @@ public class AudioDevice {
         jbIndex = jb.openJb(codec,ptime,sample);
 
         try {
-            if(audioMode==RECV_ONLY_MODE||audioMode==SEND_RECV_MODE){
+            if(audioMode== AudioMode.RECV_ONLY_MODE||audioMode==AudioMode.SEND_RECV_MODE){
                 audioSocket = new DatagramSocket(srcPort);
                 socketReadThread = new SocketReadThread();
                 socketReadThread.start();
@@ -221,6 +249,10 @@ public class AudioDevice {
             }
             socketReadThread = null;
             socketOpenCount--;
+
+            jb.closeJb(jbIndex);
+            jb.deInitJb();
+
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"After CloseSocket Count =%d",socketOpenCount);
         }
     }
@@ -228,7 +260,7 @@ public class AudioDevice {
     private void OpenAudio(){
         int count = 0;
         int state;
-        if(audioMode==SEND_RECV_MODE){
+        if(audioMode==AudioMode.SEND_RECV_MODE){
 //            aec =new MobileAEC(new SamplingFrequency(sample));
             aec =new MobileAEC(null);
             aec.setAecmMode(MobileAEC.AggressiveMode.MOST_AGGRESSIVE).prepare();
@@ -239,7 +271,7 @@ public class AudioDevice {
 
         // create audio read device and write device int synchronized
 
-        if(audioMode==SEND_RECV_MODE||audioMode==RECV_ONLY_MODE){
+        if(audioMode==AudioMode.SEND_RECV_MODE||audioMode==AudioMode.RECV_ONLY_MODE){
 
             int audioOutBufSize = AudioTrack.getMinBufferSize(sample,
                     AudioFormat.CHANNEL_OUT_MONO,
@@ -249,8 +281,8 @@ public class AudioDevice {
             player = new AudioTrack(AudioManager.STREAM_MUSIC, sample,
                     AudioFormat.CHANNEL_OUT_MONO,
                     AudioFormat.ENCODING_PCM_16BIT,
-//                    packSize,
-                    audioOutBufSize,
+                    packSize,
+//                    audioOutBufSize,
                     AudioTrack.MODE_STREAM);
 
             state =  player.getState();
@@ -287,8 +319,8 @@ public class AudioDevice {
         recorder = new AudioRecord(MediaRecorder.AudioSource.MIC,sample,
                 AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
-                audioInBufSize);
-//                packSize);
+//                audioInBufSize);
+                packSize);
 
         state = recorder.getState();
         if(state!=AudioRecord.STATE_INITIALIZED){
@@ -373,10 +405,8 @@ public class AudioDevice {
             }
         }
 
-        jb.closeJb(jbIndex);
-        jb.deInitJb();
 
-        if(audioMode==SEND_RECV_MODE){
+        if(audioMode==AudioMode.SEND_RECV_MODE){
             aec.close();
         }
 
@@ -387,6 +417,10 @@ public class AudioDevice {
 
     // read data from socket and save to JB
     class SocketReadThread extends Thread{
+        public SocketReadThread(){
+            super("AudioSocketRead");
+        }
+    
         @Override
         public void run() {
             byte[] recvBuf=new byte[1024];
@@ -422,6 +456,10 @@ public class AudioDevice {
 
     // get data from JB and notify play thread; read date from audio , AEC and send .
     class AudioReadThread extends Thread{
+        public AudioReadThread(){
+            super("AudioDeviceRead");
+        }
+    
         @Override
         public void run() {
             byte[] jbData = new byte[packSize];
@@ -436,7 +474,7 @@ public class AudioDevice {
 
             isAudioReadRuning = true;
             
-            if(audioMode==SEND_RECV_MODE){
+            if(audioMode==AudioMode.SEND_RECV_MODE){
                 aecData = new short[packSize];
             }else{
                 aecData = audioReadData;
@@ -447,7 +485,7 @@ public class AudioDevice {
                 if (jbDataLen > 0) {
                     pcmData = Rtp.UnenclosureRtp(jbData, jbDataLen, codec);
                     // notify play thread;
-                    if(audioMode==RECV_ONLY_MODE||audioMode==SEND_RECV_MODE){
+                    if(audioMode==AudioMode.RECV_ONLY_MODE||audioMode==AudioMode.SEND_RECV_MODE){
                         if (audioWriteHandlerEnabled && audioWriteHandler != null) {
                             Message playMsg = audioWriteHandler.obtainMessage();
                             playMsg.arg1 = AUDIO_PLAY_MSG;
@@ -461,7 +499,7 @@ public class AudioDevice {
 //                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Read %d sample from Audio device, Return =%d",packSize,readNum);
 
                     //aec process
-                    if(audioMode==SEND_RECV_MODE){
+                    if(audioMode==AudioMode.SEND_RECV_MODE){
                         try {
                             aec.farendBuffer(pcmData,pcmData.length);
                             aec.echoCancellation(audioReadData,null,aecData,(short)packSize,(short) PhoneParam.aecDelay);
@@ -471,7 +509,7 @@ public class AudioDevice {
 //                        aecData = audioReadData;
                     }
                     // rtp packet and send
-                    if(audioMode==SEND_ONLY_MODE||audioMode==SEND_RECV_MODE&&audioSocket!=null){
+                    if(audioMode==AudioMode.SEND_ONLY_MODE||audioMode==AudioMode.SEND_RECV_MODE&&audioSocket!=null){
                         rtpData = Rtp.EncloureRtp(aecData, codec);
                         DatagramPacket dp = new DatagramPacket(rtpData, rtpData.length);
                         try {
@@ -506,6 +544,10 @@ public class AudioDevice {
 
     // audio play
     class AudioWriteThread extends Thread{
+        public AudioWriteThread(){
+            super("AudioDeviceWrite");
+        }
+        
         @Override
         public void run() {
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Audio AudioWriteThread");
@@ -513,14 +555,17 @@ public class AudioDevice {
             isAudioWriteRuning = true;
 
            Looper.prepare();
-            audioWriteHandler = new Handler(message -> {
-                if(message.arg1 == AUDIO_PLAY_MSG){
-                    short[] rtpData = (short [])message.obj;
-                    //LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv Play Msg with %d Byte Data",rtpData.length);
-                    if(player!=null)
-                        player.write(rtpData,0,rtpData.length);
+            audioWriteHandler = new Handler(new Handler.Callback() {
+                @Override
+                public boolean handleMessage(@NonNull Message message) {
+                    if (message.arg1 == AUDIO_PLAY_MSG) {
+                        short[] rtpData = (short[]) message.obj;
+                        //LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv Play Msg with %d Byte Data",rtpData.length);
+                        if (player != null)
+                            player.write(rtpData, 0, rtpData.length);
+                    }
+                    return false;
                 }
-                return false;
             });
             audioWriteHandlerEnabled = true;
 

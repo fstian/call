@@ -8,6 +8,7 @@ public class DevQueryResPack extends ProtocolPacket {
     public int status;
     public String result;
     public ArrayList<PhoneDevice> phoneList;
+    public String areaId;
 
     public DevQueryResPack(int status,DevQueryReqPack pack){
         ExchangeCopyData(pack);
@@ -23,6 +24,7 @@ public class DevQueryResPack extends ProtocolPacket {
         status = ProtocolPacket.STATUS_OK;
         result = ProtocolPacket.GetResString(status);
         phoneList = new ArrayList<>();
+        areaId = "";
     }
 
     @Override

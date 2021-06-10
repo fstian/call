@@ -1,6 +1,7 @@
 package com.example.nettytest.backend.servernet;
 
 import com.example.nettytest.pub.HandlerMgr;
+import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.protocol.ProtocolFactory;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 
@@ -18,6 +19,7 @@ public class NettyTestServerHandler extends ChannelInboundHandlerAdapter {
         try {
             ProtocolPacket packet = ProtocolFactory.ParseData(buf);
             if(packet!=null) {
+                LogWork.Print(LogWork.BACKEND_NET_MODULE,LogWork.LOG_DEBUG,String.format("Recv Dev %s TCP Data",devId));
                 HandlerMgr.UpdateBackEndDevChannel(packet.sender,ctx.channel());
                 devId = packet.sender;
                 HandlerMgr.BackEndProcessPacket(packet);
@@ -43,6 +45,7 @@ public class NettyTestServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         if(!devId.isEmpty()){
+            LogWork.Print(LogWork.BACKEND_NET_MODULE,LogWork.LOG_ERROR,String.format("Dev %s TCP link Inactive",devId));
             HandlerMgr.UpdateBackEndDevChannel(devId,null);
         }
         super.channelInactive(ctx);

@@ -1,11 +1,8 @@
 package com.example.nettytest.pub.commondevice;
 
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
-
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import io.netty.buffer.ByteBuf;
@@ -14,26 +11,67 @@ import io.netty.channel.Channel;
 public class NetDeviceManager {
         protected final HashMap<String, NetDevice> devLists;
         UdpDeviceSendDataThread udpSendThread;
-        Handler udpSendHandler= null;
+        
+        ArrayList<NetManagerMsg> udpNetMassageList;
 
         private class UdpSendMessage{
                 UdpNetDevice dev;
                 byte[] data;
         }
 
+        private class NetManagerMsg{
+        	int type;
+        	UdpSendMessage msg;
+        	
+        	public NetManagerMsg(int type,UdpSendMessage msg) {
+        		this.type = type;
+        		this.msg = msg;
+        	}
+        }
+        
+        
+        private int AddUdpNetMessage(int type,UdpSendMessage msg) {
+        	synchronized(udpNetMassageList) {
+        		NetManagerMsg netMsg = new NetManagerMsg(type,msg);
+        		udpNetMassageList.add(netMsg);
+        		udpNetMassageList.notify();
+        	}
+        	return 0;
+        }
+
         private class UdpDeviceSendDataThread extends Thread{
+        	ArrayList<NetManagerMsg> localMsgList;
+                public UdpDeviceSendDataThread(){
+                    super("UdpDeviceSendThread");
+                localMsgList = new ArrayList<NetManagerMsg>();
+                }
+                
                 @Override
                 public void run() {
-                        Looper.prepare();
-                        udpSendHandler = new Handler(msg->{
-                                int type = msg.arg1;
+            	NetManagerMsg  msg;
+            	while(!isInterrupted()) {
+	            	synchronized(udpNetMassageList) {
+	            		try {
+							udpNetMassageList.wait();
+		            		while(udpNetMassageList.size()>0) {
+		            			msg = udpNetMassageList.remove(0);
+		            			localMsgList.add(msg);
+		            		}
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+	            	}
+	            	
+	            	while(localMsgList.size()>0) {
+	            		msg = localMsgList.remove(0);
+	                    int type = msg.type;
                                 if(type == 1){
-                                        UdpSendMessage sendMsg = (UdpSendMessage)msg.obj;
+	                        UdpSendMessage sendMsg = (UdpSendMessage)msg.msg;
                                         sendMsg.dev.SendBuffer(sendMsg.data);
                                 }
-                                return  false;
-                        });
-                        Looper.loop();
+	            	}
+            	}
 
                 }
         }
@@ -42,6 +80,7 @@ public class NetDeviceManager {
                 devLists = new HashMap<>();
                 udpSendThread = new UdpDeviceSendDataThread();
                 udpSendThread.start();
+                udpNetMassageList = new ArrayList<>();
         }
 
 
@@ -55,17 +94,12 @@ public class NetDeviceManager {
                                         byte[] data = new byte[buf.readableBytes()];
                                         int readerIndex = buf.readerIndex();
                                         buf.getBytes(readerIndex,data);
-                                        if(udpSendHandler!=null) {
-                                                Message msg = udpSendHandler.obtainMessage();
                                                 UdpSendMessage sendMsg = new UdpSendMessage();
                                                 sendMsg.data = data;
                                                 sendMsg.dev = dev;
-                                                msg.arg1 = 1;
-                                                msg.obj = sendMsg;
-                                                udpSendHandler.sendMessage(msg);
-                                        }
-                                }
-                                else if(matchedDev.netType ==NetDevice.TCP_NET_DEVICE) {
+		                AddUdpNetMessage(1,sendMsg);
+				                
+					}else if(matchedDev.netType ==NetDevice.TCP_NET_DEVICE) {
                                         TcpNetDevice dev = (TcpNetDevice)matchedDev;
                                         dev.SendBuffer(buf);
                                 }
@@ -80,6 +114,7 @@ public class NetDeviceManager {
                         if (matchedDev != null) {
                                 if(matchedDev.netType == NetDevice.TCP_NET_DEVICE) {
                                         TcpNetDevice dev = (TcpNetDevice)matchedDev;
+                                        
                                         dev.UpdateChannel(ch);
                                 }
                         }

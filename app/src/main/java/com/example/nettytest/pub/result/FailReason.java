@@ -1,4 +1,4 @@
-package com.example.nettytest.userinterface;
+package com.example.nettytest.pub.result;
 
 public class FailReason {
     public final static int FAIL_REASON_NO = 0;
@@ -8,6 +8,7 @@ public class FailReason {
     public final static int FAIL_REASON_TIMEOVER = 4;
     public final static int FAIL_REASON_CONFLICT = 5;
     public final static int FAIL_REASON_FORBID = 6;
+    public final static int FAIL_REASON_HASEXIST = 7;
     public final static int FAIL_REASON_UNKNOW = 100;
 
    static public String GetFailName(int reason){

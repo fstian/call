@@ -1,7 +1,7 @@
 package com.example.nettytest.terminal.terminaltransaction;
 
-import android.os.Message;
 
+import com.example.nettytest.pub.CallPubMessage;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.transaction.TransManager;
@@ -13,7 +13,7 @@ public class TerminalTransactionMgr extends TransManager {
     @Override
     public void TransactionTimeOver(ProtocolPacket packet) {
 
-        Message phonemsg = new Message();
+        CallPubMessage phonemsg = new CallPubMessage();
         phonemsg.arg1 = TerminalPhoneManager.MSG_REQ_TIMEOVER;
         phonemsg.obj = packet;
         HandlerMgr.PostTerminalPhoneMsg(phonemsg);
@@ -21,7 +21,7 @@ public class TerminalTransactionMgr extends TransManager {
 
     @Override
     public void TransactionReqRecv(ProtocolPacket packet) {
-        Message phonemsg = new Message();
+        CallPubMessage phonemsg = new CallPubMessage();
         phonemsg.arg1 = TerminalPhoneManager.MSG_NEW_PACKET;
         phonemsg.obj = packet;
         HandlerMgr.PostTerminalPhoneMsg(phonemsg);
@@ -30,7 +30,7 @@ public class TerminalTransactionMgr extends TransManager {
 
     @Override
     public void TransactionResRecv(ProtocolPacket packet) {
-        Message phonemsg = new Message();
+        CallPubMessage phonemsg = new CallPubMessage();
         phonemsg.arg1 = TerminalPhoneManager.MSG_NEW_PACKET;
         phonemsg.obj = packet;
         HandlerMgr.PostTerminalPhoneMsg(phonemsg);

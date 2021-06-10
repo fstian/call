@@ -16,7 +16,7 @@ public class TerminalTcpDevice extends TcpNetDevice {
     public void Start(){
 //        client = new NettyTestClient(id,PhoneParam.CALL_SERVER_PORT);
         client = new NettyTestClient(id,PhoneParam.callServerAddress,PhoneParam.callServerPort);
-        new Thread(){
+        new Thread("TerminalNetty"){
             @Override
             public void run() {
                 while(isActive) {
