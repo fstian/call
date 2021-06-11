@@ -398,7 +398,7 @@ public class UserInterface {
         return result;
     }
 
-    public static OperationResult CallTransfer(String devid,String areaId,boolean state){
+    public static OperationResult SetTransferCall(String devid,String areaId,boolean state){
         int operationCode;
         OperationResult result;
 
@@ -408,7 +408,7 @@ public class UserInterface {
         return result;
     }
 
-    public static OperationResult SetBedListenCall(String devid,boolean state){
+    public static OperationResult SetListenCall(String devid,boolean state){
         int operationCode;
         OperationResult result;
 
