@@ -139,20 +139,20 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
                         if(!transferAreaId.isEmpty()) {
-                            UserInterface.CallTransfer(dev.devid, transferAreaId, true);
+//                            UserInterface.CallTransfer(dev.devid, transferAreaId, true);
                             UserInterface.PrintLog("Dev %s Set Transfer to %", dev.devid, transferAreaId);
                         }
                     }else{
-                        UserInterface.CallTransfer(dev.devid, "", false);
+//                        UserInterface.CallTransfer(dev.devid, "", false);
                         UserInterface.PrintLog("Dev %s Clear Transfer Status",dev.devid);
                     }
                 }
             }else if(dev.type==UserInterface.CALL_BED_DEVICE){
                 listenCall = dev.bedlistenCalls;
                 if(listenCall){
-                    UserInterface.SetBedListenCall(dev.devid,false);
+//                    UserInterface.SetBedListenCall(dev.devid,false);
                 }else{
-                    UserInterface.SetBedListenCall(dev.devid,true);
+//                    UserInterface.SetBedListenCall(dev.devid,true);
                 }
             }
 
