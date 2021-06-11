@@ -48,6 +48,7 @@ public class LogWork {
     public final static int LOG_WARN = 4;       // for reasonable error
     public final static int LOG_ERROR = 5;      // for unreasonable error
     public final static int LOG_FATAL = 6;      // for fatal
+    public final static int LOG_TEMP_DBG = 7;      // for fatal
 
     public static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
@@ -61,6 +62,24 @@ public class LogWork {
 
     public static int Print(int module,int degLevel,String buf){
         return Print(module,degLevel,buf,"");
+    }
+
+    private static class Log {
+    	public static void v(String tag,String dbg) {
+    		System.out.println(tag+" V/ "+dbg);
+    	}
+    	public static void d(String tag,String dbg) {
+    		System.out.println(tag+" D/ "+dbg);
+    	}
+    	public static void i(String tag,String dbg) {
+    		System.out.println(tag+" I/ "+dbg);
+    	}
+    	public static void w(String tag,String dbg) {
+    		System.out.println(tag+" W/ "+dbg);
+    	}
+    	public static void e(String tag,String dbg) {
+    		System.out.println(tag+" E/ "+dbg);
+    	}
     }
 
 
@@ -145,6 +164,10 @@ public class LogWork {
                     case LOG_FATAL:
                         Log.e(tag,dbgString);
                         levelString = " F/ ";
+                        break;
+                    case LOG_TEMP_DBG:
+                        Log.e(tag,dbgString);
+                        levelString = " T/ ";
                         break;
                 }
 

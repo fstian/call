@@ -1,6 +1,5 @@
 package com.example.nettytest.pub.commondevice;
 
-import com.example.nettytest.pub.LogWork;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -9,8 +8,8 @@ import java.net.InetAddress;
 
 public class UdpNetDevice extends NetDevice {
 
-    InetAddress peerAddress ;
-    int peerPort = 0;
+    protected InetAddress peerAddress ;
+    protected int peerPort = 0;
     protected DatagramSocket localSocket=null;
 
     public UdpNetDevice(String id){
@@ -36,6 +35,7 @@ public class UdpNetDevice extends NetDevice {
         localSocket = socket;
         peerAddress = address;
         peerPort = port;
+
     }
 
 }

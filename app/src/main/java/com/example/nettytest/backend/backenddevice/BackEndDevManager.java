@@ -23,7 +23,7 @@ public class BackEndDevManager extends NetDeviceManager {
                 devLists.put(id,matchedDev);
                 LogWork.Print(LogWork.BACKEND_DEVICE_MODULE,LogWork.LOG_INFO,"Add Net Device %s On Server",id);
             }else{
-                LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Add Net Device %s On Server, but it had created",id);
+//                LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Add Net Device %s On Server, but it had created",id);
             }
         }
     }

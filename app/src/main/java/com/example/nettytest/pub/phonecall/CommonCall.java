@@ -12,6 +12,7 @@ public class CommonCall {
     public final static int CALL_TYPE_NORMAL = 1;
     public final static int CALL_TYPE_EMERGENCY = 2;
     public final static int CALL_TYPE_BROADCAST = 3;
+    public final static int CALL_TYPE_ASSIST = 4;
 
     public final static int CALL_STATE_DIALING = 1;
     public final static int CALL_STATE_RINGING = 2;
@@ -19,7 +20,7 @@ public class CommonCall {
     public final static int CALL_STATE_CONNECTED = 4;
     public final static int CALL_STATE_DISCONNECTED =5;
 
-    public final static int UPDATE_INTERVAL = Transaction.TRANSCATION_RESEND_INTERVAL*2;
+    public final static int UPDATE_INTERVAL = Transaction.TRANSCATION_REQUIRING_TIME*2;
 
     public int type;
     public int direct;
@@ -103,6 +104,9 @@ public class CommonCall {
             break;
             case CALL_TYPE_BROADCAST:
                 typeName = "Broadcast Call";
+            break;
+            case CALL_TYPE_ASSIST:
+                typeName = "Assist Call";
             break;
         }
         return typeName;

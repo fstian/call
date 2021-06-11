@@ -1,4 +1,4 @@
-package com.example.nettytest.userinterface;
+package com.example.nettytest.pub.result;
 
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 

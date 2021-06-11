@@ -1,20 +1,26 @@
 package com.example.nettytest.backend.backendcall;
 
-import android.os.Handler;
-import android.os.Message;
 
+import com.alibaba.fastjson.*;
 import com.example.nettytest.backend.backendphone.BackEndPhone;
+import com.example.nettytest.pub.CallPubMessage;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.SystemSnap;
 import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.pub.protocol.AnswerReqPack;
 import com.example.nettytest.pub.protocol.AnswerResPack;
+import com.example.nettytest.pub.protocol.AnswerVideoReqPack;
+import com.example.nettytest.pub.protocol.AnswerVideoResPack;
 import com.example.nettytest.pub.protocol.EndReqPack;
 import com.example.nettytest.pub.protocol.EndResPack;
 import com.example.nettytest.pub.protocol.InviteReqPack;
 import com.example.nettytest.pub.protocol.InviteResPack;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
+import com.example.nettytest.pub.protocol.StartVideoReqPack;
+import com.example.nettytest.pub.protocol.StartVideoResPack;
+import com.example.nettytest.pub.protocol.StopVideoReqPack;
+import com.example.nettytest.pub.protocol.StopVideoResPack;
 import com.example.nettytest.pub.protocol.UpdateReqPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.pub.transaction.Transaction;
@@ -23,36 +29,21 @@ import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.UserInterface;
 import com.example.nettytest.userinterface.UserMessage;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class BackEndCallConvergenceManager {
 
     HashMap<String, BackEndCallConvergence> callConvergenceList;
-    Handler userMsgHandler = null;
 
+    ArrayList<CallPubMessage> msgList;
 
     public BackEndCallConvergenceManager(){
 
         callConvergenceList = new HashMap<>();
-
+        msgList = null;
     }
 
-    public void SetUserMessageHandler(Handler h){
-        userMsgHandler = h;
-    }
-
-    private void PostUserMessage(int type,Object obj){
-        if(userMsgHandler!=null){
-            Message msg = userMsgHandler.obtainMessage();
-            msg.arg1 = type;
-            msg.obj = obj;
-            userMsgHandler.sendMessage(msg);
-        }
-    }
 
 
     public int GetCallCount(){
@@ -64,43 +55,43 @@ public class BackEndCallConvergenceManager {
         JSONObject json = new JSONObject();
 
         try {
-            json.putOpt(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_BACKEND_CALL_RES);
-            json.putOpt(SystemSnap.SNAP_DEVID_NAME, devid);
-            json.putOpt(SystemSnap.SNAP_VER_NAME,PhoneParam.VER_STR);
+            json.put(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_BACKEND_CALL_RES);
+            json.put(SystemSnap.SNAP_DEVID_NAME, devid);
+            json.put(SystemSnap.SNAP_VER_NAME,PhoneParam.VER_STR);
             JSONArray outCalls = new JSONArray();
             JSONArray incomingCalls = new JSONArray();
             JSONObject calljson;
             for (BackEndCallConvergence callConvergence:callConvergenceList.values()) {
                 if(callConvergence.inviteCall.caller.compareToIgnoreCase(devid)==0){
                     calljson = new JSONObject();
-                    calljson.putOpt(SystemSnap.SNAP_CALLER_NAME,callConvergence.inviteCall.caller);
-                    calljson.putOpt(SystemSnap.SNAP_CALLEE_NAME,callConvergence.inviteCall.callee);
-                    calljson.putOpt(SystemSnap.SNAP_ANSWERER_NAME,callConvergence.inviteCall.answer);
-                    calljson.putOpt(SystemSnap.SNAP_CALLID_NAME,callConvergence.inviteCall.callID);
-                    calljson.putOpt(SystemSnap.SNAP_CALLSTATUS_NAME,callConvergence.inviteCall.state);
-                    outCalls.put(calljson);
+                    calljson.put(SystemSnap.SNAP_CALLER_NAME,callConvergence.inviteCall.caller);
+                    calljson.put(SystemSnap.SNAP_CALLEE_NAME,callConvergence.inviteCall.callee);
+                    calljson.put(SystemSnap.SNAP_ANSWERER_NAME,callConvergence.inviteCall.answer);
+                    calljson.put(SystemSnap.SNAP_CALLID_NAME,callConvergence.inviteCall.callID);
+                    calljson.put(SystemSnap.SNAP_CALLSTATUS_NAME,callConvergence.inviteCall.state);
+                    outCalls.add(calljson);
                 }
 
                 if(callConvergence.inviteCall.callee.compareToIgnoreCase(devid)==0||callConvergence.inviteCall.answer.compareToIgnoreCase(devid)==0){
                     calljson = new JSONObject();
-                    calljson.putOpt(SystemSnap.SNAP_CALLER_NAME,callConvergence.inviteCall.caller);
-                    calljson.putOpt(SystemSnap.SNAP_CALLID_NAME,callConvergence.inviteCall.callID);
-                    calljson.putOpt(SystemSnap.SNAP_CALLSTATUS_NAME,callConvergence.inviteCall.state);
-                    incomingCalls.put(calljson);
+                    calljson.put(SystemSnap.SNAP_CALLER_NAME,callConvergence.inviteCall.caller);
+                    calljson.put(SystemSnap.SNAP_CALLID_NAME,callConvergence.inviteCall.callID);
+                    calljson.put(SystemSnap.SNAP_CALLSTATUS_NAME,callConvergence.inviteCall.state);
+                    incomingCalls.add(calljson);
                 }
 
                 for(BackEndCall call:callConvergence.listenCallList){
                     if(call.devID.compareToIgnoreCase(devid)==0){
                         calljson = new JSONObject();
-                        calljson.putOpt(SystemSnap.SNAP_CALLER_NAME,call.caller);
-                        calljson.putOpt(SystemSnap.SNAP_CALLID_NAME,call.callID);
-                        calljson.putOpt(SystemSnap.SNAP_CALLSTATUS_NAME,call.state);
-                        incomingCalls.put(calljson);
+                        calljson.put(SystemSnap.SNAP_CALLER_NAME,call.caller);
+                        calljson.put(SystemSnap.SNAP_CALLID_NAME,call.callID);
+                        calljson.put(SystemSnap.SNAP_CALLSTATUS_NAME,call.state);
+                        incomingCalls.add(calljson);
                     }
                 }
             }
-            json.putOpt(SystemSnap.SNAP_OUTGOINGS_NAME,outCalls);
-            json.putOpt(SystemSnap.SNAP_INCOMINGS_NAME,incomingCalls);
+            json.put(SystemSnap.SNAP_OUTGOINGS_NAME,outCalls);
+            json.put(SystemSnap.SNAP_INCOMINGS_NAME,incomingCalls);
             result = json.toString().getBytes();
         } catch (JSONException e) {
             e.printStackTrace();
@@ -131,8 +122,12 @@ public class BackEndCallConvergenceManager {
             return false;
         if(!phone.isReg)
             return false;
+        BackEndCallConvergence curCallConvergence = callConvergenceList.get(callid);
+        if(curCallConvergence==null)
+            return false;
+        BackEndPhone callerPhone = HandlerMgr.GetBackEndPhone(curCallConvergence.GetCallerId());
         for(BackEndCallConvergence callConvergence:callConvergenceList.values()){
-            if(!callConvergence.CheckAnswerEnable(phone,callid)) {
+            if(!callConvergence.CheckAnswerEnable(phone,callerPhone,callid)) {
                 result = false;
                 break;
             }
@@ -181,6 +176,7 @@ public class BackEndCallConvergenceManager {
         BackEndCallConvergence callConvergence;
         Transaction trans;
         int error;
+        String callid;
         switch (packet.type) {
             case ProtocolPacket.CALL_REQ:
                 InviteReqPack inviteReqPack = (InviteReqPack) packet;
@@ -250,7 +246,7 @@ public class BackEndCallConvergenceManager {
                             LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Remove %s From Call %s",endReqPack.endDevID,endReqPack.callID);
                             callConvergence.SingleEnd(endReqPack);
                         }
-                    }else if(callConvergence.inviteCall.type==CommonCall.CALL_TYPE_NORMAL||callConvergence.inviteCall.type==CommonCall.CALL_TYPE_EMERGENCY) {
+                    }else if(callConvergence.inviteCall.type==CommonCall.CALL_TYPE_NORMAL||callConvergence.inviteCall.type==CommonCall.CALL_TYPE_EMERGENCY||callConvergence.inviteCall.type==CommonCall.CALL_TYPE_ASSIST) {
                         LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server End Call %s",endReqPack.callID);
                         callConvergence.EndCall(endReqPack);
                         CallLogMessage  log = callConvergence.CreateCallLog();
@@ -307,7 +303,7 @@ public class BackEndCallConvergenceManager {
                 break;
             case ProtocolPacket.CALL_UPDATE_REQ:
                 UpdateReqPack updateReqP = (UpdateReqPack)packet;
-                String callid = updateReqP.callId;
+                callid = updateReqP.callId;
                 callConvergence = callConvergenceList.get(callid);
                 LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv Update From Dev %s for Call %s",updateReqP.devId,updateReqP.callId);
                 if(callConvergence==null){
@@ -333,6 +329,60 @@ public class BackEndCallConvergenceManager {
                 EndResPack endResPack = (EndResPack)packet;
                 LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv End Res From %s for call %s",endResPack.sender, endResPack.callId);
                 break;
+            case ProtocolPacket.CALL_VIDEO_INVITE_REQ:
+                StartVideoReqPack startReqPack = (StartVideoReqPack)packet;
+                callid = startReqPack.callID;
+                callConvergence = callConvergenceList.get(callid);
+                if(callConvergence==null){
+                    LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_WARN,"Server Could not Find Call %s",callid);
+                    error = ProtocolPacket.STATUS_NOTFOUND;
+                    StartVideoResPack startVideoResP = new StartVideoResPack(error,startReqPack);
+                    trans = new Transaction(startReqPack.startVideoDevId,startReqPack,startVideoResP,Transaction.TRANSCATION_DIRECTION_S2C);
+                    HandlerMgr.AddBackEndTrans(startReqPack.msgID, trans);
+                }else{
+                    callConvergence.StartVideo(startReqPack);
+                }
+                break;
+            case ProtocolPacket.CALL_VIDEO_INVITE_RES:
+                StartVideoResPack startResP= (StartVideoResPack)packet;
+                LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv StartVideo Res From %s for call %s, the video requier is %s",startResP.sender, startResP.callid,startResP.startVideoDevId);
+                break;
+            case ProtocolPacket.CALL_VIDEO_ANSWER_REQ:
+                AnswerVideoReqPack answerVideoReq = (AnswerVideoReqPack)packet;
+                callid = answerVideoReq.callId;
+                callConvergence = callConvergenceList.get(callid);
+                if(callConvergence==null){
+                    LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_WARN,"Server Could not Find Call %s",callid);
+                    error = ProtocolPacket.STATUS_NOTFOUND;
+                    AnswerVideoResPack answerVideoResP = new AnswerVideoResPack(error,answerVideoReq);
+                    trans = new Transaction(answerVideoReq.answerDevId,answerVideoReq,answerVideoResP,Transaction.TRANSCATION_DIRECTION_S2C);
+                    HandlerMgr.AddBackEndTrans(answerVideoReq.msgID, trans);
+                }else{
+                    callConvergence.AnswerVideo(answerVideoReq);
+                }
+                break;
+            case ProtocolPacket.CALL_VIDEO_ANSWER_RES:
+                AnswerVideoResPack answerResP= (AnswerVideoResPack)packet;
+                LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv answerVideo Res From %s for call %s, the video requier is %s",answerResP.sender, answerResP.callId,answerResP.answerVideoDevId);
+                break;
+            case ProtocolPacket.CALL_VIDEO_END_REQ:
+                StopVideoReqPack stopVideoReqP = (StopVideoReqPack)packet;
+                callid = stopVideoReqP.callID;
+                callConvergence = callConvergenceList.get(callid);
+                if(callConvergence==null){
+                    LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_WARN,"Server Could not Find Call %s",callid);
+                    error = ProtocolPacket.STATUS_NOTFOUND;
+                    StopVideoResPack stopVideoResP = new StopVideoResPack(error,stopVideoReqP);
+                    trans = new Transaction(stopVideoReqP.stopVideoDevId,stopVideoReqP,stopVideoResP,Transaction.TRANSCATION_DIRECTION_S2C);
+                    HandlerMgr.AddBackEndTrans(stopVideoResP.msgID, trans);
+                }else{
+                    callConvergence.StopVideo(stopVideoReqP);
+                }
+                break;
+            case ProtocolPacket.CALL_VIDEO_END_RES:
+                StopVideoResPack stopVideoResP= (StopVideoResPack)packet;
+                LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv StopVideo Res From %s for call %s, the video requier is %s",stopVideoResP.sender, stopVideoResP.callid,stopVideoResP.stopVideoDevId);
+                break;
         }
     }
 
@@ -348,5 +398,23 @@ public class BackEndCallConvergenceManager {
         }
         
     }
+    
+    public void SetUserMessageList(ArrayList<CallPubMessage> list) {
+        if(msgList!=null)
+            msgList = list;
+    }
+
+    private void PostUserMessage(int type,Object obj){
+        if(msgList!=null){
+            CallPubMessage msg = new CallPubMessage();
+            msg.arg1 = type;
+            msg.obj = obj;
+            synchronized(msgList) {
+                msgList.add(msg);
+                msgList.notify();
+            }
+        }
+    }
+
 }
 

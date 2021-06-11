@@ -1,4 +1,6 @@
-package com.example.nettytest.terminal.audio;
+package com.usecomcalllib.androidPort.audio;
+
+import com.example.nettytest.pub.LogWork;
 
 public class AudioMgr {
     static AudioDevice audio = null;
@@ -30,6 +32,26 @@ public class AudioMgr {
             if (audio != null) {
                 if(audio.AudioStop(id)) {
                     audio = null;
+                }
+            }
+        }
+    }
+
+    public static void SuspendAudio(String devId,String id){
+        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Dev %s Try to suspend Audio %s ",devId,id);
+        synchronized (AudioMgr.class) {
+            if (audio != null) {
+                if(audio.AudioSuspend(id)) {
+                }
+            }
+        }
+    }
+
+    public static void ResumeAudio(String devId,String id){
+        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Dev %s Try to resume Audio %s ",devId,id);
+        synchronized (AudioMgr.class) {
+            if (audio != null) {
+                if(audio.AudioResume(id)) {
                 }
             }
         }

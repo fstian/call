@@ -1,31 +1,34 @@
 package com.example.nettytest.backend.backendphone;
 
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
-
+import com.alibaba.fastjson.*;
 import com.example.nettytest.backend.backendcall.BackEndCallConvergenceManager;
+import com.example.nettytest.pub.CallParams;
+import com.example.nettytest.pub.CallPubMessage;
 import com.example.nettytest.pub.HandlerMgr;
+import com.example.nettytest.pub.JsonPort;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.SystemSnap;
 import com.example.nettytest.pub.commondevice.PhoneDevice;
-import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.pub.protocol.ConfigItem;
 import com.example.nettytest.pub.protocol.ConfigReqPack;
 import com.example.nettytest.pub.protocol.ConfigResPack;
 import com.example.nettytest.pub.protocol.DevQueryReqPack;
 import com.example.nettytest.pub.protocol.DevQueryResPack;
+import com.example.nettytest.pub.protocol.ListenCallReqPack;
+import com.example.nettytest.pub.protocol.ListenCallResPack;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.protocol.RegReqPack;
 import com.example.nettytest.pub.protocol.RegResPack;
 import com.example.nettytest.pub.protocol.SystemConfigReqPack;
 import com.example.nettytest.pub.protocol.SystemConfigResPack;
+import com.example.nettytest.pub.protocol.TransferReqPack;
+import com.example.nettytest.pub.protocol.TransferResPack;
+import com.example.nettytest.pub.result.FailReason;
 import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.userinterface.ServerDeviceInfo;
+import com.example.nettytest.userinterface.UserDevice;
+import com.example.nettytest.userinterface.UserInterface;
 import com.example.nettytest.userinterface.PhoneParam;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -44,20 +47,38 @@ public class BackEndPhoneManager {
     public static final int MSG_SECOND_TICK = 2;
     public static final int MSG_REQ_TIMEOVER = 3;
 
-    private final HashMap<String, BackEndPhone> serverPhoneLists;
-    Handler localMsgHandler=null;
+    private final HashMap<String, BackEndZone> serverAreaLists;
+
     private ArrayList<ConfigItem> systemConfigList;
     static Thread snapThread = null;
 
     private BackEndCallConvergenceManager backEndCallConvergencyMgr;
 
+    private class BackendPhoneMsg{
+    	int type;
+    	Object obj;
+    	
+    	public BackendPhoneMsg(int type,Object obj) {
+    		this.type = type;
+    		this.obj = obj;
+    	}
+    }
+    
+    private ArrayList<BackendPhoneMsg> phoneMsgList;
+    
+    public void SetMessageHandler(ArrayList<CallPubMessage> list) {
+        backEndCallConvergencyMgr.SetUserMessageList(list);
+    }
+
     public BackEndPhoneManager(){
-        serverPhoneLists = new HashMap<>();
+        serverAreaLists = new HashMap<>();
         systemConfigList = new ArrayList<>();
+        phoneMsgList = new ArrayList<>();
+        
         backEndCallConvergencyMgr = new BackEndCallConvergenceManager();
         BackEndPhoneThread msgProcessThread = new BackEndPhoneThread();
         msgProcessThread.start();
-        new Timer().schedule(new TimerTask() {
+        new Timer("BackEndTimeTick").schedule(new TimerTask() {
             @Override
             public void run() {
                 HandlerMgr.PostBackEndPhoneMsg(BackEndPhoneManager.MSG_SECOND_TICK,"");
@@ -68,113 +89,99 @@ public class BackEndPhoneManager {
 
     }
 
+// only used in callconverce
     public BackEndPhone GetDevice(String id){
-        BackEndPhone matchedPhone;
-
-        matchedPhone = serverPhoneLists.get(id);
-
+        BackEndPhone matchedPhone=null;
+        synchronized(phoneMsgList) {
+        
+        matchedPhone = GetLocalDevice(id);
+        }
         return matchedPhone;
 
     }
 
-    public void SetMessageHandler(Handler h){
-        backEndCallConvergencyMgr.SetUserMessageHandler(h);
+    public int PostBackEndPhoneMessage(int type,Object obj) {
+    	synchronized(phoneMsgList) {
+    		BackendPhoneMsg msg = new BackendPhoneMsg(type,obj);
+    		phoneMsgList.add(msg);
+    		phoneMsgList.notify();
+    	}
+    	return 0;
     }
+
 
     public int GetCallCount(){
         return backEndCallConvergencyMgr.GetCallCount();
     }
 
+// only used in callconverce
     public boolean CheckForwardEnable(BackEndPhone phone,int callType){
         return backEndCallConvergencyMgr.CheckForwardEnable(phone, callType);
     }
 
-    public ArrayList<BackEndPhone> GetListenDevices(int callType){
-        ArrayList<BackEndPhone> devices = new ArrayList<>();
-        BackEndConfig backEndConfig = HandlerMgr.GetBackEndConfig();
-            for(String devid:serverPhoneLists.keySet()){
-                boolean isAdd = false;
-                BackEndPhone phone = serverPhoneLists.get(devid);
-                if(phone==null)
-                    break;
-                switch(callType){
-                    case CommonCall.CALL_TYPE_BROADCAST:
-                        switch(phone.type){
-                            case BackEndPhone.BED_CALL_DEVICE:
-                                if(backEndConfig.broadCallToBed)
-                                    isAdd = true;
-                                break;
-                            case BackEndPhone.DOOR_CALL_DEVICE:
-                                if(backEndConfig.broadCallToRoom)
-                                    isAdd = true;
-                                break;
-                            case BackEndPhone.CORRIDOR_CALL_DEVICE:
-                                if(backEndConfig.broadCallToCorridor)
-                                    isAdd = true;
-                                break;
-                            case BackEndPhone.NURSE_CALL_DEVICE:
-                                isAdd = false;
-                                break;
-                            case BackEndPhone.TV_CALL_DEVICE:
-                                if(backEndConfig.broadCallToTv)
-                                    isAdd = true;
-                                break;
-                        }
-                        break;
-                    case CommonCall.CALL_TYPE_EMERGENCY:
-                        switch(phone.type){
-                            case BackEndPhone.BED_CALL_DEVICE:
-                                if(backEndConfig.emerCallToBed)
-                                    isAdd = true;
-                                break;
-                            case BackEndPhone.DOOR_CALL_DEVICE:
-                                if(backEndConfig.emerCallToRoom)
-                                    isAdd = true;
-                                break;
-                            case BackEndPhone.CORRIDOR_CALL_DEVICE:
-                                if(backEndConfig.emerCallToCorridor)
-                                    isAdd = true;
-                                break;
-                            case BackEndPhone.NURSE_CALL_DEVICE:
-                                isAdd = true;
-                                break;
-                            case BackEndPhone.TV_CALL_DEVICE:
-                                if(backEndConfig.emerCallToTv)
-                                    isAdd = true;
-                                break;
-                        }
-                        break;
-                    case CommonCall.CALL_TYPE_NORMAL:
-                        switch(phone.type){
-                            case BackEndPhone.BED_CALL_DEVICE:
-                                if(backEndConfig.normalCallToBed)
-                                    isAdd = true;
-                                break;
-                            case BackEndPhone.DOOR_CALL_DEVICE:
-                                if(backEndConfig.normalCallToRoom)
-                                    isAdd = true;
-                                break;
-                            case BackEndPhone.CORRIDOR_CALL_DEVICE:
-                                if(backEndConfig.normalCallToCorridor)
-                                    isAdd = true;
-                                break;
-                            case BackEndPhone.NURSE_CALL_DEVICE:
-                                isAdd = true;
-                                break;
-                            case BackEndPhone.TV_CALL_DEVICE:
-                                if(backEndConfig.normalCallToTv)
-                                    isAdd = true;
-                                break;
-                        }
-                        break;
-                }
-                if(isAdd){
-                    devices.add(phone);
-                }
-            }
-        return devices;
+    private String GetAreaId(String id){
+        String areaId;
+        if(id==null)
+            areaId = BackEndZone.DEFAULT_AREA_ID;
+        else if(id.isEmpty())
+            areaId = BackEndZone.DEFAULT_AREA_ID;
+        else
+            areaId = id;
+        return areaId;
     }
 
+
+// only used in callconverce
+    public ArrayList<BackEndPhone> GetListenDevices(String areaId,int callType){
+
+        ArrayList<BackEndPhone> devices = new ArrayList<>();
+
+        BackEndZone area = serverAreaLists.get(GetAreaId(areaId));
+        if(area!=null){
+            area.GetListenDevices(devices,callType);
+        }
+        
+         return devices;
+    }
+
+    private String GetTransferAreaIdLocal(String phoneId){
+        String areaId = "";
+        BackEndPhone matchedPhone=null;
+        for(BackEndZone area:serverAreaLists.values()){
+            matchedPhone = area.GetDevice(phoneId);
+            if(matchedPhone!=null){
+                areaId = area.GetTransferAreaId();
+                break;
+            }
+        }
+        return areaId;
+    }
+
+    private String GetWorkAreaIdLocal(String phoneId){
+        String areaId = "";
+        BackEndPhone matchedPhone=null;
+        for(BackEndZone area:serverAreaLists.values()){
+            matchedPhone = area.GetDevice(phoneId);
+            if(matchedPhone!=null){
+                areaId = area.GetWorkAreaId();
+                break;
+            }
+        }
+        return areaId;
+    }
+
+// only used in callconverce
+    public String GetListenAreaId(String phoneId){
+        String areaId = "";
+
+        areaId = GetTransferAreaIdLocal(phoneId);
+        if(areaId.isEmpty()){
+            areaId = GetWorkAreaIdLocal(phoneId);
+        }
+        return areaId;
+    }
+
+ 
     private DatagramSocket OpenSnapSocket(int group){
         DatagramSocket socket=null;
         int iTmp;
@@ -203,22 +210,143 @@ public class BackEndPhoneManager {
         return socket;
     }
 
-
-    public void AddPhone(String id, int t){
-        BackEndPhone matchedPhone;
-
+    public int AddArea(String areaId,String areaName){
+        int result = FailReason.FAIL_REASON_NO;
+        BackEndZone area;
         synchronized (BackEndPhoneManager.class) {
-            matchedPhone = serverPhoneLists.get(id);
-            if (matchedPhone == null) {
-                matchedPhone = new BackEndPhone(id,t);
-                serverPhoneLists.put(id,matchedPhone);
-                LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Add Phone Device %s On Server",id);
+            area = serverAreaLists.get(areaId);
+            if(area!=null){
+                result = FailReason.FAIL_REASON_HASEXIST;
             }else{
-                LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Add Phone Device %s On Server, but it had created",id);
+                area = new BackEndZone(areaId,areaName);
+                serverAreaLists.put(areaId,area);
+            }
+        }
+        return result;
+    }
+
+    public int UpdateAreaParams(String areaId,CallParams param){
+        BackEndZone area;
+        synchronized (BackEndPhoneManager.class) {
+            area = serverAreaLists.get(areaId);
+            if(area==null)
+                return -1;
+            area.params = param;
+        }
+        return 0;
+    }
+    
+    public int UpdateAreaDevices(String areaId,ArrayList<UserDevice> devList,ArrayList<ServerDeviceInfo> infoList) {
+        BackEndZone area;
+        ArrayList<PhoneDevice> phoneList;
+        int iTmp;
+        ArrayList<UserDevice> newPhoneList = new ArrayList<>();
+        ArrayList<ServerDeviceInfo> newInfoList = new ArrayList<>();
+
+        boolean isMatched;
+        synchronized (BackEndPhoneManager.class) {
+            area = serverAreaLists.get(areaId);
+            if(area==null)
+                return -1;
+            phoneList = area.GetDeviceList();
+
+            for(PhoneDevice dev:phoneList) {
+                isMatched = false;
+                for(UserDevice userDev:devList) {
+                    if(dev.id.compareToIgnoreCase(userDev.devid)==0) {
+                        isMatched = true;
+                        break;
+                    }
+                }
+                if(!isMatched) {
+                    HandlerMgr.RemoveBackEndPhone(dev.id);
+                }
+            }                        
+            for(iTmp=0;iTmp<devList.size();iTmp++) {
+                UserDevice userDev = devList.get(iTmp);           	
+                if(area.GetDevice(userDev.devid)==null){
+                    newPhoneList.add(userDev);
+                    newInfoList.add(infoList.get(iTmp));
+                }
             }
 
-            if(snapThread==null){
-                snapThread = new Thread(() -> {
+        }
+
+        for(iTmp=0;iTmp<newPhoneList.size();iTmp++){
+            UserDevice userDev = newPhoneList.get(iTmp);
+            ServerDeviceInfo info = newInfoList.get(iTmp);
+            UserInterface.AddDeviceOnServer(userDev.devid, userDev.type, userDev.netMode,areaId);
+            UserInterface.ConfigDeviceInfoOnServer(userDev.devid, info);
+        }
+        return 0;
+    }
+
+    
+    public int UpdateAreas(ArrayList<BackEndZone> list) {
+    	BackEndZone oldArea;
+    	boolean matchedArea;
+    	
+        synchronized (BackEndPhoneManager.class) {
+	        for(Iterator<Map.Entry<String, BackEndZone>> it = serverAreaLists.entrySet().iterator(); it.hasNext();){
+	            Map.Entry<String, BackEndZone>item = it.next();
+	            BackEndZone curArea = item.getValue();
+	    		matchedArea = false;
+	    		for(BackEndZone newArea:list) {
+	    			if(curArea.areaId.compareToIgnoreCase(newArea.areaId)==0) {
+	    				matchedArea = true;
+	    				break;
+	    			}
+	    		}
+	    		if(!matchedArea) {
+	    			curArea.RemoveAllDevices();
+	    			it.remove();
+	    		}
+	    	}
+	    	
+	    	for(BackEndZone newArea:list) {
+	    		oldArea = serverAreaLists.get(newArea.areaId);
+	    		if(oldArea==null) {
+	    			AddArea(newArea.areaId,newArea.areaName);
+	    		}else {
+	    			oldArea.areaName = newArea.areaName;
+	    		}
+	    	}
+	    	
+        }
+    	return 0;
+    }
+    
+
+    public int AddPhone(String id, int t,String areaId){
+        BackEndPhone matchedPhone;
+        int result = FailReason.FAIL_REASON_NO;
+        synchronized (BackEndPhoneManager.class) {
+            
+            BackEndZone area = serverAreaLists.get(GetAreaId(areaId));
+            if(area==null){
+                result = FailReason.FAIL_REASON_NOTFOUND;
+            }else {
+
+//            matchedPhone = serverPhoneLists.get(id);
+                matchedPhone = area.GetDevice(id);
+                if (matchedPhone == null) {
+                    matchedPhone = new BackEndPhone(id, t);
+                    matchedPhone.devInfo.areaId = areaId;
+
+//                serverPhoneLists.put(id,matchedPhone);
+                    area.AddDevice(id, matchedPhone);
+                    LogWork.Print(LogWork.BACKEND_PHONE_MODULE, LogWork.LOG_INFO, "Add Phone Device %s in area %s On Server", id,areaId);
+                } else {
+                    result = FailReason.FAIL_REASON_HASEXIST;
+//                    LogWork.Print(LogWork.BACKEND_PHONE_MODULE, LogWork.LOG_INFO, "Add Phone Device %s in area %s On Server, but it had created", id,areaId);
+                }
+            }
+        }
+
+        if(snapThread==null){
+            snapThread = new Thread("BackEndSnap") {
+                @Override
+                public void run() {
                     byte[] recvBuf = new byte[1024];
                     DatagramPacket recvPack;
                     ArrayList<byte[]> resList;
@@ -233,16 +361,16 @@ public class BackEndPhoneManager {
                                 if (recvPack.getLength() > 0) {
                                     if(PhoneParam.serverActive) {
                                         String recv = new String(recvBuf, "UTF-8");
-                                        JSONObject json = new JSONObject(recv);
-                                        int type = json.optInt(SystemSnap.SNAP_CMD_TYPE_NAME);
+                                        JSONObject json = JSONObject.parseObject(recv);
+                                        int type = json.getIntValue(SystemSnap.SNAP_CMD_TYPE_NAME);
                                         synchronized (BackEndPhoneManager.class) {
                                             if (type == SystemSnap.SNAP_BACKEND_CALL_REQ) {
-                                                String devid = json.optString(SystemSnap.SNAP_DEVID_NAME);
-                                                byte[] result;
-                                                result = backEndCallConvergencyMgr.MakeCallConvergenceSnap(devid);
-                                                if(result!=null) {
-    //                                                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Get BackEnd Call Snap for dev %s, total %d bytes, send to %s:%d",devid,result.length,recvPack.getAddress().getHostName(),recvPack.getPort());
-                                                    resPack = new DatagramPacket(result, result.length, recvPack.getAddress(), recvPack.getPort());
+                                                String devid = JsonPort.GetJsonString(json,SystemSnap.SNAP_DEVID_NAME);
+                                                byte[] resultInfo;
+                                                resultInfo = backEndCallConvergencyMgr.MakeCallConvergenceSnap(devid);
+                                                if(resultInfo!=null) {
+                                                    //                                                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Get BackEnd Call Snap for dev %s, total %d bytes, send to %s:%d",devid,result.length,recvPack.getAddress().getHostName(),recvPack.getPort());
+                                                    resPack = new DatagramPacket(resultInfo, resultInfo.length, recvPack.getAddress(), recvPack.getPort());
                                                     testSocket.send(resPack);
                                                 }
                                             } else if (type == SystemSnap.SNAP_BACKEND_TRANS_REQ) {
@@ -262,34 +390,84 @@ public class BackEndPhoneManager {
                             }
                         }
                     }
-                });
-                snapThread.start();
-            }
-            
+                }
+            };
+            snapThread.start();
         }
 
+        return result;
+    }
+
+// used in local
+    private BackEndPhone GetLocalDevice(String id){
+        BackEndPhone matchedPhone=null;
+        for(BackEndZone area:serverAreaLists.values()){
+            matchedPhone = area.GetDevice(id);
+            if(matchedPhone!=null)
+                break;
+        }
+        return matchedPhone;
+    }
+
+    private int CheckTransferCount(String areaId){
+        int count = 0;
+
+        for(BackEndZone area:serverAreaLists.values()){
+            if(areaId.compareToIgnoreCase(area.transferAreaId)==0){
+                count++;
+            }
+        }
+        
+        return count;
+    }
+
+    private int ClearAreaTransfer(String devid){
+        int result = ProtocolPacket.STATUS_NOTFOUND;
+        for(BackEndZone area:serverAreaLists.values()){
+            if(area.GetDevice(devid)!=null){
+                area.transferAreaId = "";
+                result = ProtocolPacket.STATUS_OK;
+                break;
+            }
+        }
+
+        return result;
+    }
+
+    private int SetAreaTransfer(String devid,String areaid){
+        int result = ProtocolPacket.STATUS_NOTFOUND;
+
+        for(BackEndZone area:serverAreaLists.values()){
+            if(area.GetDevice(devid)!=null){
+                area.transferAreaId = areaid;
+                result = ProtocolPacket.STATUS_OK;
+                break;
+            }
+        }
+
+        return result;
     }
 
     public void RemovePhone(String id){
-        BackEndPhone matchedPhone;
+         LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Remove Phone %s On Server",id);
         synchronized (BackEndPhoneManager.class){
-            matchedPhone = serverPhoneLists.get(id);
-            if(matchedPhone!=null) {
-                matchedPhone.paramList.clear();
-                serverPhoneLists.remove(id);
-                LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Remove Phone Device %s On Server",id);
+            
+//            matchedPhone = serverPhoneLists.get(id);
+            for(BackEndZone area:serverAreaLists.values()){
+                if(area.RemoveDevice(id)==FailReason.FAIL_REASON_NO)
+                    break;
             }
         }
     }
 
     public void RemoveAllPhone(){
         synchronized (BackEndPhoneManager.class){
-            for(Iterator<Map.Entry<String, BackEndPhone>> it = serverPhoneLists.entrySet().iterator(); it.hasNext();) {
-                Map.Entry<String, BackEndPhone>item = it.next();
-                BackEndPhone phone = item.getValue();
-                phone.paramList.clear();
+            for(Iterator<Map.Entry<String, BackEndZone>> it = serverAreaLists.entrySet().iterator(); it.hasNext();) {
+                Map.Entry<String, BackEndZone>item = it.next();
+                BackEndZone area = item.getValue();
+                area.RemoveAllDevices();
                 it.remove();
-                LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Remove All Phone Devices On Server");
+                LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Remove All Phone Devices in area %s On Server",area.areaId);
             }
         }
     }
@@ -303,7 +481,7 @@ public class BackEndPhoneManager {
         BackEndPhone matchedPhone;
         boolean result = false;
         synchronized (BackEndPhoneManager.class) {
-            matchedPhone = serverPhoneLists.get(id);
+            matchedPhone = GetLocalDevice(id);
             if (matchedPhone != null) {
                 matchedPhone.SetDeviceConfig(list);
                 result = true;
@@ -316,7 +494,7 @@ public class BackEndPhoneManager {
         BackEndPhone matchedPhone;
         boolean result = false;
         synchronized (BackEndPhoneManager.class) {
-            matchedPhone = serverPhoneLists.get(id);
+            matchedPhone = GetLocalDevice(id);
             if (matchedPhone != null) {
                 matchedPhone.SetDeviceInfo(info);
                 result = true;
@@ -329,7 +507,7 @@ public class BackEndPhoneManager {
         BackEndPhone matchedPhone;
         ArrayList<ConfigItem> paramList = new ArrayList<>();
         synchronized (BackEndPhoneManager.class) {
-            matchedPhone = serverPhoneLists.get(id);
+            matchedPhone = GetLocalDevice(id);
             if (matchedPhone != null)
                 matchedPhone.GetDeviceConfig(paramList);
         }
@@ -340,19 +518,10 @@ public class BackEndPhoneManager {
         return systemConfigList;
     }
 
-    public void PostBackEndPhoneMessage(int type,Object obj){
-        
-        if(localMsgHandler!=null){
-            Message msg = localMsgHandler.obtainMessage();
-            msg.arg1 = type;
-            msg.obj = obj;
-            localMsgHandler.sendMessage(msg);
-        }
-    }
-
     private void PacketRecvProcess(ProtocolPacket packet){
         String devID;
         Transaction trans;
+        BackEndPhone phone;
 
         int resStatus;
 
@@ -362,23 +531,74 @@ public class BackEndPhoneManager {
         switch (packet.type) {
             case ProtocolPacket.REG_REQ:
                 RegReqPack regPacket = (RegReqPack)packet;
-                BackEndPhone phone;
-                phone = HandlerMgr.GetBackEndPhone(devID);
+                RegResPack regResP;
+                phone = GetLocalDevice(devID);
                 if(phone==null){
                     resStatus = ProtocolPacket.STATUS_FORBID;
+                    regResP = new RegResPack(resStatus,regPacket);
                 }else{
                     resStatus = ProtocolPacket.STATUS_OK;
                     phone.UpdateRegStatus(regPacket.expireTime);
+                    regResP = new RegResPack(resStatus,regPacket);
+                    regResP.areaId = phone.devInfo.areaId;
+                    regResP.transferAreaId = GetTransferAreaIdLocal(devID);
+                    regResP.listenCallEnable = phone.enableListen;
                 }
-                RegResPack regResP = new RegResPack(resStatus,regPacket);
 
                 trans = new Transaction(devID,packet,regResP,Transaction.TRANSCATION_DIRECTION_S2C);
+                HandlerMgr.AddBackEndTrans(packet.msgID, trans);
+                break;
+            case ProtocolPacket.CALL_TRANSFER_REQ:
+                TransferReqPack transferPacket = (TransferReqPack)packet;
+                String areaId = transferPacket.transferAreaId;
+                boolean state = transferPacket.transferEnabled;
+                int hasTransferedCount = 0;
+                phone = GetLocalDevice(devID);
+                if(phone==null){
+                    resStatus = ProtocolPacket.STATUS_NOTFOUND;
+                }else{
+                    if(phone.type!=PhoneDevice.NURSE_CALL_DEVICE){
+                        resStatus = ProtocolPacket.STATUS_NOTSUPPORT;
+                    }else{
+                        if(state){
+                            hasTransferedCount = CheckTransferCount(areaId);
+                            if(hasTransferedCount>=PhoneParam.transferMaxNum){
+                                resStatus = ProtocolPacket.STATUS_BUSY;
+                            }else{
+                                resStatus = SetAreaTransfer(devID,areaId);
+                            }
+                        }else{
+                            resStatus = ClearAreaTransfer(devID);
+                        }
+                    }
+                }
+                TransferResPack transferResP = new TransferResPack(resStatus,transferPacket);
+
+                trans = new Transaction(devID,packet,transferResP,Transaction.TRANSCATION_DIRECTION_S2C);
+                HandlerMgr.AddBackEndTrans(packet.msgID, trans);
+            break;
+            case ProtocolPacket.CALL_LISTEN_REQ:
+                ListenCallReqPack listenPacket=(ListenCallReqPack)packet;
+                phone = GetLocalDevice(devID);
+                if(phone==null){
+                    resStatus = ProtocolPacket.STATUS_NOTFOUND;
+                }else{
+                    if(phone.type!=PhoneDevice.BED_CALL_DEVICE){
+                        resStatus = ProtocolPacket.STATUS_NOTSUPPORT;
+                    }else{
+                        phone.enableListen = listenPacket.listenEnable;
+                        resStatus = ProtocolPacket.STATUS_OK;
+                    }
+                }
+                ListenCallResPack listgenResP = new ListenCallResPack(resStatus,listenPacket);
+
+                trans = new Transaction(devID,packet,listgenResP,Transaction.TRANSCATION_DIRECTION_S2C);
                 HandlerMgr.AddBackEndTrans(packet.msgID, trans);
                 break;
             case ProtocolPacket.DEV_QUERY_REQ:
                 DevQueryReqPack devReqP = (DevQueryReqPack)packet;
                 DevQueryResPack devResP;
-                phone = HandlerMgr.GetBackEndPhone(devID);
+                phone = GetLocalDevice(devID);
                 if(phone==null){
                     resStatus = ProtocolPacket.STATUS_NOTFOUND;
                 }else{
@@ -386,7 +606,7 @@ public class BackEndPhoneManager {
                 }
                 devResP = new DevQueryResPack(resStatus,devReqP);
                 if(resStatus==ProtocolPacket.STATUS_OK){
-                    GetDeviceList(devResP.phoneList);
+                    devResP.phoneList = GetDeviceList(phone.devInfo.areaId);
                 }
 
                 trans = new Transaction(devID,packet,devResP,Transaction.TRANSCATION_DIRECTION_S2C);
@@ -395,7 +615,7 @@ public class BackEndPhoneManager {
             case ProtocolPacket.DEV_CONFIG_REQ:
                 ConfigReqPack configReqP = (ConfigReqPack)packet;
                 ConfigResPack configResP;
-                phone = HandlerMgr.GetBackEndPhone(devID);
+                phone = GetLocalDevice(devID);
                 if(phone==null){
                     resStatus = ProtocolPacket.STATUS_NOTFOUND;
                 }else{
@@ -424,6 +644,12 @@ public class BackEndPhoneManager {
             case ProtocolPacket.ANSWER_REQ:
             case ProtocolPacket.ANSWER_RES:
             case ProtocolPacket.CALL_UPDATE_REQ:
+            case ProtocolPacket.CALL_VIDEO_INVITE_REQ:
+            case ProtocolPacket.CALL_VIDEO_INVITE_RES:
+            case ProtocolPacket.CALL_VIDEO_ANSWER_REQ:
+            case ProtocolPacket.CALL_VIDEO_ANSWER_RES:
+            case ProtocolPacket.CALL_VIDEO_END_REQ:
+            case ProtocolPacket.CALL_VIDEO_END_RES:
                 CallConvergencyProcessPacket(packet);
                 break;
         }
@@ -434,14 +660,33 @@ public class BackEndPhoneManager {
     }
 
     private class BackEndPhoneThread extends Thread{
+        public BackEndPhoneThread(){
+            super("BackEndPhoneThread");
+        }
+        
         @Override
         public void run() {
-            Looper.prepare();
-            localMsgHandler = new Handler(msg -> {
-                int type = msg.arg1;
+        	ArrayList<BackendPhoneMsg> localMsgList = new ArrayList<>();
+        	BackendPhoneMsg msg;
                 ProtocolPacket packet;
+        	while(!isInterrupted()) {
+        		synchronized (phoneMsgList) {
+        			try {
+						phoneMsgList.wait();
+	        			while(phoneMsgList.size()>0) {
+	        				msg = phoneMsgList.remove(0);
+	        				localMsgList.add(msg);
+	        			}
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+        		}
+        		
+	        	while(localMsgList.size()>0) {
+	        		msg = localMsgList.remove(0);
                 synchronized (BackEndPhoneManager.class) {
-                    switch (type) {
+		        		switch(msg.type) {
                         case MSG_NEW_PACKET:
                             packet = (ProtocolPacket) msg.obj;
                             PacketRecvProcess(packet);
@@ -455,18 +700,18 @@ public class BackEndPhoneManager {
                             PacketTimeOverProcess(packet);
                             break;
                         default:
-                            throw new IllegalStateException("Unexpected value: " + type);
+			                    throw new IllegalStateException("Unexpected value: " +msg.type);
                     }
                 }
-                return false;
-            });
-            Looper.loop();
+	        	}    		
+        	
+        	}
         }
     }
 
     private void UpdatePhonesRegTick(){
-        for(BackEndPhone phone:serverPhoneLists.values()){
-            phone.IncreaseRegTick();
+        for(BackEndZone area:serverAreaLists.values()){
+            area.IncreaseRegTick();
         }
     }
 
@@ -489,15 +734,15 @@ public class BackEndPhoneManager {
         }
     }
 
-    public void GetDeviceList(ArrayList<PhoneDevice> list){
-        PhoneDevice dev;
-        for(BackEndPhone phone:serverPhoneLists.values()){
-            dev = new PhoneDevice();
-            dev.id = phone.id;
-            dev.bedName = phone.devInfo.bedName;
-            dev.type = phone.type;
-            dev.isReg = phone.isReg;
-            list.add(dev);
-        }
+    public ArrayList<PhoneDevice> GetDeviceList(String areaId){
+        ArrayList<PhoneDevice> phoneList;
+        BackEndZone area = serverAreaLists.get(GetAreaId(areaId));
+        if(area==null)
+            phoneList = new ArrayList<>();
+        else
+            phoneList = area.GetDeviceList();
+
+        return phoneList;
     }
+
 }

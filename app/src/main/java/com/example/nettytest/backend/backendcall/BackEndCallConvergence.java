@@ -1,5 +1,8 @@
 package com.example.nettytest.backend.backendcall;
 
+import java.util.ArrayList;
+
+import com.alibaba.fastjson.*;
 import com.example.nettytest.backend.backendphone.BackEndPhone;
 import com.example.nettytest.backend.backendphone.BackEndPhoneManager;
 import com.example.nettytest.pub.HandlerMgr;
@@ -9,24 +12,23 @@ import com.example.nettytest.pub.UniqueIDManager;
 import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.pub.protocol.AnswerReqPack;
 import com.example.nettytest.pub.protocol.AnswerResPack;
+import com.example.nettytest.pub.protocol.AnswerVideoReqPack;
+import com.example.nettytest.pub.protocol.AnswerVideoResPack;
 import com.example.nettytest.pub.protocol.EndReqPack;
 import com.example.nettytest.pub.protocol.EndResPack;
 import com.example.nettytest.pub.protocol.InviteReqPack;
 import com.example.nettytest.pub.protocol.InviteResPack;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
+import com.example.nettytest.pub.protocol.StartVideoReqPack;
+import com.example.nettytest.pub.protocol.StartVideoResPack;
+import com.example.nettytest.pub.protocol.StopVideoReqPack;
+import com.example.nettytest.pub.protocol.StopVideoResPack;
 import com.example.nettytest.pub.protocol.UpdateReqPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.userinterface.CallLogMessage;
 import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.UserInterface;
-import com.example.nettytest.userinterface.UserMessage;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
 
 public class BackEndCallConvergence {
     BackEndCall inviteCall;
@@ -36,18 +38,29 @@ public class BackEndCallConvergence {
     long answerTime;
     long startTime;
 
-    public String callerNum;
-    public String calleeNum;
-    public String answerNum;
-    public String enderNum;
+    boolean isVideoMode;
 
+    private String callerNum;
+    private String calleeNum;
+    private String answerNum;
+    private String enderNum;
 
     ArrayList<BackEndCall> listenCallList;
 
+    public String GetCallerId(){
+        return callerNum;
+    }
+
     public BackEndCallConvergence(BackEndPhone caller, InviteReqPack pack) {
+
         BackEndCall listenCall;
         InviteReqPack invitePacket;
-        ArrayList<BackEndPhone> listenDevices = HandlerMgr.GetBackEndListenDevices(pack.callType);
+
+        String listenAreaId;
+
+        listenAreaId = HandlerMgr.GetListenAreaId(caller.id);       
+        
+        ArrayList<BackEndPhone> listenDevices = HandlerMgr.GetBackEndListenDevices(listenAreaId,pack.callType);
 
         InviteResPack inviteResP = new InviteResPack(ProtocolPacket.STATUS_OK,pack);
 
@@ -65,6 +78,8 @@ public class BackEndCallConvergence {
 
         listenCallList = new ArrayList<>();
         for(BackEndPhone phone:listenDevices){
+            if(caller.id.compareToIgnoreCase(phone.id)==0)
+                continue;
             if(HandlerMgr.CheckForwardEnable(phone,pack.callType)) {
                 invitePacket = new InviteReqPack();
                 invitePacket.ExchangeCopyData(pack);
@@ -82,6 +97,7 @@ public class BackEndCallConvergence {
         inviteCall.state = CommonCall.CALL_STATE_DIALING;
         startTime = System.currentTimeMillis();
         answerTime = 0;
+        isVideoMode = false;
     }
 
     public BackEndCallConvergence(BackEndPhone caller,BackEndPhone callee, InviteReqPack pack){
@@ -114,6 +130,7 @@ public class BackEndCallConvergence {
 
         startTime = System.currentTimeMillis();
         answerTime = 0;
+        isVideoMode = false;
     }
 
     public boolean SingleEnd(EndReqPack endReqP){
@@ -375,6 +392,84 @@ public class BackEndCallConvergence {
         answerTime = System.currentTimeMillis();
     }
 
+    public void StartVideo(StartVideoReqPack req){
+        int status = ProtocolPacket.STATUS_OK;
+        Transaction trans;
+        String startVideoDevId;
+        String forwareDevId;
+        StartVideoReqPack forwardReq;
+
+        if(isVideoMode){
+            status = ProtocolPacket.STATUS_CONFILICT;
+        }
+        StartVideoResPack resP = new StartVideoResPack(status,req);
+        startVideoDevId = req.startVideoDevId;
+
+        trans = new Transaction(req.startVideoDevId, req, resP,Transaction.TRANSCATION_DIRECTION_S2C);
+        HandlerMgr.AddBackEndTrans(req.msgID, trans);
+
+        if(callerNum.compareToIgnoreCase(startVideoDevId)==0){
+            forwareDevId = answerNum;
+        }else{
+            forwareDevId = callerNum;
+        }
+        forwardReq = new StartVideoReqPack(req,forwareDevId);
+        trans = new Transaction(forwareDevId,forwardReq,Transaction.TRANSCATION_DIRECTION_S2C);
+        HandlerMgr.AddBackEndTrans(forwardReq.msgID,trans);
+    }
+    public void StopVideo(StopVideoReqPack req){
+        int status = ProtocolPacket.STATUS_OK;
+        Transaction trans;
+        String stopVideoDevId;
+        String forwareDevId;
+        StopVideoReqPack forwardReq;
+
+        if(isVideoMode){
+            status = ProtocolPacket.STATUS_CONFILICT;
+        }
+        StopVideoResPack resP = new StopVideoResPack(status,req);
+        stopVideoDevId = req.stopVideoDevId;
+
+        trans = new Transaction(req.stopVideoDevId, req, resP,Transaction.TRANSCATION_DIRECTION_S2C);
+        HandlerMgr.AddBackEndTrans(req.msgID, trans);
+
+        if(callerNum.compareToIgnoreCase(stopVideoDevId)==0){
+            forwareDevId = answerNum;
+        }else{
+            forwareDevId = callerNum;
+        }
+        forwardReq = new StopVideoReqPack(req,forwareDevId);
+        trans = new Transaction(forwareDevId,forwardReq,Transaction.TRANSCATION_DIRECTION_S2C);
+        HandlerMgr.AddBackEndTrans(forwardReq.msgID,trans);
+    }
+    
+
+    void AnswerVideo(AnswerVideoReqPack req){
+        int status = ProtocolPacket.STATUS_OK;
+        Transaction trans;
+        String answerVideoDevId;
+        String forwareDevId;
+        AnswerVideoReqPack forwardReq;
+
+        if(isVideoMode){
+            status = ProtocolPacket.STATUS_CONFILICT;
+        }
+        AnswerVideoResPack resP = new AnswerVideoResPack(status,req);
+        answerVideoDevId = req.answerDevId;
+
+        trans = new Transaction(req.answerDevId, req, resP,Transaction.TRANSCATION_DIRECTION_S2C);
+        HandlerMgr.AddBackEndTrans(req.msgID, trans);
+
+        if(callerNum.compareToIgnoreCase(answerVideoDevId)==0){
+            forwareDevId = answerNum;
+        }else{
+            forwareDevId = callerNum;
+        }
+        forwardReq = new AnswerVideoReqPack(req,forwareDevId);
+        trans = new Transaction(forwareDevId,forwardReq,Transaction.TRANSCATION_DIRECTION_S2C);
+        HandlerMgr.AddBackEndTrans(forwardReq.msgID,trans);
+    }
+
     private void StopCall(){
         HandlerMgr.PostBackEndPhoneMsg(BackEndPhoneManager.MSG_NEW_PACKET,new EndReqPack(inviteCall.callID));
     }
@@ -382,6 +477,7 @@ public class BackEndCallConvergence {
     private void AutoAnswerCall(){
         HandlerMgr.PostBackEndPhoneMsg(BackEndPhoneManager.MSG_NEW_PACKET,BuildAutoAnswerPacket());
     }
+
 
     private AnswerReqPack BuildAutoAnswerPacket(){
         AnswerReqPack answerReqPack = new AnswerReqPack();
@@ -461,10 +557,18 @@ public class BackEndCallConvergence {
             if(packet.status == ProtocolPacket.STATUS_OK)
                 inviteCall.state = CommonCall.CALL_STATE_RINGING;
             else{
-                if(inviteCall.type==CommonCall.CALL_TYPE_NORMAL) {
+                if(inviteCall.type==CommonCall.CALL_TYPE_NORMAL||inviteCall.type == CommonCall.CALL_TYPE_ASSIST) {
                     if (packet.sender.compareToIgnoreCase(inviteCall.callee) == 0) {
                         LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_ERROR, "BackEnd End Call %s when Recv Call Res with %s from %s", inviteCall.callID, ProtocolPacket.GetResString(packet.status), inviteCall.callee);
                         HandlerMgr.PostBackEndPhoneMsg(BackEndPhoneManager.MSG_NEW_PACKET,new EndReqPack(inviteCall.callID));
+                    }else{
+                        for(BackEndCall listenCall:listenCallList){
+                            if(listenCall.devID.compareToIgnoreCase(packet.sender)==0){
+                                LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_ERROR, "BackEnd Remove dev %s From Listen List for Call %s When Recv %s", packet.sender,inviteCall.callID, ProtocolPacket.GetResString(packet.status));
+                                listenCallList.remove(listenCall);
+                                break;
+                            }
+                        }
                     }
                 }else if(inviteCall.type==CommonCall.CALL_TYPE_BROADCAST){
                     for(BackEndCall listenCall:listenCallList){
@@ -479,7 +583,7 @@ public class BackEndCallConvergence {
         }
     }
 
-    public boolean CheckAnswerEnable(BackEndPhone phone,String callid){
+    public boolean CheckAnswerEnable(BackEndPhone phone,BackEndPhone caller,String callid){
         boolean result = true;
 
         if(phone==null)
@@ -493,6 +597,12 @@ public class BackEndCallConvergence {
                     result=false;
                 else if(inviteCall.answer.compareToIgnoreCase(phone.id)==0)
                     result = false;
+                if(caller!=null) {
+                    if (inviteCall.caller.compareToIgnoreCase(caller.id) == 0)
+                        result = false;
+                    else if (inviteCall.answer.compareToIgnoreCase(caller.id) == 0)
+                        result = false;
+                }
             }
         }else{
             if(inviteCall.state==CommonCall.CALL_STATE_CONNECTED){
@@ -544,6 +654,7 @@ public class BackEndCallConvergence {
         switch(callType){
             case CommonCall.CALL_TYPE_NORMAL:
             case CommonCall.CALL_TYPE_EMERGENCY:
+            case CommonCall.CALL_TYPE_ASSIST:
                 switch(phone.type){
                     case BackEndPhone.BED_CALL_DEVICE:
                     case BackEndPhone.EMER_CALL_DEVICE:
@@ -636,21 +747,21 @@ public class BackEndCallConvergence {
         JSONObject json = new JSONObject();
 
         try {
-            json.putOpt(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_BACKEND_CALL_RES);
-            json.putOpt(SystemSnap.SNAP_CALLER_NAME,inviteCall.caller);
-            json.putOpt(SystemSnap.SNAP_CALLEE_NAME,inviteCall.callee);
-            json.putOpt(SystemSnap.SNAP_ANSWERER_NAME,inviteCall.answer);
-            json.putOpt(SystemSnap.SNAP_CALLID_NAME,inviteCall.callID);
-            json.putOpt(SystemSnap.SNAP_CALLSTATUS_NAME,inviteCall.state);
+            json.put(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_BACKEND_CALL_RES);
+            json.put(SystemSnap.SNAP_CALLER_NAME,inviteCall.caller);
+            json.put(SystemSnap.SNAP_CALLEE_NAME,inviteCall.callee);
+            json.put(SystemSnap.SNAP_ANSWERER_NAME,inviteCall.answer);
+            json.put(SystemSnap.SNAP_CALLID_NAME,inviteCall.callID);
+            json.put(SystemSnap.SNAP_CALLSTATUS_NAME,inviteCall.state);
 
             JSONArray listener = new JSONArray();
             for(BackEndCall call:listenCallList){
                 JSONObject listenCall = new JSONObject();
-                listenCall.putOpt(SystemSnap.SNAP_CALLSTATUS_NAME,call.state);
-                listenCall.putOpt(SystemSnap.SNAP_LISTENER_NAME,call.devID);
-                listener.put(listenCall);
+                listenCall.put(SystemSnap.SNAP_CALLSTATUS_NAME,call.state);
+                listenCall.put(SystemSnap.SNAP_LISTENER_NAME,call.devID);
+                listener.add(listenCall);
             }
-            json.putOpt(SystemSnap.SNAP_LISTENS_NAME,listener);
+            json.put(SystemSnap.SNAP_LISTENS_NAME,listener);
             data = json.toString().getBytes();
         } catch (JSONException e) {
             e.printStackTrace();

@@ -1,6 +1,7 @@
 package com.example.nettytest.terminal.terminaldevice;
 
 import com.example.nettytest.pub.HandlerMgr;
+import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.commondevice.UdpNetDevice;
 import com.example.nettytest.pub.protocol.ProtocolFactory;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
@@ -18,16 +19,24 @@ public class TerminalUdpDevice extends UdpNetDevice {
     TerminalUdpReadThread readThread=null;
 
     private class TerminalUdpReadThread extends Thread{
+        public TerminalUdpReadThread(){
+            super("TerminalUdpReadThread");
+        }
+        
         @Override
         public void run() {
             byte[] recvBuf = new byte[4096];
             while(!isInterrupted()){
+                java.util.Arrays.fill(recvBuf,(byte)0);
                 DatagramPacket pack = new DatagramPacket(recvBuf,recvBuf.length);
                 if(!localSocket.isClosed()){
                     try {
                         localSocket.receive(pack);
-                        ProtocolPacket packet = ProtocolFactory.ParseData(pack.getData());
-                        HandlerMgr.PhoneProcessPacket(packet);
+                        if(pack.getLength()>0) {
+                            LogWork.Print(LogWork.TERMINAL_NET_MODULE, LogWork.LOG_DEBUG, "Terminal %s Recv Data from %s:%d", id,pack.getAddress().getHostAddress(), pack.getPort());
+                            ProtocolPacket packet = ProtocolFactory.ParseData(pack.getData());
+                            HandlerMgr.PhoneProcessPacket(packet);
+                        }
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -55,6 +64,7 @@ public class TerminalUdpDevice extends UdpNetDevice {
 
     @Override
     public void UpdatePeerAddress(DatagramSocket socket, InetAddress address, int port) {
+        LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_DEBUG,"Terminal Update Peer %s:%d for Dev %s",address.getHostAddress(),port,id);
         super.UpdatePeerAddress(socket, address, port);
         if(readThread!=null){
             readThread.interrupt();
@@ -74,5 +84,11 @@ public class TerminalUdpDevice extends UdpNetDevice {
                 localSocket.close();
             }
         }
+    }
+
+    @Override
+    public int SendBuffer(byte[] data) {
+        LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_DEBUG,"Terminal %s Send Data to %s:%d",id,peerAddress.getHostAddress(),peerPort);
+        return super.SendBuffer(data);
     }
 }

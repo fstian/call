@@ -12,12 +12,14 @@ public class BackEndPhone extends PhoneDevice {
 
     public int regExpire;
     public int regCount;
+    public boolean enableListen;
 
     ArrayList<ConfigItem> paramList;
 
     public ServerDeviceInfo devInfo;
 
     public BackEndPhone(String id,int type){
+        super();
         this.type = type;
         this.id = id;
         isReg = false;
@@ -25,6 +27,7 @@ public class BackEndPhone extends PhoneDevice {
         regExpire = DEFAULT_REG_EXPIRE;
         paramList = new ArrayList<>();
         devInfo = new ServerDeviceInfo();
+        enableListen = false;
     }
 
     public void UpdateRegStatus(int expire){

@@ -1,11 +1,16 @@
 package com.example.nettytest.terminal.terminalcall;
 
+import com.example.nettytest.pub.AudioMode;
+import com.example.nettytest.pub.protocol.AnswerVideoReqPack;
+import com.example.nettytest.pub.protocol.AnswerVideoResPack;
+import com.example.nettytest.pub.protocol.StartVideoReqPack;
+import com.example.nettytest.pub.protocol.StartVideoResPack;
+import com.example.nettytest.pub.protocol.StopVideoReqPack;
+import com.example.nettytest.pub.protocol.StopVideoResPack;
 import com.example.nettytest.pub.protocol.UpdateReqPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
-import com.example.nettytest.terminal.audio.AudioDevice;
-import com.example.nettytest.terminal.audio.AudioMgr;
-import com.example.nettytest.userinterface.FailReason;
-import com.example.nettytest.userinterface.OperationResult;
+import com.example.nettytest.pub.result.FailReason;
+import com.example.nettytest.pub.result.OperationResult;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
 import com.example.nettytest.userinterface.UserCallMessage;
 import com.example.nettytest.pub.HandlerMgr;
@@ -22,11 +27,15 @@ import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
+import com.example.nettytest.userinterface.UserMessage;
+import com.example.nettytest.userinterface.UserVideoMessage;
 
 public class TerminalCall extends CommonCall {
 
 
-    public int updateTick;
+    private int updateTick;
+
+    private int updateTimeOverCount ;
 
     String audioId = "";
 
@@ -40,6 +49,7 @@ public class TerminalCall extends CommonCall {
         autoAnswerTime = -1;
         autoAnswerTick = 0;
         direct = direction;
+        updateTimeOverCount = 0;
 
         InviteReqPack invitePack = BuildInvitePacket(info);
         Transaction inviteTransaction = new Transaction(devID,invitePack,Transaction.TRANSCATION_DIRECTION_C2S);
@@ -95,20 +105,8 @@ public class TerminalCall extends CommonCall {
     }
 
     public int Answer(){
-        int audioMode;
         AnswerReqPack answerPack = BuildAnswerPacket();
 
-
-        if(type==CALL_TYPE_BROADCAST){
-            audioMode = AudioDevice.RECV_ONLY_MODE;
-        }else if(type==CALL_TYPE_EMERGENCY){
-            audioMode = AudioDevice.NO_SEND_RECV_MODE;
-        }else{
-            audioMode = AudioDevice.SEND_RECV_MODE;
-        }
-
-        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Answer Call %s! sample=%d,ptime=%d,codec=%d",devID,callID,audioSample,rtpTime,audioCodec);
-        audioId = AudioMgr.OpenAudio(devID,localRtpPort,remoteRtpPort,remoteRtpAddress,audioSample,rtpTime,audioCodec,audioMode);
         Transaction answerTrans = new Transaction(devID,answerPack,Transaction.TRANSCATION_DIRECTION_C2S);
         HandlerMgr.AddPhoneTrans(answerPack.msgID,answerTrans);
 
@@ -120,6 +118,51 @@ public class TerminalCall extends CommonCall {
         return ProtocolPacket.STATUS_OK;
     }
 
+    public int StartVideo(){
+        
+        StartVideoReqPack startVideoReqP = BuildStartVideoPacket();
+
+        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Start Video in Call %s! ",devID,callID);
+//        AudioMgr.SuspendAudio(audioId);
+        Transaction startVideoTrans = new Transaction(devID,startVideoReqP,Transaction.TRANSCATION_DIRECTION_C2S);
+        HandlerMgr.AddPhoneTrans(startVideoReqP.msgID,startVideoTrans);
+
+        return ProtocolPacket.STATUS_OK;
+    }
+
+    public int AnswerVideo(){
+        AnswerVideoReqPack answerVideoReqP = BuildAnswerVideoPacket();
+
+        UserVideoMessage videoMsg = new UserVideoMessage();
+        videoMsg.type = UserMessage.CALL_VIDEO_REQ_ANSWER;
+        videoMsg.callId = callID;
+        videoMsg.devId = devID;
+
+        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Answer Video in Call %s! ",devID,callID);
+        Transaction answerVideoTrans = new Transaction(devID,answerVideoReqP,Transaction.TRANSCATION_DIRECTION_C2S);
+        HandlerMgr.AddPhoneTrans(answerVideoReqP.msgID,answerVideoTrans);
+        HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_VIDEO_INFO,videoMsg);
+
+        return ProtocolPacket.STATUS_OK;
+    }
+
+    public int StopVideo(){
+        
+        StopVideoReqPack stopPack = BuildStopVideoPacket();
+        UserVideoMessage videoMsg = new UserVideoMessage();
+        videoMsg.type = UserMessage.CALL_VIDEO_END;
+        videoMsg.callId = callID;
+        videoMsg.devId = devID;
+
+        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Stop Video in Call %s! ",devID,callID);
+        Transaction stopVideoTrans = new Transaction(devID,stopPack,Transaction.TRANSCATION_DIRECTION_C2S);
+        HandlerMgr.AddPhoneTrans(stopPack.msgID,stopVideoTrans);
+        HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_VIDEO_INFO,videoMsg);
+
+        return ProtocolPacket.STATUS_OK;
+    }
+
+
     public int EndCall(){
         EndReqPack endPack = BuildEndPacket();
 
@@ -129,8 +172,8 @@ public class TerminalCall extends CommonCall {
         callMsg.type = UserCallMessage.CALL_MESSAGE_DISCONNECT;
         callMsg.devId = devID;
         callMsg.callId = callID;
-        if(!audioId.isEmpty())
-            AudioMgr.CloseAudio(audioId);
+//        if(!audioId.isEmpty())
+//            AudioMgr.CloseAudio(audioId);
 
         Transaction endTransaction = new Transaction(devID,endPack,Transaction.TRANSCATION_DIRECTION_C2S);
         HandlerMgr.AddPhoneTrans(endPack.msgID,endTransaction);
@@ -168,10 +211,33 @@ public class TerminalCall extends CommonCall {
         callMsg.callId = callID;
 
         if(pack.status==ProtocolPacket.STATUS_OK){
+            int audioMode;
+
+            if(type==CALL_TYPE_BROADCAST){
+                audioMode = AudioMode.RECV_ONLY_MODE;
+            }else if(type==CALL_TYPE_EMERGENCY){
+                audioMode = AudioMode.NO_SEND_RECV_MODE;
+            }else{
+                audioMode = AudioMode.SEND_RECV_MODE;
+            }
+
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Answer Call %s! sample=%d,ptime=%d,codec=%d",devID,callID,audioSample,rtpTime,audioCodec);
+//        audioId = AudioMgr.OpenAudio(devID,localRtpPort,remoteRtpPort,remoteRtpAddress,audioSample,rtpTime,audioCodec,audioMode);
+
             LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv OK for Answer in Call %s! ",devID,callID);
             state = CommonCall.CALL_STATE_CONNECTED;
             callMsg.type = UserCallMessage.CALL_MESSAGE_CONNECT;
             callMsg.reason = FailReason.FAIL_REASON_NO;
+
+            callMsg.localRtpPort = localRtpPort;
+            callMsg.remoteRtpPort = remoteRtpPort;
+            callMsg.remoteRtpAddress = remoteRtpAddress;
+            callMsg.rtpSample = audioSample;
+            callMsg.rtpPTime = rtpTime;
+            callMsg.rtpCodec = audioCodec;
+            callMsg.audioMode = audioMode;
+
+
         }else{
             LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_INFO,"Phone %s Recv %d(%s) for Answer in Call %s! ",devID,pack.status,ProtocolPacket.GetResString(pack.status),callID);
             callMsg.type = UserCallMessage.CALL_MESSAGE_ANSWER_FAIL;
@@ -195,6 +261,7 @@ public class TerminalCall extends CommonCall {
             HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
 
         }else{
+            updateTimeOverCount = 0;
             LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv OK for Update in Call %s! ",devID,callID);
         }
 
@@ -223,10 +290,10 @@ public class TerminalCall extends CommonCall {
         UserCallMessage callMsg = new UserCallMessage();
         callMsg.devId = devID;
         callMsg.callId = pack.callID;
-        callMsg.type = UserCallMessage.CALL_MESSAGE_DISCONNECT;
+        callMsg.type = UserMessage.CALL_MESSAGE_DISCONNECT;
 
-        if(!audioId.isEmpty())
-            AudioMgr.CloseAudio(audioId);
+//        if(!audioId.isEmpty())
+//            AudioMgr.CloseAudio(audioId);
 
         EndResPack endResPack = new EndResPack(ProtocolPacket.STATUS_OK,pack);
         Transaction endResTrans = new Transaction(devID,pack,endResPack,Transaction.TRANSCATION_DIRECTION_C2S);
@@ -236,9 +303,49 @@ public class TerminalCall extends CommonCall {
         
     }
 
+
+    public void RecvStartVideoReq(StartVideoReqPack pack){
+        UserVideoMessage videoMsg = new UserVideoMessage();
+        videoMsg.type = UserMessage.CALL_VIDEO_INVITE;
+        videoMsg.callId = pack.callID;
+        videoMsg.devId = devID;
+
+        StartVideoResPack startVideoResP = new StartVideoResPack(ProtocolPacket.STATUS_OK,pack);
+        Transaction startVideoResTrans = new Transaction(devID,pack,startVideoResP,Transaction.TRANSCATION_DIRECTION_C2S);
+        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Start Video Req for CallID = %s from Dev %s, and Send Start Video Res to Server! ",devID,callID,pack.startVideoDevId);
+        HandlerMgr.AddPhoneTrans(startVideoResP.msgID,startVideoResTrans);
+        HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_VIDEO_INFO,videoMsg);
+    }
+
+    public void RecvAnswerVideoReq(AnswerVideoReqPack pack){
+        UserVideoMessage videoMsg = new UserVideoMessage();
+        videoMsg.type = UserMessage.CALL_VIDEO_ANSWERED;
+        videoMsg.callId = pack.callId;
+        videoMsg.devId = devID;
+
+        AnswerVideoResPack answerVideoResP = new AnswerVideoResPack(ProtocolPacket.STATUS_OK,pack);
+        Transaction answerVideoResTrans = new Transaction(devID,pack,answerVideoResP,Transaction.TRANSCATION_DIRECTION_C2S);
+        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Answer Video Req for CallID = %s from Dev %s, and Send Answer Video Res to Server! ",devID,callID,pack.answerDevId);
+        HandlerMgr.AddPhoneTrans(answerVideoResP.msgID,answerVideoResTrans);
+        HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_VIDEO_INFO,videoMsg);
+    }
+
+    public void RecvStopVideoReq(StopVideoReqPack pack){
+        UserVideoMessage videoMsg = new UserVideoMessage();
+        videoMsg.type = UserMessage.CALL_VIDEO_END;
+        videoMsg.callId = pack.callID;
+        videoMsg.devId = devID;
+
+        StopVideoResPack stopVideoResP = new StopVideoResPack(ProtocolPacket.STATUS_OK,pack);
+        Transaction stopVideoResTrans = new Transaction(devID,pack,stopVideoResP,Transaction.TRANSCATION_DIRECTION_C2S);
+        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv End Video Req for CallID = %s from Dev %s, and Send End Res to Server! ",devID,callID,pack.stopVideoDevId);
+        HandlerMgr.AddPhoneTrans(stopVideoResP.msgID,stopVideoResTrans);
+        HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_VIDEO_INFO,videoMsg);
+    }
+
     public void ReleaseCall(){
-        if(!audioId.isEmpty())
-            AudioMgr.CloseAudio(audioId);
+//        if(!audioId.isEmpty())
+//            AudioMgr.CloseAudio(audioId);
     }
 
 
@@ -258,16 +365,24 @@ public class TerminalCall extends CommonCall {
         remoteRtpPort = pack.answererRtpPort;
         remoteRtpAddress = pack.answererRtpIP;
         if(type==CALL_TYPE_BROADCAST){
-            audioMode = AudioDevice.SEND_ONLY_MODE;
+            audioMode = AudioMode.SEND_ONLY_MODE;
         }else if(type == CALL_TYPE_EMERGENCY){
-            audioMode = AudioDevice.NO_SEND_RECV_MODE;
+            audioMode = AudioMode.NO_SEND_RECV_MODE;
         }else{
-            audioMode = AudioDevice.SEND_RECV_MODE;
+            audioMode = AudioMode.SEND_RECV_MODE;
         }
         
+        callMsg.localRtpPort = localRtpPort;
+        callMsg.remoteRtpPort = remoteRtpPort;
+        callMsg.remoteRtpAddress = remoteRtpAddress;
+        callMsg.rtpSample = pack.sample;
+        callMsg.rtpPTime = pack.pTime;
+        callMsg.rtpCodec = pack.codec;
+        callMsg.audioMode = audioMode;
+        
         LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Call Answer Req for CallID = %s, and Send Answer Res to Server! ",devID,callID);
-        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Open Audio sample=%d,ptime=%d,codec=%d",devID,pack.sample,pack.pTime,pack.codec);
-        audioId = AudioMgr.OpenAudio(devID,localRtpPort,remoteRtpPort,remoteRtpAddress,pack.sample,pack.pTime,pack.codec,audioMode);
+//        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Open Audio sample=%d,ptime=%d,codec=%d",devID,pack.sample,pack.pTime,pack.codec);
+//        audioId = AudioMgr.OpenAudio(devID,localRtpPort,remoteRtpPort,remoteRtpAddress,pack.sample,pack.pTime,pack.codec,audioMode);
 
         Transaction answerResTrans = new Transaction(devID,pack,answerResPack,Transaction.TRANSCATION_DIRECTION_C2S);
         HandlerMgr.AddPhoneTrans(answerResPack.msgID,answerResTrans);
@@ -331,14 +446,17 @@ public class TerminalCall extends CommonCall {
 
 
     public void UpdateTimeOver(){
-        UserCallMessage callMsg = new UserCallMessage();
-        callMsg.devId = devID;
-        callMsg.callId = callID;
-        callMsg.type = UserCallMessage.CALL_MESSAGE_UPDATE_FAIL;
-        callMsg.reason = OperationResult.GetUserFailReason(ProtocolPacket.STATUS_TIMEOVER);
-        HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
-        if(!audioId.isEmpty())
-            AudioMgr.CloseAudio(audioId);
+        updateTimeOverCount++;
+        if(updateTimeOverCount>=2){
+            UserCallMessage callMsg = new UserCallMessage();
+            callMsg.devId = devID;
+            callMsg.callId = callID;
+            callMsg.type = UserCallMessage.CALL_MESSAGE_UPDATE_FAIL;
+            callMsg.reason = OperationResult.GetUserFailReason(ProtocolPacket.STATUS_TIMEOVER);
+            HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
+    //        if(!audioId.isEmpty())
+    //            AudioMgr.CloseAudio(audioId);
+        }
     }
    
     private InviteReqPack BuildInvitePacket(TerminalDeviceInfo info){
@@ -424,4 +542,46 @@ public class TerminalCall extends CommonCall {
 
         return updateReqP;
     }
+
+    private StartVideoReqPack BuildStartVideoPacket(){
+        StartVideoReqPack startPack = new StartVideoReqPack();
+
+        startPack.type = ProtocolPacket.CALL_VIDEO_INVITE_REQ;
+        startPack.sender = devID;
+        startPack.receiver = PhoneParam.CALL_SERVER_ID;
+        startPack.msgID = UniqueIDManager.GetUniqueID(devID,UniqueIDManager.MSG_UNIQUE_ID);
+
+        startPack.callID = callID;
+        startPack.startVideoDevId = devID;
+
+        return startPack;
+    }
+
+    private AnswerVideoReqPack BuildAnswerVideoPacket(){
+        AnswerVideoReqPack answerPack = new AnswerVideoReqPack();
+        
+        answerPack.type = ProtocolPacket.CALL_VIDEO_ANSWER_REQ;
+        answerPack.sender = devID;
+        answerPack.receiver = PhoneParam.CALL_SERVER_ID;
+        answerPack.msgID = UniqueIDManager.GetUniqueID(devID,UniqueIDManager.MSG_UNIQUE_ID);
+
+        answerPack.callId = callID;
+        answerPack.answerDevId= devID;
+
+        return answerPack;
+    }
+
+    private StopVideoReqPack BuildStopVideoPacket(){
+        StopVideoReqPack stopPack = new StopVideoReqPack();
+
+        stopPack.type = ProtocolPacket.CALL_VIDEO_END_REQ;
+        stopPack.sender = devID;
+        stopPack.receiver = PhoneParam.CALL_SERVER_ID;
+        stopPack.msgID = UniqueIDManager.GetUniqueID(devID,UniqueIDManager.MSG_UNIQUE_ID);
+
+        stopPack.callID = callID;
+        stopPack.stopVideoDevId = devID;
+        return stopPack;
+    }
+
 }

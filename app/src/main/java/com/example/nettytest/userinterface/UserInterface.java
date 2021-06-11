@@ -1,14 +1,16 @@
 package com.example.nettytest.userinterface;
 
-import android.os.Handler;
-
+import com.example.nettytest.backend.backendphone.BackEndZone;
 import com.example.nettytest.backend.backendphone.BackEndConfig;
 import com.example.nettytest.backend.backendphone.BackEndPhone;
 import com.example.nettytest.backend.callserver.DemoServer;
+import com.example.nettytest.pub.CallParams;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
+import com.example.nettytest.pub.result.FailReason;
+import com.example.nettytest.pub.result.OperationResult;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
 
 import java.util.ArrayList;
@@ -28,6 +30,7 @@ public class UserInterface {
     public final static int CALL_NORMAL_TYPE = 1;
     public final static int CALL_EMERGENCY_TYPE = 2;
     public final static int CALL_BROADCAST_TYPE = 3;
+    public final static int CALL_ASSIST_TYPE = 4;
 
     public final static int CALL_DIRECTION_S2C = 1;
     public final static int CALL_DIRECTION_C2S = 2;
@@ -41,9 +44,34 @@ public class UserInterface {
 
     public static DemoServer callServer=null;
 
+
     // backend
+
+    public static void InitParam(String path,String fileName){
+        PhoneParam.InitPhoneParam(path, fileName);
+    }
+    
     public static void StartServer(){
+        if(PhoneParam.serverActive)
         callServer = new DemoServer(PhoneParam.callServerPort);
+    }
+
+    public static void CreateServerDevices(){
+        if(PhoneParam.serverActive) {
+            if(!PhoneParam.serviceActive){
+                for(int iTmp=0;iTmp<PhoneParam.devicesOnServer.size();iTmp++){
+                    UserDevice dev = PhoneParam.devicesOnServer.get(iTmp);
+                    UserInterface.AddAreaInfoOnServer(dev.areaId,"");
+                    UserInterface.AddDeviceOnServer(dev.devid,dev.type,dev.netMode,dev.areaId);
+                }
+            }else{
+                HandlerMgr.StartCheckDevices(PhoneParam.serviceAddress,PhoneParam.servicePort);
+            }
+        }
+        
+        if(PhoneParam.clientActive) {
+            
+        }
     }
 
     public static OperationResult ConfigDeviceParamOnServer(String id, ArrayList<UserConfig>list){
@@ -67,9 +95,9 @@ public class UserInterface {
         
     }
 
-    public static OperationResult ConfigServerParam(BackEndConfig config){
+    public static OperationResult ConfigServerParam(String areaId,BackEndConfig config){
         OperationResult result = new OperationResult();
-        HandlerMgr.SetBackEndConfig(config);
+        HandlerMgr.SetBackEndConfig(areaId,config);
         return result;
     }
 
@@ -112,12 +140,31 @@ public class UserInterface {
 
     }
 
+    public static OperationResult AddAreaInfoOnServer(String areaId,String areaName){
+        OperationResult result = new OperationResult();
+        int failReason;
+
+        failReason = HandlerMgr.AddBackEndArea(areaId,areaName);
+        
+        if(failReason!= FailReason.FAIL_REASON_NO){
+            result.result = OperationResult.OP_RESULT_FAIL;
+            result.reason = failReason;
+        }
+        return result;
+    }
+
+
     public static OperationResult AddDeviceOnServer(String id,int type){
         return AddDeviceOnServer(id,type,UserInterface.NET_MODE_TCP);
     }
 
     public static OperationResult AddDeviceOnServer(String id,int type,int netMode){
+        return AddDeviceOnServer(id,type,netMode, BackEndZone.DEFAULT_AREA_ID);
+    }
+
+    public static OperationResult AddDeviceOnServer(String id,int type,int netMode,String area){
         OperationResult result = new OperationResult();
+        int failReason;
         int typeInServer = CALL_BED_DEVICE;
         int netType;
 
@@ -153,31 +200,37 @@ public class UserInterface {
                 break;
         }
 
-        if(!callServer.AddBackEndPhone(id, typeInServer,netType)){
+        failReason = callServer.AddBackEndPhone(id, typeInServer,netType,area);
+        if(failReason!= FailReason.FAIL_REASON_NO){
             result.result = OperationResult.OP_RESULT_FAIL;
-            result.reason = FailReason.FAIL_REASON_UNKNOW;
+            result.reason = failReason;
         }
         return result;
     }
 
-    public static ArrayList<UserDevice> GetDeviceInfoOnServer(){
-        ArrayList<UserDevice> devLists = new ArrayList<>();
-        HandlerMgr.GetBackEndPhoneInfo(devLists);
+    public static ArrayList<UserDevice> GetDeviceInfoOnServer(String areaId){
+        ArrayList<UserDevice> devLists = HandlerMgr.GetBackEndPhoneInfo(areaId);
         return devLists;
     }
 
+    public static int UpdateAreas(ArrayList<UserArea> areaList) {
+    	ArrayList<BackEndZone> list = new ArrayList<>();
+    	for(UserArea area:areaList) {
+    		BackEndZone zone = new BackEndZone(area.areaId,area.areaName);
+    		list.add(zone);
+    	}
+    	HandlerMgr.UpdateAreas(list);
+    	return 0;
+    }
 
-    public static boolean SetBackEndMessageHandler(Handler handler){
-        HandlerMgr.SetBackEndlMessageHandler(handler);
-        return true;
+    public static int UpdateAreaDevices(String areaId,ArrayList<UserDevice> devList,ArrayList<ServerDeviceInfo> infoList) {
+    	HandlerMgr.UpdateAreaDevices(areaId,devList,infoList);
+    	return 0;
     }
     
-
-    //Terminal
-
-    public static boolean SetMessageHandler(Handler handler){
-        HandlerMgr.SetTerminalMessageHandler(handler);
-        return true;
+    public static int UpdateAreaParam(String areaId,CallParams params){
+        HandlerMgr.UpdateAreaParam(areaId,params);
+        return 0;
     }
 
     public static OperationResult BuildDevice(int type, String ID) {
@@ -243,6 +296,9 @@ public class UserInterface {
             case CALL_BROADCAST_TYPE:
                 terminamCallType = CommonCall.CALL_TYPE_BROADCAST;
                 break;
+            case CALL_ASSIST_TYPE:
+                terminamCallType = CommonCall.CALL_TYPE_ASSIST;
+                break;
             default:
                 terminamCallType = CommonCall.CALL_TYPE_NORMAL;
                 break;
@@ -290,11 +346,73 @@ public class UserInterface {
         return result;
     }
 
+    public static OperationResult StopVideo(String devid,String callid){
+        int operationCode;
+        OperationResult result;
+
+        operationCode = HandlerMgr.StopTerminalVideo(devid,callid);
+        result = new OperationResult(operationCode);
+        result.callID = callid;
+        if(operationCode== ProtocolPacket.STATUS_OK)
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Stop Video in Call %s by %s success",callid,devid);
+        else
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Stop Video in Call %s by %s Fail, Reason is %s",callid,devid,FailReason.GetFailName(result.reason));
+        return result;
+    }
+
+    public static OperationResult StartVideo(String devid,String callid){
+        int operationCode;
+        OperationResult result;
+
+        operationCode = HandlerMgr.StartTerminalVideo(devid,callid);
+        result = new OperationResult(operationCode);
+        result.callID = callid;
+        if(operationCode== ProtocolPacket.STATUS_OK)
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Start Video in Call %s by %s success",callid,devid);
+        else
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Start Video in Call %s by %s Fail, Reason is %s",callid,devid,FailReason.GetFailName(result.reason));
+        return result;
+    }
+
+    public static OperationResult AnswerVideo(String devId,String callId){
+        int operationCode;
+        OperationResult result;
+
+        operationCode = HandlerMgr.AnswerTerminalVideo(devId,callId);
+        result = new OperationResult(operationCode);
+        result.callID = callId;
+        if(operationCode== ProtocolPacket.STATUS_OK)
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Answer Video in Call %s by %s success",callId,devId);
+        else
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Answer Video in Call %s by %s Fail, Reason is %s",callId,devId,FailReason.GetFailName(result.reason));
+        return result;
+    }
+
     public static OperationResult QueryDevs(String devid){
         int operationCode;
         OperationResult result;
 
         operationCode = HandlerMgr.QueryTerminalLists(devid);
+        result = new OperationResult(operationCode);
+
+        return result;
+    }
+
+    public static OperationResult SetTransferCall(String devid,String areaId,boolean state){
+        int operationCode;
+        OperationResult result;
+
+        operationCode = HandlerMgr.RequireCallTransfer(devid,areaId,state);
+        result = new OperationResult(operationCode);
+
+        return result;
+    }
+
+    public static OperationResult SetListenCall(String devid,boolean state){
+        int operationCode;
+        OperationResult result;
+
+        operationCode = HandlerMgr.RequireBedListen(devid,state);
         result = new OperationResult(operationCode);
 
         return result;
@@ -400,4 +518,6 @@ public class UserInterface {
     public static String GetModuleVer(){
         return PhoneParam.VER_STR;
     }
+    
+   
 }

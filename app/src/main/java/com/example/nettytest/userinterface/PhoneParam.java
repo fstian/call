@@ -1,13 +1,5 @@
 package com.example.nettytest.userinterface;
 
-import android.os.Environment;
-
-import com.example.nettytest.terminal.audio.Rtp;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -20,7 +12,34 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 
+import com.alibaba.fastjson.*;
+import com.example.nettytest.pub.AudioMode;
+import com.example.nettytest.pub.JsonPort;
+
 public class PhoneParam {
+    final static String JSON_SERVE_NAME = "server";
+    final static String JSON_ADDRESS_NAME = "address";
+    final static String JSON_PORT_NAME = "port";
+    final static String JSON_ACTIVE_NAME = "active";
+    final static String JSON_SNAP_PORT_NAME = "snapPort";
+    final static String JSON_NET_MODE_NAME = "netMode";
+    final static String JSON_UDP_MODE_NAME = "UDP";
+    final static String JSON_TCP_MODE_NAME = "TCP";
+    final static String JSON_SERVICE_NAME = "service";
+    
+    final static String JSON_AREAS_NAME = "areas";
+    final static String JSON_AREA_NAME_NAME = "areaName";
+    final static String JSON_START_ID_NAME = "startId";
+    final static String JSON_NUM_NAME = "num";
+
+    final static String JSON_CLIENT_NAME = "client";
+
+    final static String JSON_DEVICES_NAME = "devices";
+    final static String JSON_DEVICES_ID_NAME = "id";
+    final static String JSON_DEVICE_TYPE_NAME = "type";
+    final static String JSON_AREA_ID_NAME = "area";
+    final static String JSON_LOAD_MODE_NAME = "loadMode";
+
     final public static String CALL_SERVER_ID = "FFFFFFFF";
     final public static String BROAD_ADDRESS = "255.255.255.255";
     final public static int CLIENT_REG_EXPIRE = 60;
@@ -36,38 +55,36 @@ public class PhoneParam {
     final public static int BROADCALL_USE_UNICAST = 1;
     final public static int BROADCALL_USE_BROADCAST = 2;
 
-    final static String JSON_SERVE_NAME = "server";
     final static String JSON_SERVER_ADDRESS_NAME = "address";
     final static String JSON_SERVER_PORT_NAME = "port";
     final static String JSON_SERVER_ACTIVE_NAME = "active";
-    final static String JSON_SNAP_PORT_NAME = "snapPort";
-    final static String JSON_NET_MODE_NAME = "netMode";
-    final static String JSON_UDP_MODE_NAME = "UDP";
-    final static String JSON_TCP_MODE_NAME = "TCP";
-
-    final static String JSON_CLIENT_NAME = "client";
-
-    final static String JSON_DEVICES_NAME = "devices";
-    final static String JSON_DEVICES_ID_NAME = "id";
-    final static String JSON_DEVICE_TYPE_NAME = "type";
 
     public final static int UDP_PROTOCOL = 1;
     public final static int TCP_PROTOCOL = 2;
+
+    public static int callRtpCodec = AudioMode.RTP_CODEC_711A;
 
     public static ArrayList<UserDevice> devicesOnServer = new ArrayList<>();
     public static ArrayList<UserDevice> deviceList = new ArrayList<>();
 
     public static int callServerPort = 10002;
+    public static int callClientPort = 10002;
     public static String callServerAddress = "127.0.0.1";
     public static boolean serverActive = false;
+    public static boolean clientActive = false;
     public static int broadcallCastMode = BROADCALL_USE_BROADCAST;
     
+    public static boolean serviceActive = false;
+    public static String serviceAddress = "127.0.0.1";
+    public static int servicePort = 80;
+    
     public static int aecDelay = DEFAULT_AEC_DELAY;
-    public static int callRtpCodec = Rtp.RTP_CODEC_711A;
     public static int callRtpPTime = 20;
     public static int callRtpDataRate = 8000;
 
     public static int snapStartPort = 11005;
+    public static int transferMaxNum = 2;
+
     public final static int SNAP_MMI_GROUP = 1;
     public final static int SNAP_TERMINAL_GROUP = 2;
     public final static int SNAP_BACKEND_GROUP = 3;
@@ -77,64 +94,155 @@ public class PhoneParam {
 
     public final static String VER_STR = "1.0.1";
 
+    static private UserDevice CheckUserDevice(JSONObject device){
+        UserDevice userdev = new UserDevice();
+        String netMode;
+        
+        userdev.devid = JsonPort.GetJsonString(device,JSON_DEVICES_ID_NAME);
+        userdev.areaId = JsonPort.GetJsonString(device,JSON_AREA_ID_NAME);
+        netMode = JsonPort.GetJsonString(device,JSON_NET_MODE_NAME);
+        if(netMode.compareToIgnoreCase(JSON_UDP_MODE_NAME)==0)
+            userdev.netMode = UserInterface.NET_MODE_UDP;
+        else
+            userdev.netMode = UserInterface.NET_MODE_TCP;
+        userdev.type = UserInterface.GetDeviceType(JsonPort.GetJsonString(device,JSON_DEVICE_TYPE_NAME));
+
+        return userdev;
+    }
+
+    static private ArrayList<UserDevice> CheckUserDeviceGroup(String areaId,JSONObject devGroupJson){
+        ArrayList<UserDevice> list = new ArrayList<>();
+        String sValue;
+        long beginId = 0;
+        int num = 0;
+        int type = 0;
+        int netMode = 0;
+        int iTmp;
+        sValue = JsonPort.GetJsonString(devGroupJson,JSON_START_ID_NAME);
+        if(sValue!=null) {
+        	beginId = Integer.parseInt(sValue);
+        	num = devGroupJson.getIntValue(JSON_NUM_NAME);
+        	sValue = JsonPort.GetJsonString(devGroupJson,JSON_NET_MODE_NAME);
+            if(sValue.compareToIgnoreCase(JSON_UDP_MODE_NAME)==0)
+                netMode = UserInterface.NET_MODE_UDP;
+            else
+                netMode = UserInterface.NET_MODE_TCP;
+            type = UserInterface.GetDeviceType(JsonPort.GetJsonString(devGroupJson,JSON_DEVICE_TYPE_NAME));
+            
+            for(iTmp=0;iTmp<num;iTmp++) {
+            	UserDevice dev = new UserDevice();
+            	dev.areaId = areaId;
+            	dev.devid = String.format("%d", beginId+iTmp);
+            	dev.type = type;
+            	dev.netMode = netMode;
+            	list.add(dev);
+            }
+        }
+        return list;
+    }
+
     static void InitServerAndDevicesConfig(String info){
         JSONObject json;
+        JSONObject serviceJson;
         JSONObject serverJson;
         JSONObject clientJson;
         JSONArray devicesJson;
+        JSONObject deviceGroupJson;
         JSONObject device;
+        JSONArray areasJson;
+        JSONObject areaJson;
         UserDevice userdev;
-        String netMode;
-        int iTmp;
+        int iTmp,jTmp;
+        
         try {
-            json = new JSONObject(info);
-            snapStartPort = json.getInt(JSON_SNAP_PORT_NAME);
+            json = JSONObject.parseObject(info);
+            snapStartPort = json.getIntValue(JSON_SNAP_PORT_NAME);
             serverJson = json.getJSONObject(JSON_SERVE_NAME);
-
+            serviceJson = json.getJSONObject(JSON_SERVICE_NAME);
             clientJson = json.getJSONObject(JSON_CLIENT_NAME);
-            callServerPort = serverJson.optInt(JSON_SERVER_PORT_NAME);
-            serverActive = serverJson.optBoolean(JSON_SERVER_ACTIVE_NAME);
+
+            if(serviceJson!=null){
+                serviceAddress = JsonPort.GetJsonString(serviceJson,JSON_ADDRESS_NAME);
+                servicePort = serviceJson.getIntValue(JSON_PORT_NAME);
+                serviceActive = serviceJson.getBooleanValue(JSON_ACTIVE_NAME);
+            }
+
+            if(serverJson!=null){
+                callServerPort = serverJson.getIntValue(JSON_PORT_NAME);
+                serverActive = serverJson.getBooleanValue(JSON_ACTIVE_NAME);
             devicesJson = serverJson.getJSONArray(JSON_DEVICES_NAME);
+                areasJson = serverJson.getJSONArray(JSON_AREAS_NAME);
+
             devicesOnServer.clear();
-            for(iTmp=0;iTmp<devicesJson.length();iTmp++){
+                if(devicesJson!=null&&serverActive&&!serviceActive){
+                    for(iTmp=0;iTmp<devicesJson.size();iTmp++){
                 device = devicesJson.getJSONObject(iTmp);
-                userdev = new UserDevice();
-                userdev.devid = device.optString(JSON_DEVICES_ID_NAME);
-                netMode = device.optString(JSON_NET_MODE_NAME);
-                if(netMode.compareToIgnoreCase(JSON_UDP_MODE_NAME)==0)
-                    userdev.netMode = UserInterface.NET_MODE_UDP;
-                else
-                    userdev.netMode = UserInterface.NET_MODE_TCP;
-                userdev.type = UserInterface.GetDeviceType(device.optString(JSON_DEVICE_TYPE_NAME));
+                        userdev = CheckUserDevice(device);
                 devicesOnServer.add(userdev);
             }
-
-            callServerPort = clientJson.optInt(JSON_SERVER_PORT_NAME);
-            callServerAddress = clientJson.optString(JSON_SERVER_ADDRESS_NAME);
-            devicesJson = clientJson.getJSONArray(JSON_DEVICES_NAME);
-            deviceList.clear();
-            for (iTmp = 0; iTmp < devicesJson.length(); iTmp++) {
-                device = devicesJson.getJSONObject(iTmp);
-                userdev = new UserDevice();
-                userdev.devid = device.optString(JSON_DEVICES_ID_NAME);
-                netMode = device.optString(JSON_NET_MODE_NAME);
-                if(netMode.compareToIgnoreCase(JSON_UDP_MODE_NAME)==0)
-                    userdev.netMode = UserInterface.NET_MODE_UDP;
-                else
-                    userdev.netMode = UserInterface.NET_MODE_TCP;
-                userdev.type = UserInterface.GetDeviceType(device.optString(JSON_DEVICE_TYPE_NAME));
-                deviceList.add(userdev);
+                }
+                if(areasJson!=null&&!serviceActive){
+                    for(iTmp=0;iTmp<areasJson.size();iTmp++){
+                        areaJson = areasJson.getJSONObject(iTmp);
+                        String areaId = JsonPort.GetJsonString(areaJson,JSON_AREA_ID_NAME);
+                        String areaName = JsonPort.GetJsonString(areaJson,JSON_AREA_NAME_NAME);
+                        UserInterface.AddAreaInfoOnServer(areaId,areaName);
+                        devicesJson = areaJson.getJSONArray(JSON_DEVICES_NAME);       
+                        if(devicesJson!=null){
+                            for(jTmp=0;jTmp<devicesJson.size();jTmp++){
+                                deviceGroupJson = devicesJson.getJSONObject(jTmp);
+                                ArrayList<UserDevice> devGropu = CheckUserDeviceGroup(areaId,deviceGroupJson);
+                                devicesOnServer.addAll(devGropu);
+                            }
+                        }
+                    }
+                }
             }
 
+            if(clientJson!=null){
+                callClientPort = clientJson.getIntValue(JSON_PORT_NAME);
+                callServerAddress = JsonPort.GetJsonString(clientJson,JSON_ADDRESS_NAME);
+            devicesJson = clientJson.getJSONArray(JSON_DEVICES_NAME);
+                areasJson = clientJson.getJSONArray(JSON_AREAS_NAME);
+                clientActive = clientJson.getBooleanValue(JSON_ACTIVE_NAME);
+                
+            deviceList.clear();
+                if(devicesJson!=null&&clientActive){
+                    for (iTmp = 0; iTmp < devicesJson.size(); iTmp++) {
+                device = devicesJson.getJSONObject(iTmp);
+                        userdev = CheckUserDevice(device);
+                deviceList.add(userdev);
+            }
+                }
+
+                if(areasJson!=null&&clientActive){
+                    for(iTmp=0;iTmp<areasJson.size();iTmp++){
+                        areaJson = areasJson.getJSONObject(iTmp);
+                        String areaId = JsonPort.GetJsonString(areaJson,JSON_AREA_ID_NAME);
+                        String areaName = JsonPort.GetJsonString(areaJson,JSON_AREA_NAME_NAME);
+                        UserInterface.AddAreaInfoOnServer(areaId,areaName);
+                        devicesJson = areaJson.getJSONArray(JSON_DEVICES_NAME);       
+                        if(devicesJson!=null){
+                            for(jTmp=0;jTmp<devicesJson.size();jTmp++){
+                                deviceGroupJson = devicesJson.getJSONObject(jTmp);
+                                ArrayList<UserDevice> devGropu = CheckUserDeviceGroup(areaId,deviceGroupJson);
+                                deviceList.addAll(devGropu);
+                            }
+                        }
+                    }
+                }
+            }
         } catch (JSONException e) {
             e.printStackTrace();
         }
     }
 
-    public static void InitPhoneParam(){
-        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-            File configFile = new File(Environment.getExternalStorageDirectory(), "devConfig.conf");
-//            File configFile = new File("/storage/self/primary/", "devConfig.conf");
+    public static void InitPhoneParam(String path,String fileName){
+    	String dir = System.getProperty("user.home");
+        System.out.println("------------------------------->File Path is "+dir);
+
+        File configFile = new File(path, fileName);
+
             try {
                 if (configFile.exists()) {
                     FileInputStream finput = new FileInputStream(configFile);
@@ -159,17 +267,16 @@ public class PhoneParam {
                 e.printStackTrace();
             }
         }
-    }
 
     public static String GetLocalAddress(){
         String address= "";
         String curAddress;
         int iMatchNum = 0;
         String[] serverIp;
+        String prioName="wlan";
 
         serverIp = callServerAddress.split("\\.");
         int len = serverIp.length;
-        String prioName = "wlan";
 
         try {
             for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {

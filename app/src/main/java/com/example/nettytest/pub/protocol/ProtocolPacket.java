@@ -7,11 +7,17 @@ public class ProtocolPacket {
     public final static String PACKET_SENDERID_NAME = "SenderID";
     public final static String PACKET_RECEIVERID_NAME = "receiverID";
     public final static String PACKET_CONTEXT_NAME = "context";
+    public final static String PACKET_LISTEN_STATE_NAME = "listenState";
+    public final static String PACKET_TRANSFER_STATE_NAME = "transferState";
 
     public final static String PACKET_DEVTYPE_NAME = "deviceType";
     public final static String PACKET_DEVID_NAME = "deviceID";
     public final static String PACKET_ADDRESS_NAME = "localIP";
     public final static String PACKET_EXPIRE_NAME = "expireTime";
+
+    public final static String PACKET_AREAID_NAME  = "areaId";
+    public final static String PACKET_TRANSFER_AREAID_NAME  = "transferAreaId";
+    public final static String PACKET_AREANAME_NAME  = "areaName";
 
     public final static String PACKET_STATUS_NAME = "status";
     public final static String PACKET_RESULT_NAME = "result";
@@ -62,6 +68,20 @@ public class ProtocolPacket {
     public final static int DEV_CONFIG_RES = 108;
     public final static int SYSTEM_CONFIG_REQ = 9;
     public final static int SYSTEM_CONFIG_RES = 109;
+    public final static int CALL_TRANSFER_REQ = 10;
+    public final static int CALL_TRANSFER_RES = 110;
+    public final static int CALL_LISTEN_REQ = 11;
+    public final static int CALL_LISTEN_RES = 111;
+
+    public final static int CALL_VIDEO_INVITE_REQ = 12;
+    public final static int CALL_VIDEO_INVITE_RES = 112;
+
+    public final static int CALL_VIDEO_ANSWER_REQ = 13;
+    public final static int CALL_VIDEO_ANSWER_RES = 113;
+    
+
+    public final static int CALL_VIDEO_END_REQ = 14;
+    public final static int CALL_VIDEO_END_RES = 114;
 
     public final static int MAX_REQ_TYPE = 100;
     public final static int UNKNOW_CMD_RES = 200;
@@ -203,6 +223,36 @@ public class ProtocolPacket {
                 break;
             case SYSTEM_CONFIG_RES:
                 packetTypeName = "System_Config_res";
+                break;
+            case CALL_TRANSFER_REQ:
+                packetTypeName = "Call_Transfer_req";
+                break;
+            case CALL_TRANSFER_RES:
+                packetTypeName = "Call_Transfer_res";
+                break;
+            case CALL_LISTEN_REQ:
+                packetTypeName = "Call_Listen_req";
+                break;
+            case CALL_LISTEN_RES:
+                packetTypeName = "Call_Listen_res";
+                break;
+            case CALL_VIDEO_INVITE_REQ:
+                packetTypeName = "Video_Invite_req";
+                break;
+            case CALL_VIDEO_INVITE_RES:
+                packetTypeName = "Video_Invite_res";
+                break;
+            case CALL_VIDEO_END_REQ:
+                packetTypeName = "Video_End_req";
+                break;
+            case CALL_VIDEO_END_RES:
+                packetTypeName = "Video_End_res";
+                break;
+            case CALL_VIDEO_ANSWER_REQ:
+                packetTypeName = "Video_Answer_req";
+                break;
+            case CALL_VIDEO_ANSWER_RES:
+                packetTypeName = "Video_Answer_res";
                 break;
         }
         return packetTypeName;

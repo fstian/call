@@ -1,6 +1,7 @@
 package com.example.nettytest.userinterface;
 
-import com.example.nettytest.pub.phonecall.CommonCall;
+import com.example.nettytest.pub.result.FailReason;
+import com.example.nettytest.pub.AudioMode;
 
 public class UserCallMessage extends UserMessage {
 
@@ -22,6 +23,16 @@ public class UserCallMessage extends UserMessage {
     public String bedName;
     public String roomId;
 
+    public String remoteRtpAddress;
+    public int remoteRtpPort;
+    public int localRtpPort;
+
+    public int rtpCodec;
+    public int rtpPTime;
+    public int rtpSample;
+
+    public int audioMode;
+
     public UserCallMessage(){
         super();
         type = CALL_MESSAGE_UNKONWQ;
@@ -40,6 +51,16 @@ public class UserCallMessage extends UserMessage {
         patientAge = "18";
         bedName = "";
         roomId = "";
+
+        remoteRtpAddress = "";
+        remoteRtpPort = PhoneParam.INVITE_CALL_RTP_PORT;
+        localRtpPort = PhoneParam.INVITE_CALL_RTP_PORT;
+
+        rtpCodec= PhoneParam.callRtpCodec;
+        rtpPTime = PhoneParam.callRtpPTime;
+        rtpSample = PhoneParam.callRtpDataRate;
+
+        audioMode = AudioMode.NO_SEND_RECV_MODE;
     }
 
 }

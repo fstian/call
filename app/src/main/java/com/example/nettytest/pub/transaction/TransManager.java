@@ -1,13 +1,10 @@
 package com.example.nettytest.pub.transaction;
 
+import com.alibaba.fastjson.*;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.SystemSnap;
 import com.example.nettytest.pub.protocol.ProtocolFactory;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -208,22 +205,22 @@ public class TransManager {
                         resList.add(res);
                     }
                     resourceInfo = new JSONObject();
-                    resourceInfo.putOpt(SystemSnap.SNAP_CMD_TYPE_NAME, cmdType);
+                    resourceInfo.put(SystemSnap.SNAP_CMD_TYPE_NAME, cmdType);
                     transArray = new JSONArray();
-                    resourceInfo.putOpt(SystemSnap.SNAP_TRANS_NAME,transArray);
+                    resourceInfo.put(SystemSnap.SNAP_TRANS_NAME,transArray);
                 }
                 JSONObject tranJson = new JSONObject();
-                tranJson.putOpt(SystemSnap.SNAP_DEVID_NAME,info.devId);
-                tranJson.putOpt(SystemSnap.SNAP_MSGID_NAME,info.msgId);
-                tranJson.putOpt(SystemSnap.SNAP_SENDER_NAME,info.sender);
-                tranJson.putOpt(SystemSnap.SNAP_RECEIVER_NAME,info.receiver);
-                tranJson.putOpt(SystemSnap.SNAP_TRANSTYPE_NAME,info.type);
-                transArray.put(tranJson);
+                tranJson.put(SystemSnap.SNAP_DEVID_NAME,info.devId);
+                tranJson.put(SystemSnap.SNAP_MSGID_NAME,info.msgId);
+                tranJson.put(SystemSnap.SNAP_SENDER_NAME,info.sender);
+                tranJson.put(SystemSnap.SNAP_RECEIVER_NAME,info.receiver);
+                tranJson.put(SystemSnap.SNAP_TRANSTYPE_NAME,info.type);
+                transArray.add(tranJson);
                 iCount++;
             }
 
             if(transArray!=null){
-                if(transArray.length()>0){
+                if(transArray.size()>0){
                     res = resourceInfo.toString().getBytes();
                     resList.add(res);
                 }

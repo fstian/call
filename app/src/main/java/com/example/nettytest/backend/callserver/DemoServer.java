@@ -2,7 +2,6 @@ package com.example.nettytest.backend.callserver;
 
 import com.example.nettytest.backend.servernet.NettyTestServer;
 import com.example.nettytest.pub.HandlerMgr;
-import com.example.nettytest.userinterface.PhoneParam;
 
 
 public class DemoServer {
@@ -10,9 +9,10 @@ public class DemoServer {
     Thread serverThread = null;
     UdpServer udpServer = null;
 
-    public DemoServer(int port){
+    public DemoServer(final int port){
         
-        serverThread = new Thread(){
+        serverThread = new Thread("DemoServer"){
+
             @Override
             public void run() {
                 NettyTestServer testServer = new NettyTestServer(port);
@@ -32,8 +32,8 @@ public class DemoServer {
 
     }
 
-    public boolean AddBackEndPhone(String id,int type,int netMode){
-        return HandlerMgr.AddBackEndPhone(id,type,netMode);
+    public int AddBackEndPhone(String id,int type,int netMode,String area){
+        return HandlerMgr.AddBackEndPhone(id,type,netMode,area);
     }
 
     public void StopServer(){

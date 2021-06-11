@@ -1,16 +1,23 @@
 package com.example.nettytest.terminal.terminalcall;
 
+import com.alibaba.fastjson.*;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.SystemSnap;
 import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.pub.protocol.AnswerReqPack;
 import com.example.nettytest.pub.protocol.AnswerResPack;
+import com.example.nettytest.pub.protocol.AnswerVideoReqPack;
+import com.example.nettytest.pub.protocol.AnswerVideoResPack;
 import com.example.nettytest.pub.protocol.EndReqPack;
 import com.example.nettytest.pub.protocol.EndResPack;
 import com.example.nettytest.pub.protocol.InviteReqPack;
 import com.example.nettytest.pub.protocol.InviteResPack;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
+import com.example.nettytest.pub.protocol.StartVideoReqPack;
+import com.example.nettytest.pub.protocol.StartVideoResPack;
+import com.example.nettytest.pub.protocol.StopVideoReqPack;
+import com.example.nettytest.pub.protocol.StopVideoResPack;
 import com.example.nettytest.pub.protocol.UpdateReqPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.pub.transaction.Transaction;
@@ -18,9 +25,6 @@ import com.example.nettytest.terminal.terminalphone.TerminalPhone;
 import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.HashMap;
 
@@ -41,24 +45,24 @@ public class TerminalCallManager {
     public byte[] MakeCallSnap(String devId,boolean isReg){
         JSONObject json = new JSONObject();
         try {
-            json.putOpt(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_TERMINAL_CALL_RES);
+            json.put(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_TERMINAL_CALL_RES);
             JSONArray callArray = new JSONArray();
-            json.putOpt(SystemSnap.SNAP_DEVID_NAME,devId);
+            json.put(SystemSnap.SNAP_DEVID_NAME,devId);
             if(isReg)
-                json.putOpt(SystemSnap.SNAP_REG_NAME,1);
+                json.put(SystemSnap.SNAP_REG_NAME,1);
             else
-                json.putOpt(SystemSnap.SNAP_REG_NAME,0);
-            json.putOpt(SystemSnap.SNAP_VER_NAME, PhoneParam.VER_STR);
+                json.put(SystemSnap.SNAP_REG_NAME,0);
+            json.put(SystemSnap.SNAP_VER_NAME, PhoneParam.VER_STR);
             for(TerminalCall call:callLists.values()){
                 JSONObject callJson = new JSONObject();
-                callJson.putOpt(SystemSnap.SNAP_CALLID_NAME,call.callID);
-                callJson.putOpt(SystemSnap.SNAP_CALLER_NAME,call.caller);
-                callJson.putOpt(SystemSnap.SNAP_CALLEE_NAME,call.callee);
-                callJson.putOpt(SystemSnap.SNAP_ANSWERER_NAME,call.answer);
-                callJson.putOpt(SystemSnap.SNAP_CALLSTATUS_NAME,call.state);
-                callArray.put(callJson);
+                callJson.put(SystemSnap.SNAP_CALLID_NAME,call.callID);
+                callJson.put(SystemSnap.SNAP_CALLER_NAME,call.caller);
+                callJson.put(SystemSnap.SNAP_CALLEE_NAME,call.callee);
+                callJson.put(SystemSnap.SNAP_ANSWERER_NAME,call.answer);
+                callJson.put(SystemSnap.SNAP_CALLSTATUS_NAME,call.state);
+                callArray.add(callJson);
             }
-            json.putOpt(SystemSnap.SNAP_CALLS_NAME,callArray);
+            json.put(SystemSnap.SNAP_CALLS_NAME,callArray);
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -94,6 +98,42 @@ public class TerminalCallManager {
         return result;
     }
 
+    public int StartVideo(String id,String callid){
+        int result = ProtocolPacket.STATUS_NOTFOUND;
+        TerminalCall call = callLists.get(callid);
+        if(call!=null){
+            result = call.StartVideo();
+        }else{
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_ERROR,"DEV %s Start Video in Call Fail, Could not find Call %s",id,callid);
+        }
+
+        return result;
+    }
+
+    public int AnswerVideo(String id,String callid){
+        int result = ProtocolPacket.STATUS_NOTFOUND;
+        TerminalCall call = callLists.get(callid);
+        if(call!=null){
+            result = call.AnswerVideo();
+        }else{
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_ERROR,"DEV %s Answer Video in Call Fail, Could not find Call %s",id,callid);
+        }
+
+        return result;
+    }
+
+    public int StopVideo(String id,String callid){
+        int result = ProtocolPacket.STATUS_NOTFOUND;
+        TerminalCall call = callLists.get(callid);
+        if(call!=null){
+            result = call.StopVideo();
+        }else{
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_ERROR,"DEV %s Stop Video in Call Fail, Could not find Call %s",id,callid);
+        }
+
+        return result;
+    }
+
     public String BuildCall(String devID, TerminalDeviceInfo info,String dstID, int callType){
         String callid;
         TerminalCall call;
@@ -117,7 +157,7 @@ public class TerminalCallManager {
         return callid;
     }
 
-    public void RecvIncomingCall(InviteReqPack packet){
+    public void RecvIncomingCall(String devId,InviteReqPack packet){
         int result = ProtocolPacket.STATUS_OK;
         TerminalCall call;
 
@@ -145,9 +185,9 @@ public class TerminalCallManager {
         }
 
         if(result!=ProtocolPacket.STATUS_OK){
-            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"DEV %s Reject Call From %s for reason %s",packet.callee,packet.caller,ProtocolPacket.GetResString(result));
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"DEV %s Reject Call From %s for reason %s",devId,packet.caller,ProtocolPacket.GetResString(result));
             InviteResPack inviteResPack = new InviteResPack(result,packet);
-            Transaction trans = new Transaction(packet.callee,packet,inviteResPack,Transaction.TRANSCATION_DIRECTION_C2S);
+            Transaction trans = new Transaction(packet.caller,packet,inviteResPack,Transaction.TRANSCATION_DIRECTION_C2S);
             HandlerMgr.AddPhoneTrans(packet.msgID, trans);
         }
 
@@ -184,6 +224,49 @@ public class TerminalCallManager {
             EndResPack endResP = new EndResPack(ProtocolPacket.STATUS_NOTFOUND,endReqP);
             Transaction trans = new Transaction(devid,endReqP,endResP,Transaction.TRANSCATION_DIRECTION_C2S);
             HandlerMgr.AddPhoneTrans(endResP.msgID,trans);
+        }
+    }
+
+    public void RecvStartVideoReq(String devid, StartVideoReqPack startVideoReqP){
+        String callid = startVideoReqP.callID;
+        TerminalCall call = callLists.get(callid);
+
+        if(call!=null){
+            call.RecvStartVideoReq(startVideoReqP);
+        }else{
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone %s Recv Start Video For Call %s , but Could not Find it",devid,callid);
+            StartVideoResPack startVideoResP = new StartVideoResPack(ProtocolPacket.STATUS_NOTFOUND,startVideoReqP);
+            Transaction trans = new Transaction(devid,startVideoReqP,startVideoResP,Transaction.TRANSCATION_DIRECTION_C2S);
+            HandlerMgr.AddPhoneTrans(startVideoResP.msgID,trans);
+        }
+
+    }
+
+    public void RecvAnswerVideoReq(String devid, AnswerVideoReqPack answerVideoReqP){
+        String callid = answerVideoReqP.callId;
+        TerminalCall call = callLists.get(callid);
+
+        if(call!=null){
+            call.RecvAnswerVideoReq(answerVideoReqP);
+        }else{
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone %s Recv Answer Video For Call %s , but Could not Find it",devid,callid);
+            AnswerVideoResPack answerVideoResP = new AnswerVideoResPack(ProtocolPacket.STATUS_NOTFOUND,answerVideoReqP);
+            Transaction trans = new Transaction(devid,answerVideoReqP,answerVideoResP,Transaction.TRANSCATION_DIRECTION_C2S);
+            HandlerMgr.AddPhoneTrans(answerVideoResP.msgID,trans);
+        }
+    }
+
+    public void RecvStopVideoReq(String devid, StopVideoReqPack stopVideoReqP){
+        String callid = stopVideoReqP.callID;
+        TerminalCall call = callLists.get(callid);
+
+        if(call!=null){
+            call.RecvStopVideoReq(stopVideoReqP);
+        }else{
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone %s Recv Stop Video For Call %s , but Could not Find it",devid,callid);
+            StopVideoResPack stopVideoResP = new StopVideoResPack(ProtocolPacket.STATUS_NOTFOUND,stopVideoReqP);
+            Transaction trans = new Transaction(devid,stopVideoReqP,stopVideoResP,Transaction.TRANSCATION_DIRECTION_C2S);
+            HandlerMgr.AddPhoneTrans(stopVideoResP.msgID,trans);
         }
     }
 
