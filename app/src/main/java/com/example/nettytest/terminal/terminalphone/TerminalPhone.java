@@ -236,7 +236,7 @@ public class TerminalPhone extends PhoneDevice {
             if(transferMsg.state)
                 LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Set Call Transfer to %s Success ",id,transferMsg.transferAreaId);
             else
-                LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Clear Call Transfer to %s Success ",id,transferMsg.transferAreaId);
+                LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Clear Call Transfer Success ",id);
 
         }else{
             transferMsg.type = UserMessage.CALL_TRANSFER_FAIL;
@@ -260,9 +260,9 @@ public class TerminalPhone extends PhoneDevice {
                 LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Set Call Listen Succ",id);
             else
                 LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Clear Call Listen Succ",id);
-
+            isListenCall = p.state;
         }else{
-            listenMsg.type = UserMessage.CALL_LISTEN_SUCC;
+            listenMsg.type = UserMessage.CALL_LISTEN_FAIL;
             LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Set Call Listen Fail, result is %s ",id,p.result);
         }
 

@@ -381,9 +381,6 @@ public class HandlerMgr {
         return backEndPhoneMgr.GetListenDevices(areaId,callType);
     }
 
-    static public boolean CheckForwardEnable(BackEndPhone phone, int callType){
-        return backEndPhoneMgr.CheckForwardEnable(phone,callType);
-    }
 
     public static ArrayList<byte[]> GetBackEndTransInfo(){
         return backEndTransMgr.GetTransactionDetail(SystemSnap.SNAP_BACKEND_TRANS_RES);

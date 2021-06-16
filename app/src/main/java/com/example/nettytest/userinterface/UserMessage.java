@@ -122,6 +122,20 @@ public class UserMessage {
                 msgName = "Video End";
                 break;
 
+            case CALL_LISTEN_SUCC:
+                msgName = "Listen End";
+                break;
+            case CALL_TRANSFER_SUCC:
+                msgName = "Transfer Succ";
+                break;
+
+            case CALL_TRANSFER_FAIL:
+                msgName = "Transfer Fail";
+                break;
+            case CALL_LISTEN_FAIL:
+                msgName = "Listen Fail";
+                break;
+
             default:
                 msgName = "Message Unknow DD";
                 break;
