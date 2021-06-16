@@ -11,6 +11,7 @@ import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Message;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -42,6 +43,7 @@ import com.example.nettytest.userinterface.UserVideoMessage;
 import com.usecomcalllib.androidPort.CallMsgReceiver;
 import com.example.nettytest.userinterface.UserMessage;
 import com.example.nettytest.userinterface.UserRegMessage;
+import com.usecomcalllib.androidTest.TestArea;
 import com.usecomcalllib.androidTest.TestDevice;
 
 import org.json.JSONException;
@@ -58,13 +60,15 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 
-public class MainActivity extends AppCompatActivity {
+public class    MainActivity extends AppCompatActivity {
 
 
 
     private class AudioTest{
 
-        TestDevice[] testDevices;
+        ArrayList<TestArea> testAreas;
+        
+        TestArea curArea;
         TestDevice curDevice;
 
         DatagramSocket testSocket;
@@ -73,6 +77,10 @@ public class MainActivity extends AppCompatActivity {
         boolean isTestFlag = false;
 
         boolean isUIActive = false;
+
+        public AudioTest(){
+            testAreas = new ArrayList<>();
+        }
     }
 
     int iTestCount = 0;
@@ -88,26 +96,36 @@ public class MainActivity extends AppCompatActivity {
 
     private void CreateAudioTest(){
         if(!isAudioTestCreate){
-            System.out.println(String.format("screen CreateAudioTest create server and clients"));
-            audioTest = new AudioTest();
-            isAudioTestCreate = true;
+            new Thread("InitDevices"){
+                @Override
+                public void run() {
+                    audioTest = new AudioTest();
 
-            InitAudioDevice();
-            InitServer();
+                    new CallMessageProcess().start();
 
-            new CallMessageProcess().start();
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Begin Init Audio Test");
+                    System.out.println(String.format("screen CreateAudioTest create server and clients"));
+                    isAudioTestCreate = true;
+
+                    InitAudioDevice();
+                    InitServer();
+
+                    audioTest.isUIActive = true;
+
+                    if(terminalCallMessageHandler!=null){
+                        Message initMsg = terminalCallMessageHandler.obtainMessage();
+                        initMsg.arg1 = UserMessage.MESSAGE_INIT_FINISHED;
+                        initMsg.obj = null;
+                        terminalCallMessageHandler.sendMessage(initMsg);
+                    }
+                    
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Finished Init Audio Test");
+                }
+            }.start();
         }
     }
 
     private void ReplaceDevice(String id,TestDevice dev){
-        for(int iTmp=0;iTmp<audioTest.testDevices.length;iTmp++){
-            if(audioTest.testDevices[iTmp].devid.compareToIgnoreCase(id)==0){
-                if(audioTest.curDevice == audioTest.testDevices[iTmp]) {
-                    audioTest.curDevice = dev;
-                }
-                audioTest.testDevices[iTmp] = dev;
-            }
-        }
     }
 
 
@@ -130,29 +148,29 @@ public class MainActivity extends AppCompatActivity {
                 }else{
                     curAreaId = dev.areaId;
                     if(dev.transferAreaId.isEmpty()){
-                        for(TestDevice checkDev:audioTest.testDevices){
-                            if(curAreaId.compareToIgnoreCase(checkDev.areaId)!=0){
-                                if(!checkDev.areaId.isEmpty()){
-                                    transferAreaId = checkDev.areaId;
+                        for(TestArea area:audioTest.testAreas){
+                            if(curAreaId.compareToIgnoreCase(area.areaId)!=0){
+                                if(!area.areaId.isEmpty()){
+                                    transferAreaId = area.areaId;
                                     break;
                                 }
                             }
                         }
                         if(!transferAreaId.isEmpty()) {
-                            UserInterface.CallTransfer(dev.devid, transferAreaId, true);
+                            UserInterface.SetTransferCall(dev.devid, transferAreaId, true);
                             UserInterface.PrintLog("Dev %s Set Transfer to %", dev.devid, transferAreaId);
                         }
                     }else{
-                        UserInterface.CallTransfer(dev.devid, "", false);
+                        UserInterface.SetTransferCall(dev.devid, "", false);
                         UserInterface.PrintLog("Dev %s Clear Transfer Status",dev.devid);
                     }
                 }
             }else if(dev.type==UserInterface.CALL_BED_DEVICE){
                 listenCall = dev.bedlistenCalls;
                 if(listenCall){
-                    UserInterface.SetBedListenCall(dev.devid,false);
+                    UserInterface.SetListenCall(dev.devid,false);
                 }else{
-                    UserInterface.SetBedListenCall(dev.devid,true);
+                    UserInterface.SetListenCall(dev.devid,true);
                 }
             }
 
@@ -160,22 +178,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void InitAudioDevice(){
+        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Begin Read Params");
         PhoneParam.InitPhoneParam("/sdcard/","devConfig.conf");
+        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Finished Read Params");
         int deviceNum = PhoneParam.deviceList.size();
         int iTmp;
-        if(deviceNum>=1) {
-            audioTest.testDevices = new TestDevice[deviceNum];
+        UserDevice dev;
+        TestArea matchedArea;
+        TestDevice device;
+        
+        if(!PhoneParam.clientActive)
+            return;
 
-            for (iTmp = 0; iTmp < deviceNum; iTmp++) {
-                System.out.println("deviceList has "+PhoneParam.deviceList.size()+" items, try to get "+iTmp+ " item");
-                UserDevice dev = PhoneParam.deviceList.get(iTmp);
-                audioTest.testDevices[iTmp] = new TestDevice(dev.type, dev.devid,dev.netMode);
-            }
-        }else{
-            audioTest.testDevices = new TestDevice[1];
-            audioTest.testDevices[0] = new TestDevice(UserInterface.CALL_BED_DEVICE,"20105101");
-        }
-        audioTest.curDevice = audioTest.testDevices[0];
         try {
             audioTest.testSocket = new DatagramSocket(PhoneParam.snapStartPort);
         }catch (SocketException e){
@@ -188,6 +202,7 @@ public class MainActivity extends AppCompatActivity {
                 byte[] recvBuf = new byte[1024];
                 DatagramPacket recvPack;
                 while (!audioTest.testSocket.isClosed()) {
+                    java.util.Arrays.fill(recvBuf,(byte)0);
                     recvPack = new DatagramPacket(recvBuf, recvBuf.length);
                     try {
                         audioTest.testSocket.receive(recvPack);
@@ -206,11 +221,13 @@ public class MainActivity extends AppCompatActivity {
 
                                 info.timeUnit = timeUnit;
 
-                                for (TestDevice dev : audioTest.testDevices) {
-                                    if (dev == null)
-                                        break;
-                                    dev.SetTestInfo(info);
+                                for(TestArea area:audioTest.testAreas){
+                                    for (TestDevice dev : area.devList) {
+                                        if (dev == null)
+                                            break;
+                                        dev.SetTestInfo(info);
 
+                                    }
                                 }
 
                                 if (info.isAutoTest) {
@@ -220,14 +237,14 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             } else if (type == SystemSnap.SNAP_MMI_CALL_REQ) {
                                 String devId = json.optString(SystemSnap.SNAP_DEVID_NAME);
-                                for (TestDevice dev : audioTest.testDevices) {
-                                    if (dev == null)
-                                        break;
-                                    if (dev.devid.compareToIgnoreCase(devId) == 0) {
-                                        byte[] resBuf = dev.MakeSnap();
-//                                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Get User Call Snap for dev %s, total %d bytes, send to %s:%d",devId,resBuf.length,recvPack.getAddress().getHostName(),recvPack.getPort());
-                                        DatagramPacket resPack = new DatagramPacket(resBuf, resBuf.length, recvPack.getAddress(), recvPack.getPort());
-                                        audioTest.testSocket.send(resPack);
+                                for(TestArea area:audioTest.testAreas){
+                                    for (TestDevice dev : area.devList) {
+                                        if (dev.devid.compareToIgnoreCase(devId) == 0) {
+                                            byte[] resBuf = dev.MakeSnap();
+                                            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Get User Call Snap for dev %s, total %d bytes, send to %s:%d",devId,resBuf.length,recvPack.getAddress().getHostName(),recvPack.getPort());
+                                            DatagramPacket resPack = new DatagramPacket(resBuf, resBuf.length, recvPack.getAddress(), recvPack.getPort());
+                                            audioTest.testSocket.send(resPack);
+                                        }
                                     }
                                 }
                             }
@@ -240,6 +257,34 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }.start();
+        
+        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Begin Add Client Device");
+        for(iTmp=0;iTmp<deviceNum;iTmp++){
+            dev = PhoneParam.deviceList.get(iTmp);
+            matchedArea = null;
+            if(!dev.areaId.isEmpty()){
+                device = new TestDevice(dev.type, dev.devid,dev.netMode);
+                if(audioTest.curDevice==null){
+                    audioTest.curDevice = device;
+                }
+                for(TestArea area:audioTest.testAreas){
+                    if(area.areaId.compareToIgnoreCase(dev.areaId)==0){
+                        matchedArea = area;
+                        break;
+                    }
+                }                
+                if(matchedArea==null){
+                    matchedArea = new TestArea(dev.areaId);
+                    if(audioTest.curArea==null){
+                        audioTest.curArea = matchedArea;
+                    }
+                    audioTest.testAreas.add(matchedArea);
+                }
+                matchedArea.AddTestDevice(device);
+                device.StartDevice();
+            }
+        }
+        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Finished Add Client Device");
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -257,8 +302,6 @@ public class MainActivity extends AppCompatActivity {
 
             CreateAudioTest();
 
-            InitGui();
-
             uiUpdateTimer = new Timer("UiUpdateTimer");
             uiUpdateTimer.schedule(new TimerTask() {
                 @SuppressLint("DefaultLocale")
@@ -266,14 +309,16 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     runOnUiThread(() -> {
                         TextView tv;
-                        if (audioTest.isUIActive) {
-                            tv = findViewById(R.id.runTimeId);
-                            if (audioTest.isTestFlag) {
-                                long testTime = System.currentTimeMillis() - audioTest.testStartTime;
-                                testTime = testTime / 1000;
-                                tv.setText(String.format("R: %d-%02d:%02d:%02d", testTime / 86400, (testTime % 86400) / 3600, (testTime % 3600) / 60, testTime % 60));
-                            } else {
-                                tv.setText("");
+                        if(audioTest!=null) {
+                            if (audioTest.isUIActive) {
+                                tv = findViewById(R.id.runTimeId);
+                                if (audioTest.isTestFlag) {
+                                    long testTime = System.currentTimeMillis() - audioTest.testStartTime;
+                                    testTime = testTime / 1000;
+                                    tv.setText(String.format("R: %d-%02d:%02d:%02d", testTime / 86400, (testTime % 86400) / 3600, (testTime % 3600) / 60, testTime % 60));
+                                } else {
+                                    tv.setText("");
+                                }
                             }
                         }
                         tv = findViewById(R.id.audioOwnerId);
@@ -289,7 +334,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }, 0, 1000);
 
-            audioTest.isUIActive = true;
         }
 
         TextView tv = findViewById(R.id.deviceStatusId);
@@ -538,40 +582,96 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void InitGui(){
-        Spinner deviceSpinner;
-        int iTmp;
-        String[] arr;
 
-        deviceSpinner = findViewById(R.id.deviceSelectId);
+        runOnUiThread(()->{
+            Spinner spinner;
+            int iTmp;
+            String[] arr;
+            ArrayAdapter<String> adapter;
+            int areaNum;
+            spinner = findViewById(R.id.areaSelectId);
 
-        int deviceNum = audioTest.testDevices.length;
+            areaNum = audioTest.testAreas.size();
 
-        arr = new String[deviceNum];
+            if(areaNum>0) {
+                arr = new String[areaNum];
 
-        for (iTmp = 0; iTmp < deviceNum; iTmp++) {
-            System.out.println("deviceList has "+PhoneParam.deviceList.size()+" items, try to get "+iTmp+ " item");
-            arr[iTmp] = UserInterface.GetDeviceTypeName(audioTest.testDevices[iTmp].type) + "    " + audioTest.testDevices[iTmp].devid;
-        }
-
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, arr);
-
-        deviceSpinner.setAdapter(adapter);
-
-        deviceSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                if(i<audioTest.testDevices.length) {
-                    audioTest.curDevice = audioTest.testDevices[i];
-                    UpdateHMI(audioTest.curDevice);
+                if (audioTest.curArea == null) {
+                    audioTest.curArea = audioTest.testAreas.get(0);
                 }
-            }
 
-            @Override
-            public void onNothingSelected(AdapterView<?> adapterView) {
+                for (iTmp = 0; iTmp < areaNum; iTmp++) {
+                    arr[iTmp] = audioTest.testAreas.get(iTmp).areaId;
+                }
 
+                adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, arr);
+
+                spinner.setAdapter(adapter);
+
+                spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                    @Override
+                    public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                        if (i < audioTest.testAreas.size()) {
+                            audioTest.curArea = audioTest.testAreas.get(i);
+                            UpdateArea(audioTest.curArea);
+                        }
+                    }
+
+                    @Override
+                    public void onNothingSelected(AdapterView<?> adapterView) {
+
+                    }
+                });
+
+                UpdateArea(audioTest.curArea);
             }
         });
 
+    }
+
+    private void UpdateArea(TestArea area){
+        Spinner spinner;
+        int iTmp;
+        String[] arr;
+        ArrayAdapter<String> adapter;
+        int devNum;
+
+        spinner = findViewById(R.id.deviceSelectId);
+
+        devNum = area.devList.size();
+
+        if(devNum<=0){
+            spinner.removeAllViews();
+        }else{
+            arr = new String[devNum];
+
+            for (iTmp = 0; iTmp < devNum; iTmp++) {
+                arr[iTmp] = UserInterface.GetDeviceTypeName(area.devList.get(iTmp).type) + "  "+area.devList.get(iTmp).devid;
+            }
+
+            adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, arr);
+
+            spinner.setAdapter(adapter);
+
+            spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                    if (i < area.devList.size()) {
+                        audioTest.curDevice = area.devList.get(i);
+                        UpdateHMI(audioTest.curDevice);
+                    }
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> adapterView) {
+
+                }
+            });
+
+            audioTest.curDevice = area.devList.get(0);
+            UpdateHMI(audioTest.curDevice);
+
+        }
 
     }
 
@@ -588,6 +688,13 @@ public class MainActivity extends AppCompatActivity {
                 int msgType = message.arg1;
                 UserMessage terminalMsg = (UserMessage)message.obj;
                 TestDevice device=null;
+
+                if(msgType==UserMessage.MESSAGE_INIT_FINISHED) {
+                    InitGui();
+                }
+                if(audioTest==null)
+                    return false;
+
                 if (msgType == UserMessage.MESSAGE_CALL_INFO
                         || msgType == UserMessage.MESSAGE_REG_INFO
                         || msgType == UserMessage.MESSAGE_DEVICES_INFO
@@ -598,13 +705,15 @@ public class MainActivity extends AppCompatActivity {
                         || msgType == UserMessage.MESSAGE_VIDEO_INFO) {
 
                     UserInterface.PrintLog("DEV %s Recv Msg %d(%s) ", terminalMsg.devId, terminalMsg.type, UserMessage.GetMsgName(terminalMsg.type));
-                    for (TestDevice testDevice : audioTest.testDevices) {
-                        if(testDevice==null)
-                            break;
-                        if (testDevice.devid.compareToIgnoreCase(terminalMsg.devId) == 0) {
-                            device = testDevice;
-                            break;
+                    for(TestArea area:audioTest.testAreas){
+                        for(TestDevice dev:area.devList){
+                            if(dev.devid.compareToIgnoreCase(terminalMsg.devId)==0){
+                                device = dev;
+                                break;
+                            }
                         }
+                        if(device!=null)
+                            break;
                     }
                     if (device != null) {
                         switch (msgType) {
@@ -667,24 +776,26 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 } else if (msgType == UserMessage.MESSAGE_TEST_TICK) {
-                    for (TestDevice testDevice : audioTest.testDevices) {
-                        boolean testFlag;
-                        synchronized (MainActivity.class) {
-                            if(testDevice==null)
-                                break;
-                            testFlag = testDevice.TestProcess();
-                        }
-                        if(audioTest.curDevice==testDevice){
-                            if (testFlag) {
-                                if((!audioTest.isTestFlag)||testDevice.testInfo.isRealTimeFlash)
-                                    UpdateHMI(testDevice);
+                    for(TestArea area:audioTest.testAreas) {
+                        for (TestDevice testDevice : area.devList) {
+                            boolean testFlag;
+                            synchronized (MainActivity.class) {
+                                if (testDevice == null)
+                                    break;
+                                testFlag = testDevice.TestProcess();
                             }
+                            if (audioTest.curDevice == testDevice) {
+                                if (testFlag) {
+                                    if ((!audioTest.isTestFlag) || testDevice.testInfo.isRealTimeFlash)
+                                        UpdateHMI(testDevice);
+                                }
 
-                            iTestCount++;
-                            if(iTestCount>20){
-                                iTestCount = 0;
-                                if(audioTest.isTestFlag&&(!testDevice.testInfo.isRealTimeFlash))
-                                    UpdateHMI(testDevice);
+                                iTestCount++;
+                                if (iTestCount > 20) {
+                                    iTestCount = 0;
+                                    if (audioTest.isTestFlag && (!testDevice.testInfo.isRealTimeFlash))
+                                        UpdateHMI(testDevice);
+                                }
                             }
                         }
                     }

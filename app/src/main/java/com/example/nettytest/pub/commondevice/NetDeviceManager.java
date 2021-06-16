@@ -64,16 +64,16 @@ public class NetDeviceManager {
 	            	}
 	            	
 	            	while(localMsgList.size()>0) {
-	            		msg = localMsgList.remove(0);
-	                    int type = msg.type;
-                                if(type == 1){
-	                        UdpSendMessage sendMsg = (UdpSendMessage)msg.msg;
-                                        sendMsg.dev.SendBuffer(sendMsg.data);
-                                }
-	            	}
-            	}
-
+                        msg = localMsgList.remove(0);
+                        int type = msg.type;
+                        if(type == 1){
+                            UdpSendMessage sendMsg = (UdpSendMessage)msg.msg;
+                            sendMsg.dev.SendBuffer(sendMsg.data);
+                        }
+                    }
                 }
+
+            }
         }
 
         public NetDeviceManager(){

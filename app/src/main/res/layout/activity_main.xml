@@ -7,16 +7,28 @@
     tools:context="com.usecomcalllib.MainActivity">
 
     <Spinner
-        android:id="@+id/deviceSelectId"
-        android:layout_width="289dp"
-        android:layout_height="33dp"
+        android:id="@+id/areaSelectId"
+        android:layout_width="159dp"
+        android:layout_height="30dp"
         android:spinnerMode="dropdown"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.049"
+        app:layout_constraintHorizontal_bias="0.019"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.079" />
+        app:layout_constraintVertical_bias="0.082" />
+
+    <Spinner
+        android:id="@+id/deviceSelectId"
+        android:layout_width="208dp"
+        android:layout_height="32dp"
+        android:spinnerMode="dropdown"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.032"
+        app:layout_constraintStart_toEndOf="@+id/areaSelectId"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.086" />
 
     <TextView
         android:id="@+id/runTimeId"
@@ -24,10 +36,10 @@
         android:layout_height="28dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.197"
+        app:layout_constraintHorizontal_bias="0.092"
         app:layout_constraintStart_toEndOf="@+id/deviceSelectId"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.066" />
+        app:layout_constraintVertical_bias="0.093" />
 
     <TextView
         android:id="@+id/deviceStatusId"
@@ -48,10 +60,10 @@
         android:background="#E0E0E0"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.31"
+        app:layout_constraintHorizontal_bias="0.271"
         app:layout_constraintStart_toEndOf="@+id/deviceStatusId"
         app:layout_constraintTop_toBottomOf="@+id/runTimeId"
-        app:layout_constraintVertical_bias="0.154" />
+        app:layout_constraintVertical_bias="0.16" />
 
     <TextView
         android:id="@+id/audioOwnerId"
@@ -59,7 +71,7 @@
         android:layout_height="31dp"
         android:layout_marginStart="16dp"
         android:layout_marginLeft="16dp"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="16dp"
         android:text="ddd"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/deviceStatusId" />
@@ -68,9 +80,9 @@
         android:id="@+id/statisticsId"
         android:layout_width="279dp"
         android:layout_height="29dp"
-        android:layout_marginStart="12dp"
-        android:layout_marginLeft="12dp"
-        android:layout_marginTop="4dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="16dp"
         android:text="TextView"
         app:layout_constraintStart_toEndOf="@+id/audioOwnerId"
         app:layout_constraintTop_toBottomOf="@+id/callListId" />
@@ -82,8 +94,8 @@
         android:text="dump"
         app:layout_constraintBottom_toTopOf="@+id/callListId"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.197"
+        app:layout_constraintHorizontal_bias="0.117"
         app:layout_constraintStart_toEndOf="@+id/runTimeId"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.49" />
+        app:layout_constraintVertical_bias="0.491" />
 </androidx.constraintlayout.widget.ConstraintLayout>

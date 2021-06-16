@@ -1,6 +1,7 @@
 package com.usecomcalllib.androidPort.audio;
 
 import com.example.nettytest.pub.LogWork;
+import com.example.nettytest.pub.UniqueIDManager;
 
 public class AudioMgr {
     static AudioDevice audio = null;
@@ -10,7 +11,9 @@ public class AudioMgr {
             if (audio == null) {
                 audio = new AudioDevice(devId,src, dst, address, sample, ptime, codec, mode);
             } else {
-                audio.AudioSwitch(devId,src, dst, address, sample, ptime, codec, mode);
+                //audio.AudioSwitch(devId,src, dst, address, sample, ptime, codec, mode);
+                //return dump audioId;
+                return UniqueIDManager.GetUniqueID(devId,UniqueIDManager.AUDIO_UNIQUE_ID);
             }
             return audio.id;
         }

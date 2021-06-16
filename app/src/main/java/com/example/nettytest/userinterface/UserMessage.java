@@ -13,6 +13,7 @@ public class UserMessage {
     public final static int MESSAGE_TRANSFER_INFO=8;
     public final static int MESSAGE_LISTEN_CALL_INFO = 9;
     public final static int MESSAGE_VIDEO_INFO = 10;
+    public final static int MESSAGE_INIT_FINISHED = 60;
     public final static int MESSAGE_UNKNOW = 100;
 
     public final static int REGISTER_MESSAGE_SUCC = 1;

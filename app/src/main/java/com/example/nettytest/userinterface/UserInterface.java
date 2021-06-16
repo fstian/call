@@ -53,7 +53,7 @@ public class UserInterface {
     
     public static void StartServer(){
         if(PhoneParam.serverActive)
-        callServer = new DemoServer(PhoneParam.callServerPort);
+            callServer = new DemoServer(PhoneParam.callServerPort);
     }
 
     public static void CreateServerDevices(){

@@ -40,65 +40,64 @@ public class CallMsgReceiver {
                 public void run() {
                     ArrayList<CallPubMessage> newMsgList = new ArrayList<>();
                     CallPubMessage msg;
-                    while(!isInterrupted()){
-                        synchronized (msgList){
+                    while (!isInterrupted()) {
+                        synchronized (msgList) {
                             try {
                                 msgList.wait();
-                                while(msgList.size()>0) {
+                                while (msgList.size() > 0) {
                                     msg = msgList.remove(0);
                                     newMsgList.add(msg);
                                 }
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
-
-                            int type;
-                            while(newMsgList.size()>0){
-                                msg = newMsgList.remove(0);
-                                Message userMsg = userMessageHandler.obtainMessage();
-                                userMsg.arg1 = msg.arg1;
-                                userMsg.obj = msg.obj;
-                                type = userMsg.arg1;
-                                if(type== UserMessage.MESSAGE_CALL_INFO){
-                                    UserCallMessage callMsg = (UserCallMessage)userMsg.obj;
-                                    if(callMsg.type == UserMessage.CALL_MESSAGE_CONNECT||callMsg.type==UserMessage.CALL_MESSAGE_ANSWERED){
-                                        callId = callMsg.callId;
-                                        audioDevId = callMsg.devId;
-                                        audioId = AudioMgr.OpenAudio(callMsg.devId,callMsg.localRtpPort,callMsg.remoteRtpPort,callMsg.remoteRtpAddress,callMsg.rtpSample,callMsg.rtpPTime,callMsg.rtpCodec,callMsg.audioMode);
-                                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Open Audio %s for Dev %s Call %s",audioId, audioDevId,callId);
-                                    }else if(callMsg.type == UserMessage.CALL_MESSAGE_DISCONNECT){
-                                        if(callMsg.callId.compareToIgnoreCase(callId)==0&&callMsg.devId.compareToIgnoreCase(audioDevId)==0){
-                                            AudioMgr.CloseAudio(audioId);
-                                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Close Audio %s for Dev %s Call %s",audioId, audioDevId,callId);
-                                            audioId = "";
-                                            callId = "";
-                                            audioDevId = "";
-                                        }else {
-                                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Cur Dev %s, Call %s ,Audio %s Not match the Audio Stop requier Dev %s, Call %s",audioDevId,callId,audioId,callMsg.devId,callMsg.callId);
-                                        }
-                                    }
-                                }else if(type==UserMessage.MESSAGE_VIDEO_INFO){
-                                    UserVideoMessage videoMsg = (UserVideoMessage) userMsg.obj;
-                                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Dev %s recv Message %s",videoMsg.devId, UserMessage.GetMsgName(videoMsg.type));
-                                    if(videoMsg.type==UserMessage.CALL_VIDEO_ANSWERED||videoMsg.type==UserMessage.CALL_VIDEO_REQ_ANSWER){
-                                        if(videoMsg.devId.compareToIgnoreCase(audioDevId)!=0||videoMsg.callId.compareToIgnoreCase(callId)!=0){
-                                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Cur Dev %s, Call %s ,Audio %s Not match the Video Start requier Dev %s, Call %s",audioDevId,callId,audioId,videoMsg.devId,videoMsg.callId);
-                                        }else
-                                            AudioMgr.SuspendAudio(videoMsg.devId,audioId);
-                                    }else if(videoMsg.type == UserMessage.CALL_VIDEO_END){
-                                        if(videoMsg.devId.compareToIgnoreCase(audioDevId)!=0||videoMsg.callId.compareToIgnoreCase(callId)!=0){
-                                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Cur Dev %s, Call %s ,Audio %s Not match the Video Stop requier Dev %s, Call %s",audioDevId,callId,audioId,videoMsg.devId,videoMsg.callId);
-                                        }else
-                                            AudioMgr.ResumeAudio(videoMsg.devId,audioId);
+                        }
+//                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"CallMsgRecevier Recv %d Terminal Msg",newMsgList.size());
+                        int type;
+                        while (newMsgList.size() > 0) {
+                            msg = newMsgList.remove(0);
+                            Message userMsg = userMessageHandler.obtainMessage();
+                            userMsg.arg1 = msg.arg1;
+                            userMsg.obj = msg.obj;
+                            type = userMsg.arg1;
+                            if (type == UserMessage.MESSAGE_CALL_INFO) {
+                                UserCallMessage callMsg = (UserCallMessage) userMsg.obj;
+                                if (callMsg.type == UserMessage.CALL_MESSAGE_CONNECT || callMsg.type == UserMessage.CALL_MESSAGE_ANSWERED) {
+                                    callId = callMsg.callId;
+                                    audioDevId = callMsg.devId;
+                                    audioId = AudioMgr.OpenAudio(callMsg.devId, callMsg.localRtpPort, callMsg.remoteRtpPort, callMsg.remoteRtpAddress, callMsg.rtpSample, callMsg.rtpPTime, callMsg.rtpCodec, callMsg.audioMode);
+                                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, "Open Audio %s for Dev %s Call %s", audioId, audioDevId, callId);
+                                } else if (callMsg.type == UserMessage.CALL_MESSAGE_DISCONNECT) {
+                                    if (callMsg.callId.compareToIgnoreCase(callId) == 0 && callMsg.devId.compareToIgnoreCase(audioDevId) == 0) {
+                                        AudioMgr.CloseAudio(audioId);
+                                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, "Close Audio %s for Dev %s Call %s", audioId, audioDevId, callId);
+                                        audioId = "";
+                                        callId = "";
+                                        audioDevId = "";
+                                    } else {
+                                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, "Cur Dev %s, Call %s ,Audio %s Not match the Audio Stop requier Dev %s, Call %s", audioDevId, callId, audioId, callMsg.devId, callMsg.callId);
                                     }
                                 }
-
-                                userMessageHandler.sendMessage(userMsg);
-
+                            } else if (type == UserMessage.MESSAGE_VIDEO_INFO) {
+                                UserVideoMessage videoMsg = (UserVideoMessage) userMsg.obj;
+                                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, "Dev %s recv Message %s", videoMsg.devId, UserMessage.GetMsgName(videoMsg.type));
+                                if (videoMsg.type == UserMessage.CALL_VIDEO_ANSWERED || videoMsg.type == UserMessage.CALL_VIDEO_REQ_ANSWER) {
+                                    if (videoMsg.devId.compareToIgnoreCase(audioDevId) != 0 || videoMsg.callId.compareToIgnoreCase(callId) != 0) {
+                                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, "Cur Dev %s, Call %s ,Audio %s Not match the Video Start requier Dev %s, Call %s", audioDevId, callId, audioId, videoMsg.devId, videoMsg.callId);
+                                    } else
+                                        AudioMgr.SuspendAudio(videoMsg.devId, audioId);
+                                } else if (videoMsg.type == UserMessage.CALL_VIDEO_END) {
+                                    if (videoMsg.devId.compareToIgnoreCase(audioDevId) != 0 || videoMsg.callId.compareToIgnoreCase(callId) != 0) {
+                                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, "Cur Dev %s, Call %s ,Audio %s Not match the Video Stop requier Dev %s, Call %s", audioDevId, callId, audioId, videoMsg.devId, videoMsg.callId);
+                                    } else
+                                        AudioMgr.ResumeAudio(videoMsg.devId, audioId);
+                                }
                             }
+
+                            userMessageHandler.sendMessage(userMsg);
+
                         }
                     }
-
                 }
             }.start();
         }else{
@@ -129,6 +128,8 @@ public class CallMsgReceiver {
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
+
+//                           LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"CallMsgRecevier Recv %d BackEnd Msg",newMsgList.size());
 
                             while(newMsgList.size()>0){
                                 msg = newMsgList.remove(0);
