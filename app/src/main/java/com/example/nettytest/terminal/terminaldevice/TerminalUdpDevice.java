@@ -17,7 +17,7 @@ import java.net.UnknownHostException;
 public class TerminalUdpDevice extends UdpNetDevice {
 
     static TerminalUdpReadThread readThread=null;
-    static DatagramSocket recvSocket;
+    static DatagramSocket recvSocket=null;
 
     private class TerminalUdpReadThread extends Thread{
         public TerminalUdpReadThread(){

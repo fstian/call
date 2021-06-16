@@ -80,7 +80,7 @@ public class BackEndCallConvergence {
         for(BackEndPhone phone:listenDevices){
             if(caller.id.compareToIgnoreCase(phone.id)==0)
                 continue;
-            if(HandlerMgr.CheckForwardEnable(phone,pack.callType)) {
+            if(CheckForwardEnable(phone,pack.callType)) {
                 invitePacket = new InviteReqPack();
                 invitePacket.ExchangeCopyData(pack);
                 if(invitePacket.callType==CommonCall.CALL_TYPE_BROADCAST)
@@ -657,6 +657,9 @@ public class BackEndCallConvergence {
             case CommonCall.CALL_TYPE_ASSIST:
                 switch(phone.type){
                     case BackEndPhone.BED_CALL_DEVICE:
+                        if(!phone.enableListen)
+                            result = false;
+                        break;
                     case BackEndPhone.EMER_CALL_DEVICE:
                         result = false;
                         break;

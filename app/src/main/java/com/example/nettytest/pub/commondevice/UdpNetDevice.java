@@ -15,16 +15,19 @@ public class UdpNetDevice extends NetDevice {
     public UdpNetDevice(String id){
         super(id);
         netType = UDP_NET_DEVICE;
+        peerAddress = null;
     }
 
     public int SendBuffer(byte[] data){
         if(localSocket!=null) {
             if (!localSocket.isClosed()) {
-                DatagramPacket pack = new DatagramPacket(data, data.length, peerAddress, peerPort);
-                try {
-                    localSocket.send(pack);
-                } catch (IOException e) {
-                    e.printStackTrace();
+                if(peerAddress!=null) {
+                    DatagramPacket pack = new DatagramPacket(data, data.length, peerAddress, peerPort);
+                    try {
+                        localSocket.send(pack);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }

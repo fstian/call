@@ -85,6 +85,7 @@ public class    MainActivity extends AppCompatActivity {
 
     int iTestCount = 0;
     String audioTestId="";
+    boolean isGuiInit = false;
 
     static AudioTest audioTest = null;
     static boolean isAudioTestCreate = false;
@@ -158,7 +159,7 @@ public class    MainActivity extends AppCompatActivity {
                         }
                         if(!transferAreaId.isEmpty()) {
                             UserInterface.SetTransferCall(dev.devid, transferAreaId, true);
-                            UserInterface.PrintLog("Dev %s Set Transfer to %", dev.devid, transferAreaId);
+                            UserInterface.PrintLog("Dev %s Set Transfer to %s", dev.devid, transferAreaId);
                         }
                     }else{
                         UserInterface.SetTransferCall(dev.devid, "", false);
@@ -264,21 +265,23 @@ public class    MainActivity extends AppCompatActivity {
             matchedArea = null;
             if(!dev.areaId.isEmpty()){
                 device = new TestDevice(dev.type, dev.devid,dev.netMode);
-                if(audioTest.curDevice==null){
-                    audioTest.curDevice = device;
-                }
-                for(TestArea area:audioTest.testAreas){
-                    if(area.areaId.compareToIgnoreCase(dev.areaId)==0){
-                        matchedArea = area;
-                        break;
+                synchronized(MainActivity.class) {
+                    if (audioTest.curDevice == null) {
+                        audioTest.curDevice = device;
                     }
-                }                
-                if(matchedArea==null){
-                    matchedArea = new TestArea(dev.areaId);
-                    if(audioTest.curArea==null){
-                        audioTest.curArea = matchedArea;
+                    for (TestArea area : audioTest.testAreas) {
+                        if (area.areaId.compareToIgnoreCase(dev.areaId) == 0) {
+                            matchedArea = area;
+                            break;
+                        }
                     }
-                    audioTest.testAreas.add(matchedArea);
+                    if (matchedArea == null) {
+                        matchedArea = new TestArea(dev.areaId);
+                        if (audioTest.curArea == null) {
+                            audioTest.curArea = matchedArea;
+                        }
+                        audioTest.testAreas.add(matchedArea);
+                    }
                 }
                 matchedArea.AddTestDevice(device);
                 device.StartDevice();
@@ -689,125 +692,135 @@ public class    MainActivity extends AppCompatActivity {
                 UserMessage terminalMsg = (UserMessage)message.obj;
                 TestDevice device=null;
 
-                if(msgType==UserMessage.MESSAGE_INIT_FINISHED) {
+                if(msgType==UserMessage.MESSAGE_INIT_FINISHED&&isGuiInit==false) {
                     InitGui();
+                    isGuiInit = true;
                 }
-                if(audioTest==null)
-                    return false;
+                synchronized(MainActivity.class) {
+                    if (audioTest == null)
+                        return false;
 
-                if (msgType == UserMessage.MESSAGE_CALL_INFO
-                        || msgType == UserMessage.MESSAGE_REG_INFO
-                        || msgType == UserMessage.MESSAGE_DEVICES_INFO
-                        || msgType==UserMessage.MESSAGE_CONFIG_INFO
-                        || msgType == UserMessage.MESSAGE_SYSTEM_CONFIG_INFO
-                        || msgType == UserMessage.MESSAGE_TRANSFER_INFO
-                        || msgType == UserMessage.MESSAGE_LISTEN_CALL_INFO
-                        || msgType == UserMessage.MESSAGE_VIDEO_INFO) {
+                    if (msgType == UserMessage.MESSAGE_CALL_INFO
+                            || msgType == UserMessage.MESSAGE_REG_INFO
+                            || msgType == UserMessage.MESSAGE_DEVICES_INFO
+                            || msgType == UserMessage.MESSAGE_CONFIG_INFO
+                            || msgType == UserMessage.MESSAGE_SYSTEM_CONFIG_INFO
+                            || msgType == UserMessage.MESSAGE_TRANSFER_INFO
+                            || msgType == UserMessage.MESSAGE_LISTEN_CALL_INFO
+                            || msgType == UserMessage.MESSAGE_VIDEO_INFO) {
 
-                    UserInterface.PrintLog("DEV %s Recv Msg %d(%s) ", terminalMsg.devId, terminalMsg.type, UserMessage.GetMsgName(terminalMsg.type));
-                    for(TestArea area:audioTest.testAreas){
-                        for(TestDevice dev:area.devList){
-                            if(dev.devid.compareToIgnoreCase(terminalMsg.devId)==0){
-                                device = dev;
-                                break;
-                            }
-                        }
-                        if(device!=null)
-                            break;
-                    }
-                    if (device != null) {
-                        switch (msgType) {
-                            case UserMessage.MESSAGE_CALL_INFO:
-                                String result;
-                                synchronized (MainActivity.class) {
-                                    result = device.UpdateCallInfo((UserCallMessage) terminalMsg);
-                                }
-                                if(device==audioTest.curDevice) {
-                                    if((!audioTest.isTestFlag)||device.testInfo.isRealTimeFlash)
-                                        UpdateHMI(device);
-                                }
-                                if(!result.isEmpty()){
-                                    StopTest(result);
-                                }
-                                break;
-                            case UserMessage.MESSAGE_REG_INFO:
-                                device.UpdateRegisterInfo((UserRegMessage) terminalMsg);
-                                if (device == audioTest.curDevice){
-                                    if((!audioTest.isTestFlag)||device.testInfo.isRealTimeFlash)
-                                        UpdateHMI(device);
-                                }
-                                break;
-                            case UserMessage.MESSAGE_TRANSFER_INFO:
-                                device.UpdateTransferInfo((TransferMessage)terminalMsg);
-                                if (device == audioTest.curDevice){
-                                    if((!audioTest.isTestFlag)||device.testInfo.isRealTimeFlash)
-                                        UpdateHMI(device);
-                                }
-                                break;
-                            case UserMessage.MESSAGE_LISTEN_CALL_INFO:
-                                device.UpdateListenInfo((ListenCallMessage) terminalMsg);
-                                if (device == audioTest.curDevice){
-                                    if((!audioTest.isTestFlag)||device.testInfo.isRealTimeFlash)
-                                        UpdateHMI(device);
-                                }
-                                break;
-                            case UserMessage.MESSAGE_DEVICES_INFO:
-                                synchronized (MainActivity.class) {
-                                    device.UpdateDeviceList((UserDevsMessage) terminalMsg);
-                                }
-                                if (device == audioTest.curDevice) {
-                                    if(device.type==UserInterface.CALL_NURSER_DEVICE )
-                                        UpdateNurserHMI(device);
-                                }
-                                break;
-                            case UserMessage.MESSAGE_CONFIG_INFO:
-                                synchronized (MainActivity.class) {
-                                    device.UpdateConfig((UserConfigMessage )terminalMsg);
-                                }
-                                break;
-                            case UserMessage.MESSAGE_SYSTEM_CONFIG_INFO:
-                                UserInterface.PrintLog("Recv System Config Info");
-                                break;
-                            case UserMessage.MESSAGE_VIDEO_INFO:
-                                synchronized (MainActivity.class) {
-                                    device.UpdateVideoState((UserVideoMessage)terminalMsg);
-                                }
-                                break;
-                        }
-                    }
-                } else if (msgType == UserMessage.MESSAGE_TEST_TICK) {
-                    for(TestArea area:audioTest.testAreas) {
-                        for (TestDevice testDevice : area.devList) {
-                            boolean testFlag;
-                            synchronized (MainActivity.class) {
-                                if (testDevice == null)
+                        UserInterface.PrintLog("DEV %s Recv Msg %d(%s) ", terminalMsg.devId, terminalMsg.type, UserMessage.GetMsgName(terminalMsg.type));
+                        for (TestArea area : audioTest.testAreas) {
+                            for (TestDevice dev : area.devList) {
+                                if (dev.devid.compareToIgnoreCase(terminalMsg.devId) == 0) {
+                                    device = dev;
                                     break;
-                                testFlag = testDevice.TestProcess();
-                            }
-                            if (audioTest.curDevice == testDevice) {
-                                if (testFlag) {
-                                    if ((!audioTest.isTestFlag) || testDevice.testInfo.isRealTimeFlash)
-                                        UpdateHMI(testDevice);
                                 }
+                            }
+                            if (device != null)
+                                break;
+                        }
+                        if (device != null) {
+                            switch (msgType) {
+                                case UserMessage.MESSAGE_CALL_INFO:
+                                    String result;
+                                    synchronized (MainActivity.class) {
+                                        result = device.UpdateCallInfo((UserCallMessage) terminalMsg);
+                                    }
+                                    if (device == audioTest.curDevice) {
+                                        if ((!audioTest.isTestFlag) || device.testInfo.isRealTimeFlash)
+                                            UpdateHMI(device);
+                                    }
+                                    if (!result.isEmpty()) {
+                                        StopTest(result);
+                                    }
+                                    break;
+                                case UserMessage.MESSAGE_REG_INFO:
+                                    device.UpdateRegisterInfo((UserRegMessage) terminalMsg);
+                                    if (device == audioTest.curDevice) {
+                                        if ((!audioTest.isTestFlag) || device.testInfo.isRealTimeFlash)
+                                            UpdateHMI(device);
+                                    }
+                                    break;
+                                case UserMessage.MESSAGE_TRANSFER_INFO:
+                                    device.UpdateTransferInfo((TransferMessage) terminalMsg);
+                                    if (device == audioTest.curDevice) {
+                                        if ((!audioTest.isTestFlag) || device.testInfo.isRealTimeFlash)
+                                            UpdateHMI(device);
+                                    }
+                                    break;
+                                case UserMessage.MESSAGE_LISTEN_CALL_INFO:
+                                    device.UpdateListenInfo((ListenCallMessage) terminalMsg);
+                                    if (device == audioTest.curDevice) {
+                                        if ((!audioTest.isTestFlag) || device.testInfo.isRealTimeFlash)
+                                            UpdateHMI(device);
+                                    }
+                                    break;
+                                case UserMessage.MESSAGE_DEVICES_INFO:
+                                    synchronized (MainActivity.class) {
+                                        device.UpdateDeviceList((UserDevsMessage) terminalMsg);
+                                    }
+                                    if (device == audioTest.curDevice) {
+                                        if (device.type == UserInterface.CALL_NURSER_DEVICE)
+                                            UpdateNurserHMI(device);
+                                    }
+                                    break;
+                                case UserMessage.MESSAGE_CONFIG_INFO:
+                                    synchronized (MainActivity.class) {
+                                        device.UpdateConfig((UserConfigMessage) terminalMsg);
+                                    }
+                                    break;
+                                case UserMessage.MESSAGE_SYSTEM_CONFIG_INFO:
+                                    UserInterface.PrintLog("Recv System Config Info");
+                                    break;
+                                case UserMessage.MESSAGE_VIDEO_INFO:
+                                    synchronized (MainActivity.class) {
+                                        device.UpdateVideoState((UserVideoMessage) terminalMsg);
+                                    }
+                                    break;
+                            }
+                        }
+                    } else if (msgType == UserMessage.MESSAGE_TEST_TICK) {
+                        for (TestArea area : audioTest.testAreas) {
+                            for (TestDevice testDevice : area.devList) {
+                                boolean testFlag;
+                                synchronized (MainActivity.class) {
+                                    if (testDevice == null)
+                                        break;
+                                    testFlag = testDevice.TestProcess();
+                                }
+                                if (audioTest.curDevice == testDevice) {
+                                    if (testFlag) {
+                                        if ((!audioTest.isTestFlag) || testDevice.testInfo.isRealTimeFlash)
+                                            UpdateHMI(testDevice);
+                                    }
 
-                                iTestCount++;
-                                if (iTestCount > 20) {
-                                    iTestCount = 0;
-                                    if (audioTest.isTestFlag && (!testDevice.testInfo.isRealTimeFlash))
-                                        UpdateHMI(testDevice);
+                                    iTestCount++;
+                                    if (iTestCount > 20) {
+                                        iTestCount = 0;
+                                        if (audioTest.isTestFlag && (!testDevice.testInfo.isRealTimeFlash))
+                                            UpdateHMI(testDevice);
+                                    }
                                 }
                             }
                         }
+                    } else if (msgType == UserMessage.MESSAGE_BACKEND_CALL_LOG) {
+                        CallLogMessage callLog = (CallLogMessage) terminalMsg;
+                        UserInterface.PrintLog("Recv Call Log , CallID = %s Type=%d direction=%d answerMode=%d ", callLog.callId, callLog.callType, callLog.callDirection, callLog.answerMode);
                     }
-                }else if(msgType == UserMessage.MESSAGE_BACKEND_CALL_LOG){
-                    CallLogMessage callLog = (CallLogMessage)terminalMsg;
-                    UserInterface.PrintLog("Recv Call Log , CallID = %s Type=%d direction=%d answerMode=%d ",callLog.callId,callLog.callType,callLog.callDirection,callLog.answerMode);
                 }
 
                 return false;
             });
             CallMsgReceiver.SetMessageHandler(terminalCallMessageHandler);
             CallMsgReceiver.SetBackEndMessageHandler(terminalCallMessageHandler);
+//            if(terminalCallMessageHandler!=null){
+//                Message initMsg = terminalCallMessageHandler.obtainMessage();
+//                initMsg.arg1 = UserMessage.MESSAGE_INIT_FINISHED;
+//                initMsg.obj = null;
+//                terminalCallMessageHandler.sendMessage(initMsg);
+//            }
+
             Looper.loop();
             System.out.println("CallMessageProcess Exit!!!!!");
         }

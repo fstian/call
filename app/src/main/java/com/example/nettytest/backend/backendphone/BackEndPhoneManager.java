@@ -114,10 +114,6 @@ public class BackEndPhoneManager {
         return backEndCallConvergencyMgr.GetCallCount();
     }
 
-// only used in callconverce
-    public boolean CheckForwardEnable(BackEndPhone phone,int callType){
-        return backEndCallConvergencyMgr.CheckForwardEnable(phone, callType);
-    }
 
     private String GetAreaId(String id){
         String areaId;
