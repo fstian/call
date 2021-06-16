@@ -30,8 +30,8 @@ public class UdpServer extends Thread{
                 recvPack = new DatagramPacket(recvBuf, recvBuf.length);
                 udpServerSocket.receive(recvPack);
                 if(recvPack.getLength()>0){
-                    LogWork.Print(LogWork.BACKEND_NET_MODULE,LogWork.LOG_DEBUG,"Server Recv Data from %s:%d",recvPack.getAddress().getHostAddress(),recvPack.getPort());
                     ProtocolPacket packet = ProtocolFactory.ParseData(recvPack.getData());
+                    LogWork.Print(LogWork.BACKEND_NET_MODULE,LogWork.LOG_DEBUG,"Server Recv Dev %s Data from %s:%d",packet.sender,recvPack.getAddress().getHostAddress(),recvPack.getPort());
                     if(packet!=null) {
                         HandlerMgr.UpdateBackEndDevSocket(packet.sender,udpServerSocket,recvPack.getAddress(),recvPack.getPort());
                         HandlerMgr.BackEndProcessPacket(packet);

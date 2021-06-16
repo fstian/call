@@ -16,7 +16,8 @@ import java.net.UnknownHostException;
 
 public class TerminalUdpDevice extends UdpNetDevice {
 
-    TerminalUdpReadThread readThread=null;
+    static TerminalUdpReadThread readThread=null;
+    static DatagramSocket recvSocket;
 
     private class TerminalUdpReadThread extends Thread{
         public TerminalUdpReadThread(){
@@ -33,8 +34,8 @@ public class TerminalUdpDevice extends UdpNetDevice {
                     try {
                         localSocket.receive(pack);
                         if(pack.getLength()>0) {
-                            LogWork.Print(LogWork.TERMINAL_NET_MODULE, LogWork.LOG_DEBUG, "Terminal %s Recv Data from %s:%d", id,pack.getAddress().getHostAddress(), pack.getPort());
                             ProtocolPacket packet = ProtocolFactory.ParseData(pack.getData());
+                            LogWork.Print(LogWork.TERMINAL_NET_MODULE, LogWork.LOG_DEBUG, "Terminal %s Recv Data from %s:%d, type is %s", packet.receiver ,pack.getAddress().getHostAddress(), pack.getPort(),ProtocolPacket.GetTypeName(packet.type));
                             HandlerMgr.PhoneProcessPacket(packet);
                         }
                     } catch (IOException e) {
@@ -50,11 +51,13 @@ public class TerminalUdpDevice extends UdpNetDevice {
             }
         }
     }
+    
     public TerminalUdpDevice(String id){
         super(id);
         try {
-            DatagramSocket socket = new DatagramSocket();
-            UpdatePeerAddress(socket, InetAddress.getByName(PhoneParam.callServerAddress),PhoneParam.callServerPort);
+            if(recvSocket==null)
+                recvSocket = new DatagramSocket();
+            UpdatePeerAddress(recvSocket, InetAddress.getByName(PhoneParam.callServerAddress),PhoneParam.callServerPort);
         } catch (SocketException e) {
             e.printStackTrace();
         } catch (UnknownHostException e) {
@@ -66,24 +69,23 @@ public class TerminalUdpDevice extends UdpNetDevice {
     public void UpdatePeerAddress(DatagramSocket socket, InetAddress address, int port) {
         LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_DEBUG,"Terminal Update Peer %s:%d for Dev %s",address.getHostAddress(),port,id);
         super.UpdatePeerAddress(socket, address, port);
-        if(readThread!=null){
-            readThread.interrupt();
+        if(readThread==null){
+            readThread = new TerminalUdpReadThread();
+            readThread.start();
         }
-        readThread = new TerminalUdpReadThread();
-        readThread.start();
     }
 
     @Override
     public void Close() {
         super.Close();
-        if(readThread!=null){
-            readThread.interrupt();
-        }
-        if(localSocket!=null){
-            if(!localSocket.isClosed()){
-                localSocket.close();
-            }
-        }
+//        if(readThread!=null){
+//            readThread.interrupt();
+//        }
+//        if(localSocket!=null){
+//            if(!localSocket.isClosed()){
+//                localSocket.close();
+//            }
+//        }
     }
 
     @Override

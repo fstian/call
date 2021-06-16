@@ -77,14 +77,9 @@ public class TestDevice extends UserDevice{
     }
 
     public TestDevice(int type,String id,int netMode){
-        TerminalDeviceInfo info = new TerminalDeviceInfo();
         this.type = type;
         this.devid = id;
         this.netMode = netMode;
-        UserInterface.BuildDevice(type,id,netMode);
-        info.patientName = "patient"+id;
-        info.patientAge = String.format("%d",18+type);
-        UserInterface.SetDevInfo(id,info);
         inComingCallInfos = new ArrayList<>();
         outGoingCall = new LocalCallInfo();
         isCallOut = false;
@@ -98,6 +93,16 @@ public class TestDevice extends UserDevice{
         inComingCallRecord = new HashMap<>();
         isVideo = false;
         videoCallId = "";
+    }
+
+    public void StartDevice(){
+        TerminalDeviceInfo info = new TerminalDeviceInfo();
+
+        UserInterface.BuildDevice(type,devid,netMode);
+        UserInterface.BuildDevice(type,devid,netMode);
+        info.patientName = "patient"+devid;
+        info.patientAge = String.format("%d",18+type);
+        UserInterface.SetDevInfo(devid,info);
     }
 
     public OperationResult BuildCall(String peerId, int type){

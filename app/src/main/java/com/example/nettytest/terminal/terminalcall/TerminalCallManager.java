@@ -160,10 +160,17 @@ public class TerminalCallManager {
     public void RecvIncomingCall(String devId,InviteReqPack packet){
         int result = ProtocolPacket.STATUS_OK;
         TerminalCall call;
+        TerminalPhone phone;
+        boolean isListen = false;
 
         if(devType==TerminalPhone.BED_CALL_DEVICE){
-            if(callLists.size()>0)
-                result = ProtocolPacket.STATUS_BUSY;
+            phone = HandlerMgr.GetPhoneDev(devId);
+            if(phone!=null)
+                isListen = phone.isListenCall;
+            if(callLists.size()>0){
+                if(!isListen)
+                    result = ProtocolPacket.STATUS_BUSY;
+            }
         }else if(devType==TerminalPhone.EMER_CALL_DEVICE){
             result = ProtocolPacket.STATUS_NOTSUPPORT;
         }

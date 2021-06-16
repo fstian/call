@@ -53,12 +53,19 @@ public class TerminalPhone extends PhoneDevice {
 
     TerminalCallManager callManager;
 
+    String areaId;
+
+    public boolean isListenCall;
+
+    
     public TerminalPhone(final String devid, final int t){
         this.id = devid;
         type = t;
         isReg = false;
         regWaitCount = 0;
         info = new TerminalDeviceInfo();
+        areaId = "";
+        isListenCall = false;
 
         callManager = new TerminalCallManager(type);
     }
@@ -175,6 +182,8 @@ public class TerminalPhone extends PhoneDevice {
             regMsg.areaId = areaId;
             regMsg.transferAreaId = transferAreaId;
             regMsg.enableListenCall = listenState;
+            this.areaId = areaId;
+            isListenCall = listenState;
         }else if(status==ProtocolPacket.STATUS_TIMEOVER){
             LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_WARN,"Phone %s Reg TimerOver ",id);
             isReg = false;

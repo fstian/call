@@ -123,6 +123,7 @@ public class TerminalPhoneManager {
                         DatagramPacket resPack;
                         if (testSocket != null) {
                             while (!testSocket.isClosed()) {
+                                java.util.Arrays.fill(recvBuf,(byte)0);
                                 recvPack = new DatagramPacket(recvBuf, recvBuf.length);
                                 try {
                                     testSocket.receive(recvPack);
@@ -140,12 +141,12 @@ public class TerminalPhoneManager {
                                                     testSocket.send(resPack);
                                                 }
                                             } else if (type == SystemSnap.SNAP_TERMINAL_TRANS_REQ) {
-                                                ArrayList<byte[]> resList;
-                                                resList = HandlerMgr.GetTerminalTransInfo();
-                                                for (byte[] data : resList) {
-                                                    resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
-                                                    testSocket.send(resPack);
-                                                }
+//                                                ArrayList<byte[]> resList;
+//                                                resList = HandlerMgr.GetTerminalTransInfo();
+//                                                for (byte[] data : resList) {
+//                                                    resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
+//                                                    testSocket.send(resPack);
+//                                                }
                                             } else if (type == SystemSnap.LOG_CONFIG_REQ_CMD) {
                                                 int value;
                                                 LogWork.backEndNetModuleLogEnable = json.getIntValue(SystemSnap.LOG_BACKEND_NET_NAME) == 1;
@@ -186,14 +187,24 @@ public class TerminalPhoneManager {
                                                 PhoneParam.callRtpPTime = json.getIntValue(SystemSnap.AUDIO_RTP_PTIME_NAME);
                                                 PhoneParam.aecDelay = json.getIntValue(SystemSnap.AUDIO_RTP_AEC_DELAY_NAME);
                                             } else if (type == SystemSnap.SNAP_DEV_REQ) {
+                                                int sendCount = 0;
                                                 for (TerminalPhone dev : clientPhoneLists.values()) {
                                                     JSONObject resJson = new JSONObject();
                                                     resJson.put(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_DEV_RES);
+                                                    resJson.put(SystemSnap.SNAP_AREAID_NAME,dev.areaId);
                                                     resJson.put(SystemSnap.SNAP_DEVID_NAME, dev.id);
                                                     resJson.put(SystemSnap.SNAP_DEVTYPE_NAME, dev.type);
                                                     byte[] resBuf = resJson.toString().getBytes();
                                                     resPack = new DatagramPacket(resBuf, resBuf.length, recvPack.getAddress(), recvPack.getPort());
                                                     testSocket.send(resPack);
+                                                    sendCount++;
+                                                    if((sendCount%20)==19){
+                                                        try {
+                                                            Thread.sleep(20);
+                                                        } catch (InterruptedException e) {
+                                                            e.printStackTrace();
+                                                        }
+                                                    }
                                                 }
                                             } else if (type == SystemSnap.SNAP_DEL_LOG_REQ) {
                                                 String logFileName;

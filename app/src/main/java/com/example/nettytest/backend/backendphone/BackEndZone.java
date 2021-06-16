@@ -41,7 +41,7 @@ public class BackEndZone {
             dev.type = phone.type;
             dev.id = phone.id;
             dev.isReg = phone.isReg;
-            dev.bedName = phone.bedName;
+            dev.bedName = phone.devInfo.bedName;
             lists.add(dev);
         }
         return lists;

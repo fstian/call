@@ -443,6 +443,7 @@ public class AudioDevice {
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
+                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Socket of Audio %s of Dev %s is Closed when recv",id,devId);
                     }
                 }else{
                     break;
@@ -523,6 +524,7 @@ public class AudioDevice {
                             e.printStackTrace();
                         } catch (IOException e) {
                             e.printStackTrace();
+                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Socket of Audio %s of Dev %s is Closed when Send",id,devId);
                         }
                     }
                 } else {
@@ -530,6 +532,8 @@ public class AudioDevice {
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
+                        // interrupted exception maybe catch here , and should break while
+                        break;
                     }
                 }
             }

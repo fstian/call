@@ -32,6 +32,14 @@ public class PhoneParam {
     final static String JSON_START_ID_NAME = "startId";
     final static String JSON_NUM_NAME = "num";
 
+    final static String JSON_TESTAREAS_NAME = "testAreas";
+    final static String JSON_AREA_START_NAME = "startArea";
+    final static String JSON_AREA_NUM_NAME = "areaNum";
+    final static String JSON_BED_NUM_NAME = "bedNum";
+    final static String JSON_DOOR_NUM_NAME = "doorNum";
+    final static String JSON_NURSER_NUM_NAME = "nurserNum";
+    
+
     final static String JSON_CLIENT_NAME = "client";
 
     final static String JSON_DEVICES_NAME = "devices";
@@ -110,6 +118,61 @@ public class PhoneParam {
         return userdev;
     }
 
+    static private ArrayList<UserDevice> CheckTestAreas(JSONObject testAreas){
+        ArrayList<UserDevice> list = new ArrayList<>();
+        int iTmp;
+        int jTmp;
+        String areaId;
+        String devId;
+        UserDevice dev;
+
+        String startArea = JsonPort.GetJsonString(testAreas, JSON_AREA_START_NAME);
+        int startAreaValue = Integer.parseInt(startArea);
+        int areaNum = testAreas.getIntValue(JSON_AREA_NUM_NAME);
+        int bedNum = testAreas.getIntValue(JSON_BED_NUM_NAME);
+        int doorNum = testAreas.getIntValue(JSON_DOOR_NUM_NAME);
+        int nurserNum = testAreas.getIntValue(JSON_NURSER_NUM_NAME);
+        int netMode;
+        String netModeValue = JsonPort.GetJsonString(testAreas, JSON_NET_MODE_NAME);
+        if(netModeValue.compareToIgnoreCase(JSON_UDP_MODE_NAME)==0)
+            netMode = UserInterface.NET_MODE_UDP;
+        else
+            netMode = UserInterface.NET_MODE_TCP;
+        
+        for(iTmp=0;iTmp<areaNum;iTmp++) {
+            areaId = ""+(startAreaValue+iTmp);
+            for(jTmp=0;jTmp<bedNum;jTmp++) {
+                devId = ""+((startAreaValue+iTmp)*1000+jTmp+1);
+                dev = new UserDevice();
+                dev.devid = devId;
+                dev.areaId = areaId;
+                dev.type = UserInterface.CALL_BED_DEVICE;
+                dev.netMode = netMode;
+                list.add(dev);
+            }            
+            for(jTmp=0;jTmp<doorNum;jTmp++) {
+                devId = ""+((startAreaValue+iTmp)*1000+100+jTmp+1);
+                dev = new UserDevice();
+                dev.devid = devId;
+                dev.areaId = areaId;
+                dev.type = UserInterface.CALL_DOOR_DEVICE;
+                dev.netMode = netMode;
+                list.add(dev);
+            }            
+            for(jTmp=0;jTmp<nurserNum;jTmp++) {
+                devId = ""+((startAreaValue+iTmp)*1000+200+jTmp+1);
+                dev = new UserDevice();
+                dev.devid = devId;
+                dev.areaId = areaId;
+                dev.type = UserInterface.CALL_NURSER_DEVICE;
+                dev.netMode = netMode;
+                list.add(dev);
+            }            
+        }
+        
+        return list;
+    }
+
     static private ArrayList<UserDevice> CheckUserDeviceGroup(String areaId,JSONObject devGroupJson){
         ArrayList<UserDevice> list = new ArrayList<>();
         String sValue;
@@ -151,6 +214,7 @@ public class PhoneParam {
         JSONObject device;
         JSONArray areasJson;
         JSONObject areaJson;
+        JSONObject testAreas;
         UserDevice userdev;
         int iTmp,jTmp;
         
@@ -170,18 +234,19 @@ public class PhoneParam {
             if(serverJson!=null){
                 callServerPort = serverJson.getIntValue(JSON_PORT_NAME);
                 serverActive = serverJson.getBooleanValue(JSON_ACTIVE_NAME);
-            devicesJson = serverJson.getJSONArray(JSON_DEVICES_NAME);
+                devicesJson = serverJson.getJSONArray(JSON_DEVICES_NAME);
                 areasJson = serverJson.getJSONArray(JSON_AREAS_NAME);
+                testAreas = serverJson.getJSONObject(JSON_TESTAREAS_NAME);
 
-            devicesOnServer.clear();
+                devicesOnServer.clear();
                 if(devicesJson!=null&&serverActive&&!serviceActive){
                     for(iTmp=0;iTmp<devicesJson.size();iTmp++){
-                device = devicesJson.getJSONObject(iTmp);
+                        device = devicesJson.getJSONObject(iTmp);
                         userdev = CheckUserDevice(device);
-                devicesOnServer.add(userdev);
-            }
+                        devicesOnServer.add(userdev);
+                    }
                 }
-                if(areasJson!=null&&!serviceActive){
+                if(areasJson!=null&&serverActive&&!serviceActive){
                     for(iTmp=0;iTmp<areasJson.size();iTmp++){
                         areaJson = areasJson.getJSONObject(iTmp);
                         String areaId = JsonPort.GetJsonString(areaJson,JSON_AREA_ID_NAME);
@@ -197,22 +262,33 @@ public class PhoneParam {
                         }
                     }
                 }
+                
+                if(testAreas!=null&&serverActive&&!serviceActive) {
+                    ArrayList<UserDevice> devTest = CheckTestAreas(testAreas);
+                    devicesOnServer.addAll(devTest);
+                }
             }
 
             if(clientJson!=null){
                 callClientPort = clientJson.getIntValue(JSON_PORT_NAME);
                 callServerAddress = JsonPort.GetJsonString(clientJson,JSON_ADDRESS_NAME);
-            devicesJson = clientJson.getJSONArray(JSON_DEVICES_NAME);
+                devicesJson = clientJson.getJSONArray(JSON_DEVICES_NAME);
                 areasJson = clientJson.getJSONArray(JSON_AREAS_NAME);
                 clientActive = clientJson.getBooleanValue(JSON_ACTIVE_NAME);
+                testAreas = clientJson.getJSONObject(JSON_TESTAREAS_NAME);
                 
-            deviceList.clear();
+                deviceList.clear();
                 if(devicesJson!=null&&clientActive){
                     for (iTmp = 0; iTmp < devicesJson.size(); iTmp++) {
-                device = devicesJson.getJSONObject(iTmp);
+                        device = devicesJson.getJSONObject(iTmp);
                         userdev = CheckUserDevice(device);
-                deviceList.add(userdev);
-            }
+                        deviceList.add(userdev);
+                    }
+                }
+
+                if(testAreas!=null&&clientActive) {
+                    ArrayList<UserDevice> devTest = CheckTestAreas(testAreas);
+                    deviceList.addAll(devTest);
                 }
 
                 if(areasJson!=null&&clientActive){
@@ -238,8 +314,8 @@ public class PhoneParam {
     }
 
     public static void InitPhoneParam(String path,String fileName){
-    	String dir = System.getProperty("user.home");
-        System.out.println("------------------------------->File Path is "+dir);
+
+        System.out.println("-------------------------------> Config File is "+path+fileName);
 
         File configFile = new File(path, fileName);
 

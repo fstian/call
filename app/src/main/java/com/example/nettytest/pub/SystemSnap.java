@@ -36,6 +36,7 @@ public class SystemSnap {
     public static final String SNAP_TIMEUNIT_NAME = "timeUnit";
 
     public static final String SNAP_CMD_TYPE_NAME = "type";
+    public static final String SNAP_AREAID_NAME = "areaId";
     public static final String SNAP_DEVID_NAME = "devId";
     public static final String SNAP_DEVTYPE_NAME = "devType";
     public static final String SNAP_TRANS_NAME = "transactions";

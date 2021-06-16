@@ -355,6 +355,7 @@ public class BackEndPhoneManager {
                     if(testSocket!=null){
                         DatagramPacket resPack;
                         while (!testSocket.isClosed()) {
+                            java.util.Arrays.fill(recvBuf,(byte)0);
                             recvPack = new DatagramPacket(recvBuf, recvBuf.length);
                             try {
                                 testSocket.receive(recvPack);
@@ -374,11 +375,11 @@ public class BackEndPhoneManager {
                                                     testSocket.send(resPack);
                                                 }
                                             } else if (type == SystemSnap.SNAP_BACKEND_TRANS_REQ) {
-                                                resList = HandlerMgr.GetBackEndTransInfo();
-                                                for (byte[] data : resList) {
-                                                    resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
-                                                    testSocket.send(resPack);
-                                                }
+//                                                resList = HandlerMgr.GetBackEndTransInfo();
+//                                                for (byte[] data : resList) {
+//                                                    resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
+//                                                    testSocket.send(resPack);
+//                                                }
                                             }
                                         }
                                     }
