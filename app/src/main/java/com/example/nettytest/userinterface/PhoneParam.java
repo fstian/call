@@ -25,6 +25,7 @@ public class PhoneParam {
     final static String JSON_NET_MODE_NAME = "netMode";
     final static String JSON_UDP_MODE_NAME = "UDP";
     final static String JSON_TCP_MODE_NAME = "TCP";
+    final static String JSON_RAWTCP_MODE_NAME = "RAW-TCP";
     final static String JSON_SERVICE_NAME = "service";
     
     final static String JSON_AREAS_NAME = "areas";
@@ -69,6 +70,7 @@ public class PhoneParam {
 
     public final static int UDP_PROTOCOL = 1;
     public final static int TCP_PROTOCOL = 2;
+    public final static int RAW_TCP_PROTOCOL = 3;
 
     public static int callRtpCodec = AudioMode.RTP_CODEC_711A;
 
@@ -111,6 +113,8 @@ public class PhoneParam {
         netMode = JsonPort.GetJsonString(device,JSON_NET_MODE_NAME);
         if(netMode.compareToIgnoreCase(JSON_UDP_MODE_NAME)==0)
             userdev.netMode = UserInterface.NET_MODE_UDP;
+        else if(netMode.compareToIgnoreCase(JSON_RAWTCP_MODE_NAME)==0)
+            userdev.netMode = UserInterface.NET_MODE_RAW_TCP;
         else
             userdev.netMode = UserInterface.NET_MODE_TCP;
         userdev.type = UserInterface.GetDeviceType(JsonPort.GetJsonString(device,JSON_DEVICE_TYPE_NAME));
@@ -136,6 +140,8 @@ public class PhoneParam {
         String netModeValue = JsonPort.GetJsonString(testAreas, JSON_NET_MODE_NAME);
         if(netModeValue.compareToIgnoreCase(JSON_UDP_MODE_NAME)==0)
             netMode = UserInterface.NET_MODE_UDP;
+        else if(netModeValue.compareToIgnoreCase(JSON_RAWTCP_MODE_NAME)==0)
+            netMode = UserInterface.NET_MODE_RAW_TCP;
         else
             netMode = UserInterface.NET_MODE_TCP;
         
@@ -188,6 +194,8 @@ public class PhoneParam {
         	sValue = JsonPort.GetJsonString(devGroupJson,JSON_NET_MODE_NAME);
             if(sValue.compareToIgnoreCase(JSON_UDP_MODE_NAME)==0)
                 netMode = UserInterface.NET_MODE_UDP;
+            else if(sValue.compareToIgnoreCase(JSON_RAWTCP_MODE_NAME)==0)
+                netMode = UserInterface.NET_MODE_RAW_TCP;
             else
                 netMode = UserInterface.NET_MODE_TCP;
             type = UserInterface.GetDeviceType(JsonPort.GetJsonString(devGroupJson,JSON_DEVICE_TYPE_NAME));
@@ -315,34 +323,34 @@ public class PhoneParam {
 
     public static void InitPhoneParam(String path,String fileName){
 
-        System.out.println("-------------------------------> Config File is "+path+fileName);
+        UserInterface.PrintLog("-------------------------------> Config File is "+path+fileName);
 
         File configFile = new File(path, fileName);
 
-            try {
-                if (configFile.exists()) {
-                    FileInputStream finput = new FileInputStream(configFile);
-                    int len = finput.available();
-                    byte[] data = new byte[len];
-                    int readlen = finput.read(data);
-                    finput.close();
-                    if(readlen>0) {
-                        String config = new String(data, "UTF-8");
-                        InitServerAndDevicesConfig(config);
-                    }
-                } else {
-                    FileOutputStream foutput = new FileOutputStream(configFile);
-                    String config = "hello";
-                    byte[] data = config.getBytes();
-                    foutput.write(data);
-                    foutput.close();
+        try {
+            if (configFile.exists()) {
+                FileInputStream finput = new FileInputStream(configFile);
+                int len = finput.available();
+                byte[] data = new byte[len];
+                int readlen = finput.read(data);
+                finput.close();
+                if(readlen>0) {
+                    String config = new String(data, "UTF-8");
+                    InitServerAndDevicesConfig(config);
                 }
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+            } else {
+                FileOutputStream foutput = new FileOutputStream(configFile);
+                String config = "hello";
+                byte[] data = config.getBytes();
+                foutput.write(data);
+                foutput.close();
             }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+    }
 
     public static String GetLocalAddress(){
         String address= "";

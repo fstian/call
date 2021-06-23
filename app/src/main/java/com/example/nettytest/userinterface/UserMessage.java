@@ -44,7 +44,6 @@ public class UserMessage {
 
     public final static int DEV_MESSAGE_LIST =200;
     public final static int CONFIG_MESSAGE_LIST = 201;
-    public final static int TRANSFER_MESSAGE_RESULT = 202;
 
     public final static int CALL_MESSAGE_UNKONWQ = 0xffff;
 

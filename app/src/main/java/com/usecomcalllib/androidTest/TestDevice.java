@@ -176,7 +176,7 @@ public class TestDevice extends UserDevice{
 // call status is not connected. answer maybe fail           
 // but status is not connected, phone will maybe answer other call.
 //            talkPeer = GetIncomingCaller(callid);
-//            UserInterface.PrintLog("%s Set talkPeer=%s when Answer Call %s ",devid,talkPeer,callid);
+            UserInterface.PrintLog("%s Set talkPeer=%s when Answer Call %s ",devid,talkPeer,callid);
         }
         return result;
     }
@@ -236,8 +236,8 @@ public class TestDevice extends UserDevice{
     public boolean Operation(int tvIndex,int x,int y){
         boolean result = false;
         OperationResult opResult;
-        if(!isRegOk)
-            return false;
+//        if(!isRegOk)
+//            return false;
 //        UserInterface.PrintLog("Device List TextView Touch at (%d,%d)", x, y);
         if(tvIndex==0) {
             if (type == UserInterface.CALL_BED_DEVICE||type==UserInterface.CALL_EMERGENCY_DEVICE) {
@@ -439,6 +439,7 @@ public class TestDevice extends UserDevice{
                 bedlistenCalls = msg.enableListenCall;
                 QueryConfig();
                 QuerySystemConfig();
+                UserInterface.PrintLog("Dev %s Receive Reg Succ, areaId=%s, areaName=%s",devid,msg.areaId,msg.areaName);
                 break;
             case UserCallMessage.REGISTER_MESSAGE_FAIL:
                 isRegOk = false;
@@ -449,9 +450,9 @@ public class TestDevice extends UserDevice{
     public void UpdateVideoState(UserVideoMessage msg){
         if(msg.type==UserMessage.CALL_VIDEO_INVITE){
             UserInterface.PrintLog("Receive Start Video for Call %s",msg.callId);
-            UserInterface.AnswerVideo(devid, msg.callId);
-            videoCallId = msg.callId;
-            isVideo = true;
+//          UserInterface.AnswerVideo(devid, msg.callId);
+//          videoCallId = msg.callId;
+//          isVideo = true;
         }else if(msg.type==UserMessage.CALL_VIDEO_ANSWERED){
             UserInterface.PrintLog("Receive Answer Video for Call %s",msg.callId);
             videoCallId = msg.callId;
@@ -551,12 +552,13 @@ public class TestDevice extends UserDevice{
                     inComingCallInfos.add(info);
                     UserInterface.PrintLog("Add Call %s to Dev %s incomingCall List",info.callID,devid);
                     UserInterface.PrintLog("Dev %s Recv Incoming Call %s from room-%s , bed-%s , patient-%s, age-%s", devid, info.callID,msg.roomId,msg.bedName,msg.patientName,msg.patientAge);
+                    UserInterface.PrintLog("Dev %s Recv Incoming Call %s from areaId -%s , areaName -%s , isTransfer -%b", devid, info.callID,msg.areaId,msg.areaName,msg.isTransfer);
                     Integer count = inComingCallRecord.get(info.caller);
                     if(count==null){
-                        System.out.println("Init Record of device "+info.caller+"(1) in dev "+devid);
+                        UserInterface.PrintLog("Init Record of device %s(1) in dev %s",info.caller,devid);
                         inComingCallRecord.put(info.caller,1);
                     }else{
-                        System.out.println("Increase Record of device "+info.caller+"("+(count+1)+") in dev "+devid);
+                        UserInterface.PrintLog("Increase Record of device %s(%d) in dev %s ",info.caller,(count+1),devid);
                         inComingCallRecord.put(info.caller,count+1);
                     }
                     break;

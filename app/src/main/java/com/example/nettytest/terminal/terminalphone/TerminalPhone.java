@@ -53,7 +53,7 @@ public class TerminalPhone extends PhoneDevice {
 
     TerminalCallManager callManager;
 
-    String areaId;
+    public String areaId;
 
     public boolean isListenCall;
 
@@ -169,7 +169,7 @@ public class TerminalPhone extends PhoneDevice {
         return callManager.GetCallCount();
     }
 
-    public void UpdateRegStatus(int status,String areaId,String transferAreaId,boolean listenState){
+    public void UpdateRegStatus(int status,String areaId,String areaName,String transferAreaId,boolean listenState){
         UserRegMessage regMsg = new UserRegMessage();
 
         regMsg.devId = id;
@@ -180,6 +180,7 @@ public class TerminalPhone extends PhoneDevice {
             regWaitCount = PhoneParam.CLIENT_REG_EXPIRE;
             regMsg.type = UserCallMessage.REGISTER_MESSAGE_SUCC;
             regMsg.areaId = areaId;
+            regMsg.areaName = areaName;
             regMsg.transferAreaId = transferAreaId;
             regMsg.enableListenCall = listenState;
             this.areaId = areaId;
@@ -272,7 +273,7 @@ public class TerminalPhone extends PhoneDevice {
 
     public void UpdateConfig(ConfigResPack res){
         UserConfigMessage configMsg = new UserConfigMessage();
-        configMsg.type = UserMessage.TRANSFER_MESSAGE_RESULT;
+        configMsg.type = UserMessage.CONFIG_MESSAGE_LIST;
         configMsg.devId = res.devId;
         for(int iTmp=0;iTmp<res.params.size();iTmp++){
             ConfigItem item = res.params.get(iTmp);

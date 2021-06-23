@@ -41,6 +41,7 @@ public class UserInterface {
 
     public final static int NET_MODE_TCP = 1;
     public final static int NET_MODE_UDP = 2;
+    public final static int NET_MODE_RAW_TCP = 3;
 
     public static DemoServer callServer=null;
 
@@ -242,6 +243,8 @@ public class UserInterface {
         int netType;
         if(netMode == UserInterface.NET_MODE_UDP)
             netType = PhoneParam.UDP_PROTOCOL;
+        else if(netMode == UserInterface.NET_MODE_RAW_TCP)
+            netType = PhoneParam.RAW_TCP_PROTOCOL;
         else
             netType = PhoneParam.TCP_PROTOCOL;
         switch(type) {

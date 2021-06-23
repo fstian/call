@@ -104,8 +104,8 @@ public class    MainActivity extends AppCompatActivity {
 
                     new CallMessageProcess().start();
 
-                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Begin Init Audio Test");
-                    System.out.println(String.format("screen CreateAudioTest create server and clients"));
+                    UserInterface.PrintLog("Begin Init Audio Test");
+                    UserInterface.PrintLog("screen CreateAudioTest create server and clients");
                     isAudioTestCreate = true;
 
                     InitAudioDevice();
@@ -298,7 +298,7 @@ public class    MainActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
 
-        System.out.println(String.format("screen onCreate with %d",getResources().getConfiguration().orientation));
+        UserInterface.PrintLog("screen onCreate with %d",getResources().getConfiguration().orientation);
         if(getResources().getConfiguration().orientation==ActivityInfo.SCREEN_ORIENTATION_PORTRAIT) {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         }else {
@@ -581,7 +581,7 @@ public class    MainActivity extends AppCompatActivity {
         }
         if(audioTest!=null)
             audioTest.isUIActive = false;
-        System.out.println("screen OnDestory");
+       UserInterface.PrintLog("screen OnDestory");
     }
 
     private void InitGui(){
@@ -822,7 +822,7 @@ public class    MainActivity extends AppCompatActivity {
 //            }
 
             Looper.loop();
-            System.out.println("CallMessageProcess Exit!!!!!");
+            UserInterface.PrintLog("CallMessageProcess Exit!!!!!");
         }
     }
 

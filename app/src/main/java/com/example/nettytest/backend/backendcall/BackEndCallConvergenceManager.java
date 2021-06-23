@@ -188,6 +188,8 @@ public class BackEndCallConvergenceManager {
                     inviteReqPack.roomId = caller.devInfo.roomId;
                     inviteReqPack.bedName = caller.devInfo.bedName;
                     inviteReqPack.deviceName = caller.devInfo.deviceName;
+                    inviteReqPack.areaId = caller.devInfo.areaId;
+                    inviteReqPack.areaName = caller.devInfo.areaName;
 
                     if(inviteReqPack.callee.compareToIgnoreCase(PhoneParam.CALL_SERVER_ID)==0){
                         LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv %s Req from %s to %s",CommonCall.GetCallTypeName(inviteReqPack.callType),caller.id,PhoneParam.CALL_SERVER_ID);

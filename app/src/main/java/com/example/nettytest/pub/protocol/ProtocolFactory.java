@@ -2,6 +2,7 @@ package com.example.nettytest.pub.protocol;
 
 import com.alibaba.fastjson.*;
 import com.example.nettytest.pub.JsonPort;
+import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.commondevice.PhoneDevice;
 import java.io.UnsupportedEncodingException;
 import io.netty.buffer.ByteBuf;
@@ -29,7 +30,7 @@ public class ProtocolFactory {
         ProtocolPacket p = null;
         try {
         	JSONObject json = JSONObject.parseObject(data);
-        	
+
             JSONObject context;
             int type = json.getIntValue(ProtocolPacket.PACKET_TYPE_NAME);
             switch(type){
@@ -42,7 +43,7 @@ public class ProtocolFactory {
                         regReqPack.devID = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
                         regReqPack.expireTime = context.getIntValue(ProtocolPacket.PACKET_EXPIRE_NAME);
                         regReqPack.devType = context.getIntValue(ProtocolPacket.PACKET_DEVTYPE_NAME);
-                    p = regReqPack;
+                        p = regReqPack;
                     }
                     break;
                 case ProtocolPacket.REG_RES:
@@ -53,9 +54,10 @@ public class ProtocolFactory {
                         regResPack.status = context.getIntValue(ProtocolPacket.PACKET_STATUS_NAME);
                         regResPack.result = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_RESULT_NAME);
                         regResPack.areaId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_AREAID_NAME);
+                        regResPack.areaName = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_AREANAME_NAME);
                         regResPack.transferAreaId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_TRANSFER_AREAID_NAME);
                         regResPack.listenCallEnable = context.getBooleanValue(ProtocolPacket.PACKET_LISTEN_STATE_NAME);
-                    p = regResPack;
+                        p = regResPack;
                     }
                     break;
                 case ProtocolPacket.CALL_REQ:
@@ -78,6 +80,9 @@ public class ProtocolFactory {
                         inviteReqPack.patientName = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_PATIENT_NAME_NAME);
                         inviteReqPack.patientAge = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_PATIENT_AGE_NAME);
                         inviteReqPack.bedName = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_BEDID_NAME);
+                        inviteReqPack.areaId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_AREAID_NAME);
+                        inviteReqPack.areaName= JsonPort.GetJsonString(context,ProtocolPacket.PACKET_AREANAME_NAME);
+                        inviteReqPack.isTransfer=context.getBooleanValue(ProtocolPacket.PACKET_ISTRANSFER_NAME);
 
                         inviteReqPack.deviceName = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVICE_NAME_NAME);
                         inviteReqPack.roomId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_ROOMID_NAME);
@@ -87,7 +92,7 @@ public class ProtocolFactory {
                         inviteReqPack.sample = context.getIntValue(ProtocolPacket.PACKET_SAMPLE_NAME);
                         inviteReqPack.autoAnswerTime = context.getIntValue(ProtocolPacket.PACKET_AUTOANSWER_TIME_NAME);
 
-                    p = inviteReqPack;
+                        p = inviteReqPack;
                     }
                     break;
                 case  ProtocolPacket.CALL_RES:
@@ -100,7 +105,7 @@ public class ProtocolFactory {
                         inviteResPack.result = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_RESULT_NAME);
 
                         inviteResPack.callID = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_CALLID_NAME);
-                    p = inviteResPack;
+                        p = inviteResPack;
                     }
                     break;
                 case ProtocolPacket.END_REQ:
@@ -110,7 +115,7 @@ public class ProtocolFactory {
                     if(context!=null){
                         endReqPack.endDevID = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
                         endReqPack.callID = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_CALLID_NAME);
-                    p = endReqPack;
+                        p = endReqPack;
                     }
                     break;
                 case ProtocolPacket.END_RES:
@@ -121,7 +126,7 @@ public class ProtocolFactory {
                         endResPack.status = context.getIntValue(ProtocolPacket.PACKET_STATUS_NAME);
                         endResPack.result = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_RESULT_NAME);
                         endResPack.callId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_CALLID_NAME);
-                    p = endResPack;
+                        p = endResPack;
                     }
                     break;
                 case ProtocolPacket.ANSWER_REQ:
@@ -140,7 +145,7 @@ public class ProtocolFactory {
                         answerReqP.callType = context.getIntValue(ProtocolPacket.PACKET_CALLTYPE_NAME);
                         answerReqP.answerDeviceName = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVICE_NAME_NAME);
                         answerReqP.answerRoomId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_ROOMID_NAME);
-                    p = answerReqP;
+                        p = answerReqP;
                     }
                     break;
                 case ProtocolPacket.ANSWER_RES:
@@ -151,7 +156,7 @@ public class ProtocolFactory {
                         answerResP.callID =  JsonPort.GetJsonString(context,ProtocolPacket.PACKET_CALLID_NAME);
                         answerResP.status = context.getIntValue(ProtocolPacket.PACKET_STATUS_NAME);
                         answerResP.result = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_RESULT_NAME);
-                    p = answerResP;
+                        p = answerResP;
                     }
                     break;
                 case ProtocolPacket.DEV_QUERY_REQ:
@@ -160,7 +165,7 @@ public class ProtocolFactory {
                     context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
                     if(context!=null){
                         devReqP.devid = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
-                    p = devReqP;
+                        p = devReqP;
                     }
                     break;
                 case ProtocolPacket.DEV_QUERY_RES:
@@ -170,19 +175,19 @@ public class ProtocolFactory {
                     if(context!=null){
                         devResP.status = context.getIntValue(ProtocolPacket.PACKET_STATUS_NAME);
                         devResP.result = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_RESULT_NAME);
-                    JSONArray phoneLists = context.getJSONArray(ProtocolPacket.PACKET_DETAIL_NAME);
-                    if(phoneLists!=null) {
+                        JSONArray phoneLists = context.getJSONArray(ProtocolPacket.PACKET_DETAIL_NAME);
+                        if(phoneLists!=null) {
                             for (int iTmp = 0; iTmp < phoneLists.size(); iTmp++) {
-                            JSONObject jsonObj = phoneLists.getJSONObject(iTmp);
-                            PhoneDevice phone = new PhoneDevice();
+                                JSONObject jsonObj = phoneLists.getJSONObject(iTmp);
+                                PhoneDevice phone = new PhoneDevice();
                                 phone.id = JsonPort.GetJsonString(jsonObj,ProtocolPacket.PACKET_DEVID_NAME);
                                 phone.type = jsonObj.getIntValue(ProtocolPacket.PACKET_DEVTYPE_NAME);
                                 phone.isReg = jsonObj.getBooleanValue(ProtocolPacket.PACKET_STATUS_NAME);
                                 phone.bedName = JsonPort.GetJsonString(jsonObj,ProtocolPacket.PACKET_BEDID_NAME);
-                            devResP.phoneList.add(phone);
+                                devResP.phoneList.add(phone);
+                            }
                         }
-                    }
-                    p = devResP;
+                        p = devResP;
                     }
                     break;
                 case ProtocolPacket.CALL_UPDATE_REQ:
@@ -192,7 +197,7 @@ public class ProtocolFactory {
                     if(context!=null){
                         updateReqP.callId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_CALLID_NAME);
                         updateReqP.devId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
-                    p = updateReqP;
+                        p = updateReqP;
                     }
                     break;
                 case ProtocolPacket.CALL_UPDATE_RES:
@@ -203,7 +208,7 @@ public class ProtocolFactory {
                         updateResP.status = context.getIntValue(ProtocolPacket.PACKET_STATUS_NAME);
                         updateResP.result = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_RESULT_NAME);
                         updateResP.callid = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_CALLID_NAME);
-                    p = updateResP;
+                        p = updateResP;
                     }
                     break;
                 case ProtocolPacket.DEV_CONFIG_REQ:
@@ -212,7 +217,7 @@ public class ProtocolFactory {
                     context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
                     if(context!=null){
                         configReqP.devId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
-                    p = configReqP;
+                        p = configReqP;
                     }
                     break;
                 case ProtocolPacket.SYSTEM_CONFIG_REQ:
@@ -221,7 +226,7 @@ public class ProtocolFactory {
                     context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
                     if(context!=null){
                         systemConfigReqP.devId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
-                    p = systemConfigReqP;
+                        p = systemConfigReqP;
                     }
                     break;
                 case ProtocolPacket.DEV_CONFIG_RES:
@@ -230,19 +235,19 @@ public class ProtocolFactory {
                     context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
                     if(context!=null){
                         configResP.devId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
-                    JSONArray paramList = context.getJSONArray(ProtocolPacket.PACKET_PARAMS_NAME);
-                    if(paramList!=null){
+                        JSONArray paramList = context.getJSONArray(ProtocolPacket.PACKET_PARAMS_NAME);
+                        if(paramList!=null){
                             for(int iTmp=0;iTmp<paramList.size();iTmp++){
-                            JSONObject item = paramList.getJSONObject(iTmp);
-                            ConfigItem param = new ConfigItem();
+                                JSONObject item = paramList.getJSONObject(iTmp);
+                                ConfigItem param = new ConfigItem();
                                 param.param_id = JsonPort.GetJsonString(item,ProtocolPacket.PACKET_PARAM_ID_NAME);
                                 param.param_name = JsonPort.GetJsonString(item,ProtocolPacket.PACKET_PARAM_NAME_NAME);
                                 param.param_value = JsonPort.GetJsonString(item,ProtocolPacket.PACKET_PARAM_VALUE_NAME);
                                 param.param_unit = JsonPort.GetJsonString(item,ProtocolPacket.PACKET_PARAM_UNIT_NAME);
-                            configResP.params.add(param);
+                                configResP.params.add(param);
+                            }
                         }
-                    }
-                    p = configResP;
+                        p = configResP;
                     }
                     break;
                 case ProtocolPacket.SYSTEM_CONFIG_RES:
@@ -251,19 +256,19 @@ public class ProtocolFactory {
                     context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
                     if(context!=null){
                         systemConfigResP.devId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
-                    JSONArray systemParamList = context.getJSONArray(ProtocolPacket.PACKET_PARAMS_NAME);
-                    if(systemParamList!=null){
+                        JSONArray systemParamList = context.getJSONArray(ProtocolPacket.PACKET_PARAMS_NAME);
+                        if(systemParamList!=null){
                             for(int iTmp=0;iTmp<systemParamList.size();iTmp++){
-                            JSONObject item = systemParamList.getJSONObject(iTmp);
-                            ConfigItem param = new ConfigItem();
+                                JSONObject item = systemParamList.getJSONObject(iTmp);
+                                ConfigItem param = new ConfigItem();
                                 param.param_id = JsonPort.GetJsonString(item,ProtocolPacket.PACKET_PARAM_ID_NAME);
                                 param.param_name = JsonPort.GetJsonString(item,ProtocolPacket.PACKET_PARAM_NAME_NAME);
                                 param.param_value = JsonPort.GetJsonString(item,ProtocolPacket.PACKET_PARAM_VALUE_NAME);
                                 param.param_unit = JsonPort.GetJsonString(item,ProtocolPacket.PACKET_PARAM_UNIT_NAME);
-                            systemConfigResP.params.add(param);
+                                systemConfigResP.params.add(param);
+                            }
                         }
-                    }
-                    p = systemConfigResP;
+                        p = systemConfigResP;
                     }
                     break;
                 case ProtocolPacket.CALL_TRANSFER_REQ:
@@ -274,7 +279,7 @@ public class ProtocolFactory {
                         transferReqP.transferAreaId= JsonPort.GetJsonString(context,ProtocolPacket.PACKET_TRANSFER_AREAID_NAME);
                         transferReqP.devID = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
                         transferReqP.transferEnabled = context.getBooleanValue(ProtocolPacket.PACKET_TRANSFER_STATE_NAME);
-                    p = transferReqP;
+                        p = transferReqP;
                     }
                     break;
                 case ProtocolPacket.CALL_TRANSFER_RES:
@@ -287,7 +292,7 @@ public class ProtocolFactory {
                         transferResP.state = context.getBooleanValue(ProtocolPacket.PACKET_TRANSFER_STATE_NAME);
                         transferResP.status = context.getIntValue(ProtocolPacket.PACKET_STATUS_NAME);
                         transferResP.result = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_RESULT_NAME);
-                    p = transferResP;
+                        p = transferResP;
                     }
                     break;
                 case ProtocolPacket.CALL_LISTEN_REQ:
@@ -297,7 +302,7 @@ public class ProtocolFactory {
                     if(context!=null){
                         listeReqP.devID = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
                         listeReqP.listenEnable = context.getBooleanValue(ProtocolPacket.PACKET_LISTEN_STATE_NAME);
-                    p = listeReqP;
+                        p = listeReqP;
                     }
                     break;
                 case ProtocolPacket.CALL_LISTEN_RES:
@@ -375,6 +380,7 @@ public class ProtocolFactory {
             }
         }catch (JSONException e){
             e.printStackTrace();
+            LogWork.Print(LogWork.TERMINAL_NET_MODULE, LogWork.LOG_ERROR, "Recv Unparse data %s", data);
         }
 
 
@@ -405,6 +411,7 @@ public class ProtocolFactory {
                     context.put(ProtocolPacket.PACKET_STATUS_NAME,regResP.status);
                     context.put(ProtocolPacket.PACKET_RESULT_NAME,regResP.result);
                     context.put(ProtocolPacket.PACKET_AREAID_NAME,regResP.areaId);
+                    context.put(ProtocolPacket.PACKET_AREANAME_NAME,regResP.areaName);
                     context.put(ProtocolPacket.PACKET_TRANSFER_AREAID_NAME,regResP.transferAreaId);
                     context.put(ProtocolPacket.PACKET_LISTEN_STATE_NAME,regResP.listenCallEnable);
                     json.put(ProtocolPacket.PACKET_CONTEXT_NAME,context);
@@ -427,6 +434,9 @@ public class ProtocolFactory {
                     context.put(ProtocolPacket.PACKET_ROOMID_NAME,inviteReqP.roomId);
                     context.put(ProtocolPacket.PACKET_BEDID_NAME,inviteReqP.bedName);
                     context.put(ProtocolPacket.PACKET_DEVICE_NAME_NAME,inviteReqP.deviceName);
+                    context.put(ProtocolPacket.PACKET_AREAID_NAME,inviteReqP.areaId);
+                    context.put(ProtocolPacket.PACKET_AREANAME_NAME,inviteReqP.areaName);
+                    context.put(ProtocolPacket.PACKET_ISTRANSFER_NAME,inviteReqP.isTransfer);
                     context.put(ProtocolPacket.PACKET_AUTOANSWER_TIME_NAME,inviteReqP.autoAnswerTime);
                     json.put(ProtocolPacket.PACKET_CONTEXT_NAME,context);
                     break;

@@ -19,7 +19,11 @@ public class BackEndUdpDevice extends UdpNetDevice {
 
     @Override
     public int SendBuffer(byte[] data) {
-        LogWork.Print(LogWork.BACKEND_NET_MODULE,LogWork.LOG_DEBUG,"Server Dev %s Send Data to %s:%d",id,peerAddress.getHostAddress(),peerPort);
-        return super.SendBuffer(data);
+        if(peerAddress!=null){
+            LogWork.Print(LogWork.BACKEND_NET_MODULE,LogWork.LOG_DEBUG,"Server Dev %s Send Data to %s:%d",id,peerAddress.getHostAddress(),peerPort);
+            return super.SendBuffer(data);
+        }else{
+            return -1;
+        }
     }
 }
