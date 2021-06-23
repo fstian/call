@@ -57,8 +57,13 @@ public class BackEndCallConvergence {
         InviteReqPack invitePacket;
 
         String listenAreaId;
+        boolean isTransfer = false;
 
-        listenAreaId = HandlerMgr.GetListenAreaId(caller.id);       
+        listenAreaId = HandlerMgr.GetListenAreaId(caller.id);   
+
+        if(caller.devInfo.areaId.compareToIgnoreCase(listenAreaId)!=0){
+            isTransfer = true;
+        }
         
         ArrayList<BackEndPhone> listenDevices = HandlerMgr.GetBackEndListenDevices(listenAreaId,pack.callType);
 
@@ -83,6 +88,10 @@ public class BackEndCallConvergence {
             if(CheckForwardEnable(phone,pack.callType)) {
                 invitePacket = new InviteReqPack();
                 invitePacket.ExchangeCopyData(pack);
+                invitePacket.areaId = caller.devInfo.areaId;
+                invitePacket.areaName = caller.devInfo.areaName;
+                invitePacket.isTransfer = isTransfer;
+                
                 if(invitePacket.callType==CommonCall.CALL_TYPE_BROADCAST)
                     invitePacket.autoAnswerTime = invitePacket.autoAnswerTime/2;
                 invitePacket.receiver = phone.id;

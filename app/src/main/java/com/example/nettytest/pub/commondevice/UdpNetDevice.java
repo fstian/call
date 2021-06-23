@@ -8,7 +8,7 @@ import java.net.InetAddress;
 
 public class UdpNetDevice extends NetDevice {
 
-    protected InetAddress peerAddress ;
+    protected InetAddress peerAddress=null ;
     protected int peerPort = 0;
     protected DatagramSocket localSocket=null;
 
@@ -21,7 +21,7 @@ public class UdpNetDevice extends NetDevice {
     public int SendBuffer(byte[] data){
         if(localSocket!=null) {
             if (!localSocket.isClosed()) {
-                if(peerAddress!=null) {
+                if(peerAddress!=null){
                     DatagramPacket pack = new DatagramPacket(data, data.length, peerAddress, peerPort);
                     try {
                         localSocket.send(pack);

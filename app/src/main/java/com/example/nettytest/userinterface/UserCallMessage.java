@@ -23,6 +23,10 @@ public class UserCallMessage extends UserMessage {
     public String bedName;
     public String roomId;
 
+    public String areaId;
+    public String areaName;
+    public boolean isTransfer;
+
     public String remoteRtpAddress;
     public int remoteRtpPort;
     public int localRtpPort;
@@ -51,6 +55,10 @@ public class UserCallMessage extends UserMessage {
         patientAge = "18";
         bedName = "";
         roomId = "";
+
+        areaId = "";
+        areaName = "";
+        isTransfer = false;
 
         remoteRtpAddress = "";
         remoteRtpPort = PhoneParam.INVITE_CALL_RTP_PORT;

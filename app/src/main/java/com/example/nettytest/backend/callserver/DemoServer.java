@@ -12,7 +12,7 @@ public class DemoServer {
     public DemoServer(final int port){
         
         serverThread = new Thread("DemoServer"){
-
+            
             @Override
             public void run() {
                 NettyTestServer testServer = new NettyTestServer(port);

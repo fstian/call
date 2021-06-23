@@ -139,7 +139,7 @@ public class TransManager {
                     if(trans.direction==Transaction.TRANSCATION_DIRECTION_S2C){
                         LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_INFO,"DEV %s Rerecv %s when Transaction state is %s ",trans.devID,ProtocolPacket.GetTypeName(packet.type),Transaction.GetStateName(trans.state));
                     }else{
-                        LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_INFO,"Server Rerecv %s when Transaction state is %s Fro Dev %d",ProtocolPacket.GetTypeName(packet.type),Transaction.GetStateName(trans.state),trans.devID);
+                        LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_INFO,"Server Rerecv %s when Transaction state is %s Fro Dev %s",ProtocolPacket.GetTypeName(packet.type),Transaction.GetStateName(trans.state),trans.devID);
                     }
                 }
             }else{

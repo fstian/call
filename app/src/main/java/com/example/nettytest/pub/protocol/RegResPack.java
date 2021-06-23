@@ -4,6 +4,7 @@ public class RegResPack extends ProtocolPacket{
     public int status;
     public String result;
     public String areaId;
+    public String areaName;
     public String transferAreaId;
     public boolean listenCallEnable;
 
@@ -13,6 +14,7 @@ public class RegResPack extends ProtocolPacket{
         result = "";
         areaId = "";
         transferAreaId = "";
+        areaName = "";
         listenCallEnable = false;
     }
 
@@ -22,6 +24,7 @@ public class RegResPack extends ProtocolPacket{
         this.status = status;
         result = ProtocolPacket.GetResString(status);
         areaId = "";
+        areaName = "";
         transferAreaId = "";
         listenCallEnable = false;
     }

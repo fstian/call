@@ -15,6 +15,9 @@ public class InviteReqPack extends ProtocolPacket{
     public String bedName;
     public String roomId;
     public String deviceName;
+    public String areaId;
+    public String areaName;
+    public boolean isTransfer;
    
     public String callee;
 
@@ -41,6 +44,10 @@ public class InviteReqPack extends ProtocolPacket{
         patientAge = invitePack.patientAge;
         patientName = invitePack.patientName;
         roomId = invitePack.roomId;
+
+        areaId = invitePack.areaId;
+        areaName = invitePack.areaName;
+        isTransfer = invitePack.isTransfer;
 
         codec = invitePack.codec;
         pTime = invitePack.pTime;

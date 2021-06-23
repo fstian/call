@@ -245,7 +245,7 @@ public class TerminalPhoneManager {
         synchronized (TerminalPhoneManager.class) {
             matchedDev = clientPhoneLists.get(id);
             if(matchedDev!=null){
-                matchedDev.UpdateRegStatus(ProtocolPacket.STATUS_NOTFOUND,"","",false);
+                matchedDev.UpdateRegStatus(ProtocolPacket.STATUS_NOTFOUND,"","","",false);
                 clientPhoneLists.remove(id);
             }
         }
@@ -490,7 +490,7 @@ public class TerminalPhoneManager {
                 case ProtocolPacket.REG_RES:
                     RegResPack resP = (RegResPack)packet;
                     LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Reg Res",resP.receiver);
-                    phone.UpdateRegStatus(resP.status,resP.areaId,resP.transferAreaId,resP.listenCallEnable);
+                    phone.UpdateRegStatus(resP.status,resP.areaId,resP.areaName,resP.transferAreaId,resP.listenCallEnable);
                     break;
                 case ProtocolPacket.END_RES:
                     EndResPack endResPack = (EndResPack)packet;
@@ -575,7 +575,7 @@ public class TerminalPhoneManager {
         if(phone!=null){
             switch(packet.type){
                 case ProtocolPacket.REG_REQ:
-                    phone.UpdateRegStatus(ProtocolPacket.STATUS_TIMEOVER,"","",false);
+                    phone.UpdateRegStatus(ProtocolPacket.STATUS_TIMEOVER,"","","",false);
                     break;
                 case ProtocolPacket.CALL_REQ:
                 case ProtocolPacket.ANSWER_REQ:
@@ -613,30 +613,30 @@ public class TerminalPhoneManager {
                 }
                 
                 while(recvList.size()>0) {
-                msg = recvList.remove(0);
-                int type = msg.arg1;
-                ProtocolPacket packet;
-                synchronized (TerminalPhoneManager.class) {
-                    switch (type) {
-                        case MSG_NEW_PACKET:
-                            packet = (ProtocolPacket) msg.obj;
-                            PacketRecvProcess(packet);
-                            break;
-                        case MSG_SECOND_TICK:
-                            for (TerminalPhone phone : clientPhoneLists.values()) {
-                                phone.UpdateSecondTick();
-                            }
-                            break;
-                        case MSG_REQ_TIMEOVER:
-                            packet = (ProtocolPacket) msg.obj;
-                            PacketTimeOverProcess(packet);
-                            break;
-                        default:
-                            throw new IllegalStateException("Unexpected value: " + type);
+                    msg = recvList.remove(0);
+                    int type = msg.arg1;
+                    ProtocolPacket packet;
+                    synchronized (TerminalPhoneManager.class) {
+                        switch (type) {
+                            case MSG_NEW_PACKET:
+                                packet = (ProtocolPacket) msg.obj;
+                                PacketRecvProcess(packet);
+                                break;
+                            case MSG_SECOND_TICK:
+                                for (TerminalPhone phone : clientPhoneLists.values()) {
+                                    phone.UpdateSecondTick();
+                                }
+                                break;
+                            case MSG_REQ_TIMEOVER:
+                                packet = (ProtocolPacket) msg.obj;
+                                PacketTimeOverProcess(packet);
+                                break;
+                            default:
+                                throw new IllegalStateException("Unexpected value: " + type);
+                        }
                     }
                 }
-        }
-    }
+            }
         }
     }
 

@@ -90,12 +90,14 @@ public class DevicesQuery {
         int type;
         String res;
         String areaId;
+        String areaName;
         int msgId;
         
         public QueryMessage() {
             type = QUERY_UNKNOW_MSG;
             res = "";
             areaId = "";
+            areaName = "";
             synchronized(QueryMessage.class){            
                 msgQueurId++;
                 msgId = msgQueurId;
@@ -225,7 +227,7 @@ public class DevicesQuery {
                         area = areas.get(areaPos);
                         LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Http Query Get  %d Aears ",areas.size());
 //                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Http Query Begin Query Device in %d Aear %s",areaPos+1,area.areaId);
-                        QueryDevices(area.areaId);
+                        QueryDevices(area.areaId,area.areaName);
                     }else{
                         ResetQuery();
                     }
@@ -242,7 +244,7 @@ public class DevicesQuery {
                     area = areas.get(areaPos);
                     if(retryCount<QUERY_RETRY_MAX){
                         LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Http Query Device in Area %s TimerOver %d time, Retry Query",area.areaId,retryCount);
-                        QueryDevices(area.areaId);
+                        QueryDevices(area.areaId,area.areaName);
                     }else{
                         LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Http Query Device in Area %s TimerOver %d time, Reset Query !!!!!!!!!!",area.areaId,retryCount);
                         ResetQuery();
@@ -252,7 +254,7 @@ public class DevicesQuery {
                 tickCount = 0;
 
 //                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Recv Devices Res For %d Area %s",areaPos+1,msg.areaId);               
-                int deviceNum = UpdateDevices(msg.areaId,msg.res);
+                int deviceNum = UpdateDevices(msg.areaId,msg.areaName,msg.res);
                 retryCount = 0;
                 if(deviceNum>=0) {
                     totalDeviceNum += deviceNum;                  
@@ -269,7 +271,7 @@ public class DevicesQuery {
                 }else {
                     area = areas.get(areaPos);
 //                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Http Query Begin Query Device in %d Aear %s",areaPos+1,area.areaId);
-                    QueryDevices(area.areaId);
+                    QueryDevices(area.areaId,area.areaName);
                 }
             }
             break;
@@ -373,7 +375,7 @@ public class DevicesQuery {
         });
     }
 
-    private void QueryDevices(final String areaId) {
+    private void QueryDevices(final String areaId,final String areaName) {
         final String url = String.format("http://%s:%d/call/router/area/%s/device",serviceAddress,servicePort,areaId);
 
         httpGetProcess(url,new Callback() {
@@ -398,6 +400,7 @@ public class DevicesQuery {
                         msg.type = QUERY_DEVICES_RES;
                         msg.res = resString;
                         msg.areaId = areaId;
+                        msg.areaName = areaName;
                         
                         synchronized(msgList) {
                             msgList.add(msg);
@@ -561,7 +564,7 @@ public class DevicesQuery {
     }
 
     
-    private int UpdateDevices(String areaId,String data) {
+    private int UpdateDevices(String areaId,String areaName,String data) {
         int status = -1;
         int iTmp;
         JSONObject json;
@@ -597,6 +600,7 @@ public class DevicesQuery {
                 userDeviceList.add(device);
 
                 deviceInfo.areaId = areaId;
+                deviceInfo.areaName = areaName; 
                 deviceInfo.bedName = JsonPort.GetJsonString(jsonDevice,JSON_BED_NAME_NAME);
                 deviceInfo.deviceName = JsonPort.GetJsonString(jsonDevice,JSON_DEVICE_NAME_NAME);
                 deviceInfo.roomId = JsonPort.GetJsonString(jsonDevice,JSON_ROOM_ID_NAME);

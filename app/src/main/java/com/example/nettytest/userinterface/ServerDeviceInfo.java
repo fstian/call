@@ -5,12 +5,14 @@ public class ServerDeviceInfo {
     public String bedName;
     public String roomId;
     public String areaId;
+    public String areaName;
 
     public ServerDeviceInfo(){
         deviceName = "";
         bedName = "";
         roomId = "";
         areaId = "";
+        areaName = "";
     }
 
     public ServerDeviceInfo(ServerDeviceInfo old){
@@ -18,5 +20,6 @@ public class ServerDeviceInfo {
         bedName = old.bedName;
         roomId = old.roomId;
         areaId = old.areaId;
+        areaName = old.areaName;
     }
 }

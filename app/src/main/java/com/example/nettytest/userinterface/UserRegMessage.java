@@ -4,6 +4,7 @@ public class UserRegMessage extends UserMessage {
     public boolean isReg;
     public int regExpire;
     public String areaId;
+    public String areaName;
     public String transferAreaId;
     public boolean enableListenCall;
 
@@ -11,6 +12,7 @@ public class UserRegMessage extends UserMessage {
         super();
         areaId = "";
         transferAreaId = "";
+        areaName = "";
         enableListenCall = false;
     }
 }

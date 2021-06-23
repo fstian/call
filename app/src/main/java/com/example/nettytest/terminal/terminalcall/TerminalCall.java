@@ -97,6 +97,10 @@ public class TerminalCall extends CommonCall {
         callMsg.bedName = pack.bedName;
         callMsg.deviceName = pack.deviceName;
 
+        callMsg.areaId = pack.areaId;
+        callMsg.areaName = pack.areaName;
+        callMsg.isTransfer = pack.isTransfer;
+
         Transaction inviteResTransaction = new Transaction(devID,pack,resPack,Transaction.TRANSCATION_DIRECTION_C2S);
         LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Invite From %s to %s, CallID = %s",devID,caller,callee,callID);
         HandlerMgr.AddPhoneTrans(pack.msgID,inviteResTransaction);

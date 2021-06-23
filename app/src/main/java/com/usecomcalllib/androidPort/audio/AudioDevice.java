@@ -16,6 +16,7 @@ import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.UniqueIDManager;
 import com.example.nettytest.pub.AudioMode;
 import com.example.nettytest.userinterface.PhoneParam;
+import com.example.nettytest.userinterface.UserInterface;
 import com.witted.ptt.JitterBuffer;
 
 import java.io.IOException;
@@ -436,7 +437,7 @@ public class AudioDevice {
 //                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv %d byte from %s:%d",recvPack.getLength(),recvPack.getAddress().getHostName(),recvPack.getPort());
                             if(recvPack.getPort()==dstPort&&recvPack.getAddress().getHostAddress().compareToIgnoreCase(dstAddress)==0){
                                 if(jb==null){
-                                    System.out.println("jb is NULL!!!!!!!!!!!!!!!!!!");
+                                    UserInterface.PrintLog("jb is NULL!!!!!!!!!!!!!!!!!!");
                                 }else
                                     jb.addPackage(jbIndex,recvPack.getData(),recvPack.getLength());
                             }

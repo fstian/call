@@ -10,6 +10,14 @@ public class TerminalDevManager extends NetDeviceManager {
         super();
     }
 
+    public void CloseAllDevice(){
+        synchronized (NetDeviceManager.class) {
+            for(NetDevice dev:devLists.values()){
+                dev.Close();
+            }
+        }
+    }
+
     public void AddDevice(String id,int netMode){
         NetDevice matchedDev;
 
@@ -20,6 +28,9 @@ public class TerminalDevManager extends NetDeviceManager {
                     TerminalTcpDevice dev = new TerminalTcpDevice(id);
                     devLists.put(id, dev);
                     dev.Start();
+                }else if(netMode == PhoneParam.RAW_TCP_PROTOCOL){
+                    TerminalRawTcpDevice dev = new TerminalRawTcpDevice(id);
+                    devLists.put(id,dev);
                 }else if(netMode == PhoneParam.UDP_PROTOCOL){
                     TerminalUdpDevice dev = new TerminalUdpDevice(id);
                     devLists.put(id,dev);

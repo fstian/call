@@ -18,6 +18,7 @@ public class ProtocolPacket {
     public final static String PACKET_AREAID_NAME  = "areaId";
     public final static String PACKET_TRANSFER_AREAID_NAME  = "transferAreaId";
     public final static String PACKET_AREANAME_NAME  = "areaName";
+    public final static String PACKET_ISTRANSFER_NAME = "isTransfer";
 
     public final static String PACKET_STATUS_NAME = "status";
     public final static String PACKET_RESULT_NAME = "result";

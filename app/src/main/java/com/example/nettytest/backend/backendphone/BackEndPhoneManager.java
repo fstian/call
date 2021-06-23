@@ -53,7 +53,7 @@ public class BackEndPhoneManager {
     static Thread snapThread = null;
 
     private BackEndCallConvergenceManager backEndCallConvergencyMgr;
-
+    
     private class BackendPhoneMsg{
     	int type;
     	Object obj;
@@ -93,13 +93,13 @@ public class BackEndPhoneManager {
     public BackEndPhone GetDevice(String id){
         BackEndPhone matchedPhone=null;
         synchronized(phoneMsgList) {
-        
-        matchedPhone = GetLocalDevice(id);
+
+            matchedPhone = GetLocalDevice(id);
         }
         return matchedPhone;
 
     }
-
+    
     public int PostBackEndPhoneMessage(int type,Object obj) {
     	synchronized(phoneMsgList) {
     		BackendPhoneMsg msg = new BackendPhoneMsg(type,obj);
@@ -108,7 +108,7 @@ public class BackEndPhoneManager {
     	}
     	return 0;
     }
-
+    
 
     public int GetCallCount(){
         return backEndCallConvergencyMgr.GetCallCount();
@@ -328,6 +328,7 @@ public class BackEndPhoneManager {
                 if (matchedPhone == null) {
                     matchedPhone = new BackEndPhone(id, t);
                     matchedPhone.devInfo.areaId = areaId;
+                    matchedPhone.devInfo.areaName = area.areaName;
 
 //                serverPhoneLists.put(id,matchedPhone);
                     area.AddDevice(id, matchedPhone);
@@ -538,6 +539,7 @@ public class BackEndPhoneManager {
                     phone.UpdateRegStatus(regPacket.expireTime);
                     regResP = new RegResPack(resStatus,regPacket);
                     regResP.areaId = phone.devInfo.areaId;
+                    regResP.areaName = phone.devInfo.areaName;
                     regResP.transferAreaId = GetTransferAreaIdLocal(devID);
                     regResP.listenCallEnable = phone.enableListen;
                 }
@@ -665,7 +667,7 @@ public class BackEndPhoneManager {
         public void run() {
         	ArrayList<BackendPhoneMsg> localMsgList = new ArrayList<>();
         	BackendPhoneMsg msg;
-                ProtocolPacket packet;
+        	ProtocolPacket packet;
         	while(!isInterrupted()) {
         		synchronized (phoneMsgList) {
         			try {
@@ -682,24 +684,24 @@ public class BackEndPhoneManager {
         		
 	        	while(localMsgList.size()>0) {
 	        		msg = localMsgList.remove(0);
-                synchronized (BackEndPhoneManager.class) {
+	        		synchronized(BackEndPhoneManager.class) {
 		        		switch(msg.type) {
-                        case MSG_NEW_PACKET:
-                            packet = (ProtocolPacket) msg.obj;
-                            PacketRecvProcess(packet);
-                            break;
-                        case MSG_SECOND_TICK:
-                            CallConvergencySecondTick();
-                            UpdatePhonesRegTick();
-                            break;
-                        case MSG_REQ_TIMEOVER:
-                            packet = (ProtocolPacket) msg.obj;
-                            PacketTimeOverProcess(packet);
-                            break;
-                        default:
+			                case MSG_NEW_PACKET:
+			                    packet = (ProtocolPacket) msg.obj;
+			                    PacketRecvProcess(packet);
+			                    break;
+			                case MSG_SECOND_TICK:
+			                    CallConvergencySecondTick();
+			                    UpdatePhonesRegTick();
+			                    break;
+			                case MSG_REQ_TIMEOVER:
+			                    packet = (ProtocolPacket) msg.obj;
+			                    PacketTimeOverProcess(packet);
+			                    break;
+			                default:
 			                    throw new IllegalStateException("Unexpected value: " +msg.type);
-                    }
-                }
+		        		}
+	        		}
 	        	}    		
         	
         	}

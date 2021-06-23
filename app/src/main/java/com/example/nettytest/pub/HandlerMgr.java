@@ -47,6 +47,10 @@ public class HandlerMgr {
 
 //for terminal TcpNetDevice
 
+    static public void CloseAllTerminalDevice(){
+        terminalDevManager.CloseAllDevice();
+    }
+
     static public void UpdatePhoneDevChannel(String ID, Channel channel){
         terminalDevManager.UpdateDevChannel(ID,channel);
     }

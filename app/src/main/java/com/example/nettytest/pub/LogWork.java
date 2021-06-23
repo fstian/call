@@ -52,6 +52,8 @@ public class LogWork {
 
     public static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
+    public final static String LOG_DEVICE = "50110001";
+
     public static int dbgLevel = LOG_DEBUG;
 
     public static boolean bLogToFiles = false;
@@ -139,6 +141,8 @@ public class LogWork {
             }
             if (isPrint) {
                 String dbgString = String.format(format, param);
+//                if(dbgString.indexOf(LOG_DEVICE)<=0)
+//                    return 0;
                 String levelString = " D/ ";
                 switch (degLevel) {
                     case LOG_VERBOSE:
