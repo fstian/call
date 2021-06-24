@@ -176,6 +176,7 @@ public class TerminalCall extends CommonCall {
         callMsg.type = UserCallMessage.CALL_MESSAGE_DISCONNECT;
         callMsg.devId = devID;
         callMsg.callId = callID;
+        callMsg.callType = type;
 //        if(!audioId.isEmpty())
 //            AudioMgr.CloseAudio(audioId);
 
@@ -191,6 +192,7 @@ public class TerminalCall extends CommonCall {
         
         callMsg.devId = devID;
         callMsg.callId = callID;
+        callMsg.callType = type;
 
         if(packet.status == ProtocolPacket.STATUS_OK) {
             LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv OK for Invite in Call %s! ",devID,callID);
@@ -213,6 +215,7 @@ public class TerminalCall extends CommonCall {
         
         callMsg.devId = devID;
         callMsg.callId = callID;
+        callMsg.callerType = type;
 
         if(pack.status==ProtocolPacket.STATUS_OK){
             int audioMode;
@@ -232,6 +235,7 @@ public class TerminalCall extends CommonCall {
             state = CommonCall.CALL_STATE_CONNECTED;
             callMsg.type = UserCallMessage.CALL_MESSAGE_CONNECT;
             callMsg.reason = FailReason.FAIL_REASON_NO;
+            
 
             callMsg.localRtpPort = localRtpPort;
             callMsg.remoteRtpPort = remoteRtpPort;
@@ -255,6 +259,7 @@ public class TerminalCall extends CommonCall {
         UserCallMessage callMsg = new UserCallMessage();
         callMsg.devId = devID;
         callMsg.callId = pack.callid;
+        callMsg.callType = type;
 
         if(pack.status!=ProtocolPacket.STATUS_OK){
             LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone %s Recv %d(%s) for Update in Call %s!",devID,pack.status,ProtocolPacket.GetResString(pack.status),callID);
@@ -275,6 +280,7 @@ public class TerminalCall extends CommonCall {
         UserCallMessage callMsg = new UserCallMessage();
         callMsg.devId = devID;
         callMsg.callId = pack.callId;
+        callMsg.callType = type;
 
         if(pack.status!=ProtocolPacket.STATUS_OK){
             LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone %s Recv %d(%s) for End Call %s!",devID,pack.status,ProtocolPacket.GetResString(pack.status),callID);
@@ -294,6 +300,7 @@ public class TerminalCall extends CommonCall {
         UserCallMessage callMsg = new UserCallMessage();
         callMsg.devId = devID;
         callMsg.callId = pack.callID;
+        callMsg.callType = type;
         callMsg.type = UserMessage.CALL_MESSAGE_DISCONNECT;
 
 //        if(!audioId.isEmpty())
@@ -361,6 +368,7 @@ public class TerminalCall extends CommonCall {
         callMsg.type = UserCallMessage.CALL_MESSAGE_ANSWERED;
         callMsg.devId = devID;
         callMsg.callId = pack.callID;
+        callMsg.callType = type;
         callMsg.operaterId = pack.answerer;
 
         answer = pack.answerer;
@@ -425,6 +433,7 @@ public class TerminalCall extends CommonCall {
         UserCallMessage callMsg = new UserCallMessage();
         callMsg.devId = devID;
         callMsg.callId = callID;
+        callMsg.callType = type;
         callMsg.type = UserCallMessage.CALL_MESSAGE_INVITE_FAIL;
         callMsg.reason = OperationResult.GetUserFailReason(ProtocolPacket.STATUS_TIMEOVER);
         HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
@@ -434,6 +443,7 @@ public class TerminalCall extends CommonCall {
         UserCallMessage callMsg = new UserCallMessage();
         callMsg.devId = devID;
         callMsg.callId = callID;
+        callMsg.callType = type;
         callMsg.type = UserCallMessage.CALL_MESSAGE_ANSWER_FAIL;
         callMsg.reason = OperationResult.GetUserFailReason(ProtocolPacket.STATUS_TIMEOVER);
         HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
@@ -443,6 +453,7 @@ public class TerminalCall extends CommonCall {
         UserCallMessage callMsg = new UserCallMessage();
         callMsg.devId = devID;
         callMsg.callId = callID;
+        callMsg.callType = type;
         callMsg.type = UserCallMessage.CALL_MESSAGE_END_FAIL;
         callMsg.reason = OperationResult.GetUserFailReason(ProtocolPacket.STATUS_TIMEOVER);
         HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
@@ -455,6 +466,7 @@ public class TerminalCall extends CommonCall {
             UserCallMessage callMsg = new UserCallMessage();
             callMsg.devId = devID;
             callMsg.callId = callID;
+            callMsg.callType = type;
             callMsg.type = UserCallMessage.CALL_MESSAGE_UPDATE_FAIL;
             callMsg.reason = OperationResult.GetUserFailReason(ProtocolPacket.STATUS_TIMEOVER);
             HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);

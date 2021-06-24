@@ -519,7 +519,6 @@ public class TestDevice extends UserDevice{
                                     UserInterface.PrintLog("%s Clear talkPeer when Recv Call %s Disconnect in CallList",devid,msg.callId);
                                 }
                                 inComingCallInfos.remove(info);
-                                UserInterface.PrintLog("Dev %s Recv End and Remove Incoming Call %s", devid, info.callID);
                                 UserInterface.PrintLog("Recv End and Remove Call %s from Dev %s incomingCall List",info.callID,devid);
                                 isFindMatched = true;
                                 break;
