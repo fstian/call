@@ -392,6 +392,10 @@ public class TerminalPhone extends PhoneDevice {
         return callManager.EndCall(id,callid);
     }
 
+    public int EndCall(int type){
+        return callManager.EndCall(id,type);
+    }
+
     public int AnswerCall(String callid){
         return callManager.AnswerCall(id,callid);
     }

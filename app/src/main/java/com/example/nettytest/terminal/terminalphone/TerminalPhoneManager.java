@@ -39,6 +39,8 @@ import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -50,13 +52,16 @@ public class TerminalPhoneManager {
     public static final int MSG_SECOND_TICK = 2;
     public static final int MSG_REQ_TIMEOVER = 3;
     static Thread snapThread = null;
+    long runSecond = 0;
 
     private ArrayList<CallPubMessage> pubMsgList;
 
     public TerminalPhoneManager(){
         clientPhoneLists = new HashMap<>();
         pubMsgList = new ArrayList<>();
-        
+
+        HandlerMgr.ReadSystemType();
+
         TerminalPhoneThread terminalPhoneThread = new TerminalPhoneThread();
         terminalPhoneThread.start();
         new Timer("TerminalTimeTick").schedule(new TimerTask() {
@@ -70,6 +75,7 @@ public class TerminalPhoneManager {
                 HandlerMgr.SendMessageToUser(UserMessage.MESSAGE_TEST_TICK,new UserMessage());
 
                 HandlerMgr.TerminalPhoneTransactionTick();
+                runSecond++;
             }
         },0,1000);
 
@@ -343,6 +349,22 @@ public class TerminalPhoneManager {
         return result;
     }
 
+    public int EndCall(String devid,int type){
+        int result = ProtocolPacket.STATUS_NOTFOUND;
+        TerminalPhone matchedDev;
+
+        synchronized (TerminalPhoneManager.class) {
+            matchedDev = clientPhoneLists.get(devid);
+            if(matchedDev!=null){
+                result = matchedDev.EndCall(type);
+            }else{
+                LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_ERROR,"End Call DEV %s Call type %d Fail, Could not Find DEV %s",devid,type,devid);
+            }
+        }
+        return result;
+    }
+    
+
     public int AnswerCall(String devid,String callID){
         int result = ProtocolPacket.STATUS_NOTFOUND;
         TerminalPhone matchedDev;
@@ -421,6 +443,10 @@ public class TerminalPhoneManager {
             }
         }
         return result;
+    }
+
+    public long GetRunSecond(){
+        return runSecond;
     }
 
     public int RequireBedListen(String devid,boolean state){

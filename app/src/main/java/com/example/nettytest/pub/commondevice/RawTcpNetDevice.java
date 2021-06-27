@@ -1,7 +1,6 @@
 package com.example.nettytest.pub.commondevice;
 
 
-import android.text.Selection;
 
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;

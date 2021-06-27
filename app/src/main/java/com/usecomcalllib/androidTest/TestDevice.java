@@ -116,6 +116,7 @@ public class TestDevice extends UserDevice{
             outGoingCall.callID = result.callID;
             outGoingCall.callType = type;
             isCallOut = true;
+            UserInterface.PrintLog("Build Outging Call %s by Dev %s",outGoingCall.callID,devid);
         }
         return result;
     }
@@ -176,7 +177,7 @@ public class TestDevice extends UserDevice{
 // call status is not connected. answer maybe fail           
 // but status is not connected, phone will maybe answer other call.
 //            talkPeer = GetIncomingCaller(callid);
-            UserInterface.PrintLog("%s Set talkPeer=%s when Answer Call %s ",devid,talkPeer,callid);
+            UserInterface.PrintLog("Answer Incoming Call %s by Dev %s and Set talkPeer=%s",callid,devid,talkPeer);
         }
         return result;
     }
@@ -212,19 +213,20 @@ public class TestDevice extends UserDevice{
         if (outGoingCall.callID.compareToIgnoreCase(callid) == 0) {
             if(outGoingCall.status== LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED){
                 talkPeer = "";
-                UserInterface.PrintLog("%s Clear talkPeer when End Outgoing Call %s ",devid,callid);
+//                UserInterface.PrintLog("%s Clear talkPeer when End Outgoing Call %s ",devid,callid);
             }
             outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_DISCONNECT;
             isCallOut = false;
+            UserInterface.PrintLog("Stop Outgoing Call %s by Dev %s",outGoingCall.callID,devid);
         }else{
             for (LocalCallInfo callInfo : inComingCallInfos) {
                 if(callInfo.callID.compareToIgnoreCase(callid)==0) {
                     inComingCallInfos.remove(callInfo);
                     if(callInfo.status== LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED){
                         talkPeer = "";
-                        UserInterface.PrintLog("%s Clear talkPeer when End Call %s in CallList",devid,callid);
+//                        UserInterface.PrintLog("%s Clear talkPeer when End Call %s in CallList",devid,callid);
                     }
-                    UserInterface.PrintLog("Remove Call %s from Dev %s incomingCall List",callInfo.callID,devid);
+                    UserInterface.PrintLog("Stop Incoming Call %s by Dev %s",callInfo.callID,devid);
                     break;
                 }
             }
@@ -439,7 +441,7 @@ public class TestDevice extends UserDevice{
                 bedlistenCalls = msg.enableListenCall;
                 QueryConfig();
                 QuerySystemConfig();
-                UserInterface.PrintLog("Dev %s Receive Reg Succ, areaId=%s, areaName=%s",devid,msg.areaId,msg.areaName);
+//                UserInterface.PrintLog("Dev %s Receive Reg Succ, areaId=%s, areaName=%s",devid,msg.areaId,msg.areaName);
                 break;
             case UserCallMessage.REGISTER_MESSAGE_FAIL:
                 isRegOk = false;
@@ -489,12 +491,12 @@ public class TestDevice extends UserDevice{
                 case UserCallMessage.CALL_MESSAGE_RINGING:
                     if(outGoingCall.status== LocalCallInfo.LOCAL_CALL_STATUS_OUTGOING) {
                         outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_RINGING;
-                        UserInterface.PrintLog("Dev %s Set Out Goning Call %s to Ringing", devid, outGoingCall.callID);
+                        UserInterface.PrintLog("Set Out Goning Call %s to Ringing in Dev %s",  outGoingCall.callID,devid);
                         isFindMatched = true;
                     }
 
                     if(!isFindMatched){
-                        UserInterface.PrintLog("%s Recv %s for Call %s, but couldn't find matched Call",devid,UserMessage.GetMsgName(msg.type),msg.callId);
+                        UserInterface.PrintLog("ERROR %s Recv %s for Call %s, but couldn't find matched Call",devid,UserMessage.GetMsgName(msg.type),msg.callId);
                     }
                     break;
                 case UserCallMessage.CALL_MESSAGE_DISCONNECT:
@@ -505,10 +507,9 @@ public class TestDevice extends UserDevice{
                     if (outGoingCall.status!= LocalCallInfo.LOCAL_CALL_STATUS_DISCONNECT&&msg.callId.compareToIgnoreCase(outGoingCall.callID) == 0) {
                         if (outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED) {
                             talkPeer = "";
-                            UserInterface.PrintLog("%s Clear talkPeer when Recv Outgoing Call %s Disconnect",devid,msg.callId);
                         }
                         outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_DISCONNECT;
-                        UserInterface.PrintLog("Dev %s Set Out Going Call %s Disconnected", devid, outGoingCall.callID);
+                        UserInterface.PrintLog("Disconnect Outgoing Call %s in Dev %s When Recv %s", outGoingCall.callID,devid,UserMessage.GetMsgName(msg.type));
                         isCallOut = false;
                         isFindMatched = true;
                     } else {
@@ -516,10 +517,9 @@ public class TestDevice extends UserDevice{
                             if (info.callID.compareToIgnoreCase(msg.callId) == 0) {
                                 if (info.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED) {
                                     talkPeer = "";
-                                    UserInterface.PrintLog("%s Clear talkPeer when Recv Call %s Disconnect in CallList",devid,msg.callId);
                                 }
                                 inComingCallInfos.remove(info);
-                                UserInterface.PrintLog("Recv End and Remove Call %s from Dev %s incomingCall List",info.callID,devid);
+                                UserInterface.PrintLog("Disconnect Incoming Call %s in Dev %s When Recv %s",info.callID,devid,UserMessage.GetMsgName(msg.type));
                                 isFindMatched = true;
                                 break;
                             }
@@ -527,18 +527,17 @@ public class TestDevice extends UserDevice{
                     }
 
                     if(!isFindMatched){
-                        UserInterface.PrintLog("%s Recv %s for Call %s, but couldn't find matched Call",devid,UserMessage.GetMsgName(msg.type),msg.callId);
+                        UserInterface.PrintLog("ERROR! Recv Disconnect Call %s in Dev %s, but couldn't find matched Call",msg.callId,devid,UserMessage.GetMsgName(msg.type));
                     }
                     break;
                 case UserCallMessage.CALL_MESSAGE_ANSWERED:
                     if(outGoingCall.status== LocalCallInfo.LOCAL_CALL_STATUS_RINGING&&outGoingCall.callID.compareToIgnoreCase(msg.callId)==0) {
                         outGoingCall.status = LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED;
                         outGoingCall.answer = msg.operaterId;
-                        UserInterface.PrintLog("Dev %s Set Out Going Call %s Connected", devid, outGoingCall.callID);
+                        UserInterface.PrintLog("Recv Answered Outgoing Call %s in Dev %s", outGoingCall.callID,devid);
                         talkPeer = outGoingCall.answer;
-                        UserInterface.PrintLog("%s Set talkPeer=%s when Recv Call %s Answered ", devid, talkPeer, msg.callId);
                     }else{
-                        UserInterface.PrintLog("%s Recv Answered of Call %s , but outgoingcall status = %d", devid, msg.callId,outGoingCall.status);
+                        UserInterface.PrintLog("ERROR! %s Recv Answered of Call %s , but outgoingcall status = %d", devid, msg.callId,outGoingCall.status);
                     }
                     break;
                 case UserCallMessage.CALL_MESSAGE_INCOMING:
@@ -549,15 +548,11 @@ public class TestDevice extends UserDevice{
                     info.caller = msg.callerId;
                     info.callType = msg.callType;
                     inComingCallInfos.add(info);
-                    UserInterface.PrintLog("Add Call %s to Dev %s incomingCall List",info.callID,devid);
-                    UserInterface.PrintLog("Dev %s Recv Incoming Call %s from room-%s , bed-%s , patient-%s, age-%s", devid, info.callID,msg.roomId,msg.bedName,msg.patientName,msg.patientAge);
-                    UserInterface.PrintLog("Dev %s Recv Incoming Call %s from areaId -%s , areaName -%s , isTransfer -%b", devid, info.callID,msg.areaId,msg.areaName,msg.isTransfer);
+                    UserInterface.PrintLog("Recv Incoming Call %s in Dev %s ",info.callID,devid);
                     Integer count = inComingCallRecord.get(info.caller);
                     if(count==null){
-                        UserInterface.PrintLog("Init Record of device %s(1) in dev %s",info.caller,devid);
                         inComingCallRecord.put(info.caller,1);
                     }else{
-                        UserInterface.PrintLog("Increase Record of device %s(%d) in dev %s ",info.caller,(count+1),devid);
                         inComingCallRecord.put(info.caller,count+1);
                     }
                     break;
@@ -565,19 +560,18 @@ public class TestDevice extends UserDevice{
                     for (LocalCallInfo info1 : inComingCallInfos) {
                         if (info1.callID.compareToIgnoreCase(msg.callId) == 0) {
                             info1.status = LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED;
-                            UserInterface.PrintLog("Dev %s Set Incoming Call %s Connected", devid, info1.callID);
+                            UserInterface.PrintLog("Set Incoming Call %s Connected in Dev %s",  info1.callID,devid);
                             talkPeer = info1.caller;
-                            UserInterface.PrintLog("%s Set talkPeer=%s when Recv Call %s Connected ",devid,talkPeer,msg.callId);
                             isFindMatched = true;
                             break;
                         }
                     }
                     if(!isFindMatched){
-                        UserInterface.PrintLog("%s Recv %s for Call %s, but couldn't find matched Call",devid,UserMessage.GetMsgName(msg.type),msg.callId);
+                        UserInterface.PrintLog("ERROR! %s Recv %s for Call %s, but couldn't find matched Call",devid,UserMessage.GetMsgName(msg.type),msg.callId);
                     }
                     break;
                 case UserCallMessage.CALL_MESSAGE_ANSWER_FAIL:
-                    UserInterface.PrintLog("Dev %s Recv Answer Fail For Call %s , reason is %s",devid,msg.callId,UserMessage.GetMsgName(msg.reason));
+                    UserInterface.PrintLog("ERROR! Dev %s Recv Answer Fail For Call %s , reason is %s",devid,msg.callId,UserMessage.GetMsgName(msg.reason));
                     // do nothing
                     break;
             }
@@ -780,10 +774,10 @@ public class TestDevice extends UserDevice{
                     incomingRecordNum = 0;
                 if (bedPhone.isRegOk) {
                     status.append(String.format("%s Register succ (%d)\n", bedPhone.devid,incomingRecordNum));
-                    UserInterface.PrintLog("%s-%s Register Succ",bedPhone.devid,bedPhone.bedName);
+//                    UserInterface.PrintLog("%s-%s Register Succ",bedPhone.devid,bedPhone.bedName);
                 } else {
                     status.append(String.format("%s Register Fail (%d)\n", bedPhone.devid,incomingRecordNum));
-                    UserInterface.PrintLog("%s-%s Register Fail",bedPhone.devid,bedPhone.bedName);
+//                    UserInterface.PrintLog("%s-%s Register Fail",bedPhone.devid,bedPhone.bedName);
                 }
             }
         }

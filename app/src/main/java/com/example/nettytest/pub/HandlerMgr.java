@@ -29,6 +29,8 @@ import com.example.nettytest.userinterface.UserVideoMessage;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.Properties;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -44,8 +46,43 @@ public class HandlerMgr {
 
     static private DevicesQuery deviceQuery= null;
 
+    final static int ANDORID_OS = 1;
+    final static int LINUX_OS = 2;
+    final static int WINDOWS_OS = 3;
+
+    static int OS_TYPE = ANDORID_OS;
+
 
 //for terminal TcpNetDevice
+
+    static public void ReadSystemType(){
+        String osName;
+
+        Properties prop = System.getProperties();
+        osName = prop.getProperty("os.name");
+        osName = osName.toLowerCase();
+        if(osName.indexOf("windows")>=0){
+            OS_TYPE = WINDOWS_OS;
+        }else {
+            OS_TYPE = LINUX_OS;
+            Map<String, String> osMap = System.getenv();
+            for (Map.Entry<String, String> entry : osMap.entrySet()) {
+                String key = entry.getKey();
+                if(key.indexOf("ANDROID")>=0){
+                    OS_TYPE = ANDORID_OS;
+                    break;
+                }
+            }
+        }
+    }
+
+    static int GetOSType(){
+        return OS_TYPE;
+    }
+
+    static public long GetTerminalRunSecond(){
+        return terminalPhoneMgr.GetRunSecond();
+    }
 
     static public void CloseAllTerminalDevice(){
         terminalDevManager.CloseAllDevice();
@@ -140,6 +177,10 @@ public class HandlerMgr {
         return terminalPhoneMgr.EndCall(devid,callID);
     }
 
+    static public int EndTerminalCall(String devid,int type){
+        return terminalPhoneMgr.EndCall(devid,type);
+    }
+
     static public int AnswerTerminalCall(String devid,String callID){
         return terminalPhoneMgr.AnswerCall(devid,callID);
     }
@@ -223,6 +264,10 @@ public class HandlerMgr {
 
     static public void BackEndTransactionTick(){
         backEndTransMgr.TransTimerProcess();
+    }
+
+    static public long GetBackEndRunSecond(){
+        return backEndPhoneMgr.GetRunSecond();
     }
 
 

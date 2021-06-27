@@ -102,7 +102,7 @@ public class PhoneParam {
 
     public static int DEFAULT_SNAP_PORT = 11004;
 
-    public final static String VER_STR = "1.0.1";
+    public final static String VER_STR = "1.1.1";
 
     static private UserDevice CheckUserDevice(JSONObject device){
         UserDevice userdev = new UserDevice();

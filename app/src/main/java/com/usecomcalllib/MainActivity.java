@@ -709,7 +709,7 @@ public class    MainActivity extends AppCompatActivity {
                             || msgType == UserMessage.MESSAGE_LISTEN_CALL_INFO
                             || msgType == UserMessage.MESSAGE_VIDEO_INFO) {
 
-                        UserInterface.PrintLog("DEV %s Recv Msg %d(%s) ", terminalMsg.devId, terminalMsg.type, UserMessage.GetMsgName(terminalMsg.type));
+//                        UserInterface.PrintLog("DEV %s Recv Msg %d(%s) ", terminalMsg.devId, terminalMsg.type, UserMessage.GetMsgName(terminalMsg.type));
                         for (TestArea area : audioTest.testAreas) {
                             for (TestDevice dev : area.devList) {
                                 if (dev.devid.compareToIgnoreCase(terminalMsg.devId) == 0) {
@@ -771,7 +771,7 @@ public class    MainActivity extends AppCompatActivity {
                                     }
                                     break;
                                 case UserMessage.MESSAGE_SYSTEM_CONFIG_INFO:
-                                    UserInterface.PrintLog("Recv System Config Info");
+//                                    UserInterface.PrintLog("Recv System Config Info");
                                     break;
                                 case UserMessage.MESSAGE_VIDEO_INFO:
                                     synchronized (MainActivity.class) {

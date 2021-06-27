@@ -335,6 +335,22 @@ public class UserInterface {
         return result;
     }
 
+    public static OperationResult EndCall(String devid,int callType){
+        int operationCode;
+        OperationResult result;
+
+        operationCode = HandlerMgr.EndTerminalCall(devid,callType);
+        result = new OperationResult(operationCode);
+
+        if(operationCode== ProtocolPacket.STATUS_OK)
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"End Call type %d by %s success",callType,devid);
+        else
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"End Call type %d by %s Fail, Reason is %s",callType,devid,FailReason.GetFailName(result.reason));
+
+        result.callID = "";
+        return result;
+    }
+
     public static OperationResult AnswerCall(String devid, String callid){
         int operationCode;
         OperationResult result;

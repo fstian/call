@@ -51,6 +51,7 @@ public class BackEndPhoneManager {
 
     private ArrayList<ConfigItem> systemConfigList;
     static Thread snapThread = null;
+    long runSecond;
 
     private BackEndCallConvergenceManager backEndCallConvergencyMgr;
     
@@ -74,19 +75,26 @@ public class BackEndPhoneManager {
         serverAreaLists = new HashMap<>();
         systemConfigList = new ArrayList<>();
         phoneMsgList = new ArrayList<>();
-        
+
+        HandlerMgr.ReadSystemType();
+
         backEndCallConvergencyMgr = new BackEndCallConvergenceManager();
         BackEndPhoneThread msgProcessThread = new BackEndPhoneThread();
         msgProcessThread.start();
+
         new Timer("BackEndTimeTick").schedule(new TimerTask() {
             @Override
             public void run() {
                 HandlerMgr.PostBackEndPhoneMsg(BackEndPhoneManager.MSG_SECOND_TICK,"");
                 HandlerMgr.BackEndTransactionTick();
-
+                runSecond++;
             }
         },0,1000);
 
+    }
+
+    public long GetRunSecond(){
+        return runSecond;
     }
 
 // only used in callconverce

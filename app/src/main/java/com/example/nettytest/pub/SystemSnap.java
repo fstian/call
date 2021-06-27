@@ -46,6 +46,7 @@ public class SystemSnap {
     public static final String SNAP_MSGID_NAME = "msgId";
     public static final String SNAP_REG_NAME = "reg";
     public static final String SNAP_VER_NAME = "ver";
+    public static final String SNAP_RUN_TIME_NAME = "runTime";
 
     public static final String SNAP_INCOMINGS_NAME = "incomingCalls";
     public static final String SNAP_OUTGOINGS_NAME = "outGoingCalls";

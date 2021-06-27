@@ -88,6 +88,9 @@ public class LogWork {
     public static int Print(int module,int degLevel,String format,Object...param){
         boolean isPrint = false;
         String tag = "  ";
+        long curTime;
+        Date date;
+        
         if (degLevel >= dbgLevel) {
             switch (module) {
                 case TERMINAL_PHONE_MODULE:
@@ -140,6 +143,8 @@ public class LogWork {
                     break;
             }
             if (isPrint) {
+                curTime = System.currentTimeMillis();
+                date = new Date(curTime);
                 String dbgString = String.format(format, param);
 //                if(dbgString.indexOf(LOG_DEVICE)<=0)
 //                    return 0;
@@ -176,13 +181,15 @@ public class LogWork {
                 }
 
                 if(bLogToFiles){
-                    long curTime = System.currentTimeMillis();
                     if(curTime>begineLogTime+logInterval*3600*1000){
                         begineLogTime = curTime;
                         logIndex++;
-                        logWriteFile = new File(String.format("/storage/self/primary/CallModuleLog%04d.txt",logIndex));
+                        int osType = HandlerMgr.GetOSType();
+                        if(osType==HandlerMgr.WINDOWS_OS||osType==HandlerMgr.LINUX_OS)
+                            logWriteFile = new File(String.format("./CallModuleLog%04d.txt",logIndex));
+                        else
+                            logWriteFile = new File(String.format("/sdcard/CallModuleLog%04d.txt",logIndex));
                     }
-                    Date date = new Date(curTime);
                     String writeString = dateFormat.format(date)+ levelString+tag+":  "+dbgString+"\r\n";
                     BufferedWriter bw = null;
                     try {
