@@ -98,6 +98,7 @@ public class BackEndCallConvergenceManager {
             e.printStackTrace();
         }
 
+        json.clear();
 
         return result;
     }

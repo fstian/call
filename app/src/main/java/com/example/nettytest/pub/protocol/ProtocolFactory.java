@@ -28,9 +28,17 @@ public class ProtocolFactory {
 
     public static ProtocolPacket ParseData(String data) {
         ProtocolPacket p = null;
+        if(data==null){
+            LogWork.Print(LogWork.DEBUG_MODULE, LogWork.LOG_TEMP_DBG, "Call JSON Para with NULL String");
+            return p;
+        }
         try {
-        	JSONObject json = JSONObject.parseObject(data);
-
+            JSONObject json = JSONObject.parseObject(data);
+            if(json==null){
+                LogWork.Print(LogWork.DEBUG_MODULE, LogWork.LOG_TEMP_DBG, "JSON Para String %s Fail",data);
+                return p;
+            }
+                
             JSONObject context;
             int type = json.getIntValue(ProtocolPacket.PACKET_TYPE_NAME);
             switch(type){
@@ -378,11 +386,12 @@ public class ProtocolFactory {
                     p = answerVideoResP;
                     break;
             }
+            json.clear();
+            json=null;
         }catch (JSONException e){
             e.printStackTrace();
             LogWork.Print(LogWork.TERMINAL_NET_MODULE, LogWork.LOG_ERROR, "Recv Unparse data %s", data);
         }
-
 
         return p;
     }
@@ -629,7 +638,9 @@ public class ProtocolFactory {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        data = json.toString();
+        data = json.toString();       
+        json.clear();
+        json = null;
         return data;
     }
 

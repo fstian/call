@@ -39,8 +39,7 @@ public class TerminalDevManager extends NetDeviceManager {
         }
 
     }
-
-
+    
     public void RemovePhone(String id){
         NetDevice matchedDev;
         synchronized (NetDeviceManager.class) {

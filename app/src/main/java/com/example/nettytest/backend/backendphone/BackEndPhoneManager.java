@@ -4,6 +4,7 @@ import com.alibaba.fastjson.*;
 import com.example.nettytest.backend.backendcall.BackEndCallConvergenceManager;
 import com.example.nettytest.pub.CallParams;
 import com.example.nettytest.pub.CallPubMessage;
+import com.example.nettytest.pub.DeviceStatistics;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.JsonPort;
 import com.example.nettytest.pub.LogWork;
@@ -115,6 +116,21 @@ public class BackEndPhoneManager {
     		phoneMsgList.notify();
     	}
     	return 0;
+    }
+    
+    public DeviceStatistics GetRegStatistics() {
+        DeviceStatistics statist = new DeviceStatistics();
+        synchronized(BackEndPhoneManager.class) {
+            for(BackEndZone zone:serverAreaLists.values()) {
+                for(BackEndPhone phone:zone.phoneList.values()) {
+                    if(phone.isReg)
+                        statist.regSuccNum++;
+                    else
+                        statist.regFailNum++;
+                }
+            }
+        }
+        return statist;
     }
     
 
@@ -368,24 +384,27 @@ public class BackEndPhoneManager {
                                     if(PhoneParam.serverActive) {
                                         String recv = new String(recvBuf, "UTF-8");
                                         JSONObject json = JSONObject.parseObject(recv);
-                                        int type = json.getIntValue(SystemSnap.SNAP_CMD_TYPE_NAME);
-                                        synchronized (BackEndPhoneManager.class) {
-                                            if (type == SystemSnap.SNAP_BACKEND_CALL_REQ) {
-                                                String devid = JsonPort.GetJsonString(json,SystemSnap.SNAP_DEVID_NAME);
-                                                byte[] resultInfo;
-                                                resultInfo = backEndCallConvergencyMgr.MakeCallConvergenceSnap(devid);
-                                                if(resultInfo!=null) {
-                                                    //                                                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Get BackEnd Call Snap for dev %s, total %d bytes, send to %s:%d",devid,result.length,recvPack.getAddress().getHostName(),recvPack.getPort());
-                                                    resPack = new DatagramPacket(resultInfo, resultInfo.length, recvPack.getAddress(), recvPack.getPort());
-                                                    testSocket.send(resPack);
+                                        if(json!=null){
+                                            int type = json.getIntValue(SystemSnap.SNAP_CMD_TYPE_NAME);
+                                            synchronized (BackEndPhoneManager.class) {
+                                                if (type == SystemSnap.SNAP_BACKEND_CALL_REQ) {
+                                                    String devid = JsonPort.GetJsonString(json,SystemSnap.SNAP_DEVID_NAME);
+                                                    byte[] resultInfo;
+                                                    resultInfo = backEndCallConvergencyMgr.MakeCallConvergenceSnap(devid);
+                                                    if(resultInfo!=null) {
+                                                        //                                                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Get BackEnd Call Snap for dev %s, total %d bytes, send to %s:%d",devid,result.length,recvPack.getAddress().getHostName(),recvPack.getPort());
+                                                        resPack = new DatagramPacket(resultInfo, resultInfo.length, recvPack.getAddress(), recvPack.getPort());
+                                                        testSocket.send(resPack);
+                                                    }
+                                                } else if (type == SystemSnap.SNAP_BACKEND_TRANS_REQ) {
+    //                                                resList = HandlerMgr.GetBackEndTransInfo();
+    //                                                for (byte[] data : resList) {
+    //                                                    resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
+    //                                                    testSocket.send(resPack);
+    //                                                }
                                                 }
-                                            } else if (type == SystemSnap.SNAP_BACKEND_TRANS_REQ) {
-//                                                resList = HandlerMgr.GetBackEndTransInfo();
-//                                                for (byte[] data : resList) {
-//                                                    resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
-//                                                    testSocket.send(resPack);
-//                                                }
                                             }
+                                            json.clear();
                                         }
                                     }
                                 }

@@ -1,8 +1,7 @@
-package com.usecomcalllib.androidPort.audio;
+package com.androidport.port.audio;
 
 import com.example.nettytest.pub.AudioMode;
 import com.greenu.ptttalk.g729main;
-import com.usecomcalllib.androidPort.audio.G711;
 
 public class Rtp {
 

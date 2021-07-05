@@ -122,6 +122,8 @@ public class BackEndZone {
                             case BackEndPhone.BED_CALL_DEVICE:
                                 if(params.emerCallToBed)
                                     isAdd = true;
+                                else if(phone.enableListen)
+                                    isAdd = true;
                                 break;
                             case BackEndPhone.DOOR_CALL_DEVICE:
                                 if(params.emerCallToRoom)

@@ -660,54 +660,58 @@ public class BackEndCallConvergence {
     public boolean CheckForwardEnable(BackEndPhone phone,int callType){
         boolean result = true;
 
-        switch(callType){
-            case CommonCall.CALL_TYPE_NORMAL:
-            case CommonCall.CALL_TYPE_EMERGENCY:
-            case CommonCall.CALL_TYPE_ASSIST:
-                switch(phone.type){
-                    case BackEndPhone.BED_CALL_DEVICE:
-                        if(!phone.enableListen)
+        if(!phone.isReg)
+            result = false;
+        else{
+            switch(callType){
+                case CommonCall.CALL_TYPE_NORMAL:
+                case CommonCall.CALL_TYPE_EMERGENCY:
+                case CommonCall.CALL_TYPE_ASSIST:
+                    switch(phone.type){
+                        case BackEndPhone.BED_CALL_DEVICE:
+                            if(!phone.enableListen)
+                                result = false;
+                            break;
+                        case BackEndPhone.EMER_CALL_DEVICE:
                             result = false;
-                        break;
-                    case BackEndPhone.EMER_CALL_DEVICE:
-                        result = false;
-                        break;
-                    case BackEndPhone.CORRIDOR_CALL_DEVICE:
-                    case BackEndPhone.DOOR_CALL_DEVICE:
-                    case BackEndPhone.NURSE_CALL_DEVICE:
-                    case BackEndPhone.TV_CALL_DEVICE:
-                        break;
-                }
-                break;
-            case CommonCall.CALL_TYPE_BROADCAST:
-                switch(phone.type){
-                    case BackEndPhone.BED_CALL_DEVICE:
-                    case BackEndPhone.CORRIDOR_CALL_DEVICE:
-                    case BackEndPhone.DOOR_CALL_DEVICE:
-                        if (inviteCall.caller.compareToIgnoreCase(phone.id) == 0)
-                            result = false;
-                        else if (inviteCall.callee.compareToIgnoreCase(phone.id) == 0)
-                            result = false;
-                        else if(inviteCall.answer.compareToIgnoreCase(phone.id) == 0)
-                            result = false;
-                        else {
-                            for (CommonCall listenCall : listenCallList) {
-                                if (listenCall.devID.compareToIgnoreCase(phone.id) == 0) {
-                                    if(listenCall.state==CommonCall.CALL_STATE_CONNECTED){
-                                        result = false;
-                                        break;
+                            break;
+                        case BackEndPhone.CORRIDOR_CALL_DEVICE:
+                        case BackEndPhone.DOOR_CALL_DEVICE:
+                        case BackEndPhone.NURSE_CALL_DEVICE:
+                        case BackEndPhone.TV_CALL_DEVICE:
+                            break;
+                    }
+                    break;
+                case CommonCall.CALL_TYPE_BROADCAST:
+                    switch(phone.type){
+                        case BackEndPhone.BED_CALL_DEVICE:
+                        case BackEndPhone.CORRIDOR_CALL_DEVICE:
+                        case BackEndPhone.DOOR_CALL_DEVICE:
+                            if (inviteCall.caller.compareToIgnoreCase(phone.id) == 0)
+                                result = false;
+                            else if (inviteCall.callee.compareToIgnoreCase(phone.id) == 0)
+                                result = false;
+                            else if(inviteCall.answer.compareToIgnoreCase(phone.id) == 0)
+                                result = false;
+                            else {
+                                for (CommonCall listenCall : listenCallList) {
+                                    if (listenCall.devID.compareToIgnoreCase(phone.id) == 0) {
+                                        if(listenCall.state==CommonCall.CALL_STATE_CONNECTED){
+                                            result = false;
+                                            break;
+                                        }
                                     }
                                 }
                             }
-                        }
-                        break;
-                    case BackEndPhone.NURSE_CALL_DEVICE:
-                    case BackEndPhone.TV_CALL_DEVICE:
-                    case BackEndPhone.EMER_CALL_DEVICE:
-                        result = false;
-                        break;
-                }
-                break;
+                            break;
+                        case BackEndPhone.NURSE_CALL_DEVICE:
+                        case BackEndPhone.TV_CALL_DEVICE:
+                        case BackEndPhone.EMER_CALL_DEVICE:
+                            result = false;
+                            break;
+                    }
+                    break;
+            }
         }
 
         return result;
@@ -778,6 +782,8 @@ public class BackEndCallConvergence {
         } catch (JSONException e) {
             e.printStackTrace();
         }
+
+        json.clear();
 
         return data;
     }

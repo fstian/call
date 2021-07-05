@@ -39,6 +39,7 @@ public class PhoneParam {
     final static String JSON_BED_NUM_NAME = "bedNum";
     final static String JSON_DOOR_NUM_NAME = "doorNum";
     final static String JSON_NURSER_NUM_NAME = "nurserNum";
+    final static String JSON_EMER_USE_UDP_NAME = "emerUseUdp";
     
 
     final static String JSON_CLIENT_NAME = "client";
@@ -82,6 +83,7 @@ public class PhoneParam {
     public static String callServerAddress = "127.0.0.1";
     public static boolean serverActive = false;
     public static boolean clientActive = false;
+    public static boolean emerUseUdp = false;
     public static int broadcallCastMode = BROADCALL_USE_BROADCAST;
     
     public static boolean serviceActive = false;
@@ -242,6 +244,7 @@ public class PhoneParam {
             if(serverJson!=null){
                 callServerPort = serverJson.getIntValue(JSON_PORT_NAME);
                 serverActive = serverJson.getBooleanValue(JSON_ACTIVE_NAME);
+                emerUseUdp = serverJson.getBooleanValue(JSON_EMER_USE_UDP_NAME);
                 devicesJson = serverJson.getJSONArray(JSON_DEVICES_NAME);
                 areasJson = serverJson.getJSONArray(JSON_AREAS_NAME);
                 testAreas = serverJson.getJSONObject(JSON_TESTAREAS_NAME);
@@ -316,6 +319,7 @@ public class PhoneParam {
                     }
                 }
             }
+            json.clear();
         } catch (JSONException e) {
             e.printStackTrace();
         }

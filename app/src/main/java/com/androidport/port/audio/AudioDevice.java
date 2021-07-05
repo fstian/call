@@ -1,4 +1,4 @@
-package com.usecomcalllib.androidPort.audio;
+package com.androidport.port.audio;
 
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -156,7 +156,7 @@ public class AudioDevice {
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, String.format("Audio %s is Closed", id));
             return true;
         }else{
-            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, String.format("Close Audio %s but is invalid", id));
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, String.format("Close Audio %s but is invalid, cur is %s", id,this.id));
             return false;
         }
     }
@@ -164,14 +164,14 @@ public class AudioDevice {
     public boolean AudioSuspend(String id){
         if(this.id.compareToIgnoreCase(id)==0){
             if(audioOpenCount<=0){
-                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_ERROR, String.format("Dev %s Audio had Closed , Could't Close Again", id));
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_ERROR, String.format("Audio %s had Closed , Could't suspend"));
             }else{
                 CloseAudio();
                 LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, String.format("Audio %s is Suspend", id));
             }
             return true;
         }else{
-            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, String.format("Suspend Audio %s but is invalid", id));
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, String.format("Suspend Audio %s but is invalid, cur is  %s", id,this.id));
             return false;
         }
     }
@@ -179,7 +179,7 @@ public class AudioDevice {
     public boolean AudioResume(String id){
         if(this.id.compareToIgnoreCase(id)==0){
             if(audioOpenCount>=1){
-                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_ERROR, String.format("Dev %s Audio had Open , Could't Open Again", id));
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_ERROR, String.format("Audio %s had Open , Could't Open Again", id));
             }else{
                 jb.resetJb(jbIndex);
                 OpenAudio();
@@ -187,7 +187,7 @@ public class AudioDevice {
             }
             return true;
         }else{
-            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, String.format("Resume Audio %s but is invalid", id));
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, String.format("Resume Audio %s but is invalid, cur is %s", id,this.id));
             return false;
         }
     }

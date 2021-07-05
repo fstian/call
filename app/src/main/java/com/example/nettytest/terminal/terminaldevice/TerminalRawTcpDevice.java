@@ -16,6 +16,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -39,14 +40,15 @@ public class TerminalRawTcpDevice extends RawTcpNetDevice {
                 @Override
                 public void run() {
                     boolean isReset = true;
+                    boolean isPrintError = true;
                     while(!isInterrupted()){
                         try {
                             if(isReset) {
                                 sc = SocketChannel.open();
                                 sc.configureBlocking(false);
                                 sc.register(selector, SelectionKey.OP_CONNECT);
-                                LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_DEBUG,"Raw-TCP Dev %s Begine Use Local Port %d Connecting to %s:%d",id,sc.socket().getLocalPort(),PhoneParam.callServerAddress,PhoneParam.callServerPort);
-                                sc.connect(new InetSocketAddress(PhoneParam.callServerAddress,PhoneParam.callServerPort));
+                                LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_DEBUG,"Raw-TCP Dev %s Begine Use Local Port %d Connecting to %s:%d",id,sc.socket().getLocalPort(),PhoneParam.callServerAddress,PhoneParam.callClientPort);
+                                sc.connect(new InetSocketAddress(PhoneParam.callServerAddress,PhoneParam.callClientPort));
                                 isReset = false;
                             }
                             int events = selector.select();
@@ -66,15 +68,16 @@ public class TerminalRawTcpDevice extends RawTcpNetDevice {
                                         if(chnnl.isConnected()) {
 //                                            sc.socket().setReuseAddress(true);
 //                                            sc.socket().setSoTimeout(2000);
-                                            LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_ERROR,"Raw-TCP Dev %s connecte to server success with local port %d", id,chnnl.socket().getLocalPort());
+                                            LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_TEMP_DBG,"Raw-TCP Client %s connecte to server success with local port %d", id,chnnl.socket().getLocalPort());
+                                            isPrintError = true;
                                         }else {
-                                            LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_ERROR,"Raw-TCP Dev %s connecte to server Fail", id);
+                                            LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_ERROR,"Raw-TCP Client %s connecte to server Fail", id);
                                         }
                                     }else if(key.isReadable()){
                                         SocketChannel channel = (SocketChannel)key.channel();
                                         ByteBuffer buffer = ByteBuffer.allocate(4096);
                                         channel.read(buffer);
-                                        buffer.flip();
+                                        ((Buffer)buffer).flip();
                                         byte[] bytes = new byte[buffer.limit()-buffer.position()];
                                         buffer.get(bytes);
                                         String data = new String(bytes,"UTF-8");
@@ -109,7 +112,10 @@ public class TerminalRawTcpDevice extends RawTcpNetDevice {
                             }
                         } catch (IOException e) {
                             e.printStackTrace();
-                            LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_ERROR,"Raw-TCP Client %s Tcp Error, Reset the TCP connection",id);
+                            if(isPrintError) {
+                                LogWork.Print(LogWork.TERMINAL_NET_MODULE, LogWork.LOG_TEMP_DBG, "Raw-TCP Client %s Tcp Error in Recv with Msg, Reset the TCP connection", id, e.getMessage());
+                                isPrintError = false;
+                            }
                             isReset = true;
                         }
                         if(isReset){

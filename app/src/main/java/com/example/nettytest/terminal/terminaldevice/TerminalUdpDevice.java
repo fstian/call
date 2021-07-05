@@ -57,7 +57,7 @@ public class TerminalUdpDevice extends UdpNetDevice {
         try {
             if(recvSocket==null)
                 recvSocket = new DatagramSocket();
-            UpdatePeerAddress(recvSocket, InetAddress.getByName(PhoneParam.callServerAddress),PhoneParam.callServerPort);
+            UpdatePeerAddress(recvSocket, InetAddress.getByName(PhoneParam.callServerAddress),PhoneParam.callClientPort);
         } catch (SocketException e) {
             e.printStackTrace();
         } catch (UnknownHostException e) {

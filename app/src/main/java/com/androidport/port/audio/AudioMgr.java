@@ -1,4 +1,4 @@
-package com.usecomcalllib.androidPort.audio;
+package com.androidport.port.audio;
 
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.UniqueIDManager;
@@ -13,7 +13,7 @@ public class AudioMgr {
             } else {
                 //audio.AudioSwitch(devId,src, dst, address, sample, ptime, codec, mode);
                 //return dump audioId;
-                return UniqueIDManager.GetUniqueID(devId,UniqueIDManager.AUDIO_UNIQUE_ID);
+                return "";
             }
             return audio.id;
         }

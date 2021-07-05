@@ -1,0 +1,617 @@
+package com.androidport;
+
+import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.ActivityInfo;
+import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.Spinner;
+import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.nettytest.R;
+import com.example.nettytest.pub.HandlerMgr;
+import com.example.nettytest.pub.LogWork;
+import com.example.nettytest.pub.SystemSnap;
+import com.example.nettytest.terminal.test.ClientTest;
+import com.example.nettytest.terminal.test.ServerTest;
+import com.example.nettytest.userinterface.CallLogMessage;
+import com.example.nettytest.userinterface.ListenCallMessage;
+import com.example.nettytest.userinterface.ServerDeviceInfo;
+import com.example.nettytest.userinterface.PhoneParam;
+import com.example.nettytest.userinterface.TestInfo;
+import com.example.nettytest.userinterface.TransferMessage;
+import com.example.nettytest.userinterface.UserCallMessage;
+import com.example.nettytest.userinterface.UserConfig;
+import com.example.nettytest.userinterface.UserConfigMessage;
+import com.example.nettytest.userinterface.UserDevice;
+import com.example.nettytest.userinterface.UserDevsMessage;
+import com.example.nettytest.userinterface.UserInterface;
+import com.example.nettytest.userinterface.UserVideoMessage;
+import com.androidport.port.CallMsgReceiver;
+import com.example.nettytest.userinterface.UserMessage;
+import com.example.nettytest.userinterface.UserRegMessage;
+import com.example.nettytest.terminal.test.TestArea;
+import com.example.nettytest.terminal.test.TestDevice;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
+
+
+public class    MainActivity extends AppCompatActivity {
+
+
+    final static int SELECT_ITEM_HEIGHT = 35;
+
+    boolean isUIActive = false;
+
+
+    int iTestCount = 0;
+    String audioTestId="";
+    boolean isGuiInit = false;
+
+    static ClientTest clientTest  = null;
+    static ServerTest serverTest = null;
+    static boolean isAudioTestCreate = false;
+
+    Handler terminalCallMessageHandler = null;
+    Timer uiUpdateTimer = null;
+
+    NetworkStateChangedReceiver wifiReceiver = null;
+    int testCount = 0;
+
+    String emerCallId = "";
+
+    private void CreateAudioTest(){
+        if(!isAudioTestCreate){
+            new Thread("InitDevices"){
+                @Override
+                public void run() {
+                    isAudioTestCreate = true;
+
+                    UserInterface.PrintLog("Begin Init Audio Test");
+
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Begin Read Params");
+                    PhoneParam.InitPhoneParam("/sdcard/","devConfig.conf");
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Finished Read Params");
+
+                    clientTest = new ClientTest();
+                    serverTest = new ServerTest();
+
+                    new CallMessageProcess().start();
+
+
+                    InitClientDevice();
+
+                    InitServerDevice();
+
+                    isUIActive = true;
+
+                    if(terminalCallMessageHandler!=null){
+                        Message initMsg = terminalCallMessageHandler.obtainMessage();
+                        initMsg.arg1 = UserMessage.MESSAGE_INIT_FINISHED;
+                        initMsg.obj = null;
+                        terminalCallMessageHandler.sendMessage(initMsg);
+                    }
+                    
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Finished Init Audio Test");
+                }
+            }.start();
+        }
+    }
+
+    private void ReplaceDevice(String id,TestDevice dev){
+    }
+
+
+    public void FunctionTest(){
+        TestDevice dev;
+        String transferAreaId = "";
+        boolean listenCall = false;
+        dev = clientTest.GetCurTestDevice();
+        if(dev!=null){
+            if(dev.type==UserInterface.CALL_NURSER_DEVICE){
+                if(dev.IsTalking()){
+                    if(dev.isVideo){
+                        UserInterface.PrintLog("Dev %s Stop Video", dev.devid);
+                        dev.StopVideo();
+                    }else{
+                        UserInterface.PrintLog("Dev %s Start Video", dev.devid);
+                        dev.StartVideo();
+                    }
+                }else{
+                    if(dev.transferAreaId.isEmpty()){
+                        transferAreaId = clientTest.GetOtherAreaId(dev.areaId);
+                        if(!transferAreaId.isEmpty()) {
+                            UserInterface.SetTransferCall(dev.devid, transferAreaId, true);
+                            UserInterface.PrintLog("Dev %s Set Transfer to %s", dev.devid, transferAreaId);
+                        }
+                    }else{
+                        UserInterface.SetTransferCall(dev.devid, "", false);
+                        UserInterface.PrintLog("Dev %s Clear Transfer Status",dev.devid);
+                    }
+                }
+            }else if(dev.type==UserInterface.CALL_BED_DEVICE){
+                listenCall = dev.bedlistenCalls;
+                if(listenCall){
+                    UserInterface.SetListenCall(dev.devid,false);
+                }else{
+                    UserInterface.SetListenCall(dev.devid,true);
+                }
+            }
+
+        }
+    }
+
+    private void InitServerDevice(){
+        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Begin Start Call Server");
+        serverTest.CreateServerDevice();
+    }
+
+    private void InitClientDevice(){
+
+        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Begin Add Client Device");
+        clientTest.CreateClientDevice();
+        clientTest.ChangeSelectArea(0);
+        clientTest.ChangeSelectDevice(0);
+        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Finished Add Client Device");
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        setContentView(R.layout.activity_main);
+
+        UserInterface.PrintLog("screen onCreate with %d",getResources().getConfiguration().orientation);
+        if(getResources().getConfiguration().orientation==ActivityInfo.SCREEN_ORIENTATION_PORTRAIT) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        }else {
+
+            CreateAudioTest();
+
+            uiUpdateTimer = new Timer("UiUpdateTimer");
+            uiUpdateTimer.schedule(new TimerTask() {
+                @SuppressLint("DefaultLocale")
+                @Override
+                public void run() {
+                    runOnUiThread(() -> {
+                        TextView tv;
+                        if(clientTest!=null) {
+                            if (isUIActive) {
+                                tv = findViewById(R.id.runTimeId);
+                                if (clientTest.isTestFlag) {
+                                    long testTime = System.currentTimeMillis() - clientTest.testStartTime;
+                                    testTime = testTime / 1000;
+                                    tv.setText(String.format("R: %d-%02d:%02d:%02d", testTime / 86400, (testTime % 86400) / 3600, (testTime % 3600) / 60, testTime % 60));
+                                } else {
+                                    tv.setText("");
+                                }
+                            }
+                        }
+                        tv = findViewById(R.id.audioOwnerId);
+                        String audioOwner = CallMsgReceiver.GetAudioOwner();
+                        if (audioOwner.isEmpty()) {
+                            tv.setText("Audio is Free");
+                        } else {
+                            tv.setText(String.format("Audio Owner is %s", audioOwner));
+                        }
+                        tv = findViewById(R.id.statisticsId);
+                        tv.setText(String.format("B(C=%d,T=%d),T(C=%d,T=%d)", HandlerMgr.GetBackCallCount(), HandlerMgr.GetBackTransCount(), HandlerMgr.GetTermCallCount(), HandlerMgr.GetTermTransCount()));
+                    });
+                }
+            }, 0, 1000);
+
+        }
+
+        TextView tv = findViewById(R.id.deviceStatusId);
+
+        tv.setOnTouchListener((view, motionEvent) -> {
+            int action = motionEvent.getAction();
+            if (action == MotionEvent.ACTION_DOWN) {
+                boolean result;
+                float x = motionEvent.getX();
+                float y = motionEvent.getY();
+                if(clientTest!=null) {
+                    TestDevice dev = clientTest.GetCurTestDevice();
+                    if (dev != null) {
+                        synchronized (MainActivity.class) {
+                            result = dev.Operation(0,  (int) y/SELECT_ITEM_HEIGHT);
+                        }
+                        if (result)
+                            UpdateHMI();
+                    }
+                }
+            }
+            return true;
+        });
+
+
+        tv = findViewById(R.id.callListId);
+
+        tv.setOnTouchListener((view, motionEvent) -> {
+            int action = motionEvent.getAction();
+            if(action==MotionEvent.ACTION_DOWN){
+                boolean result;
+                float x = motionEvent.getX();
+                float y = motionEvent.getY();
+                if(clientTest!=null) {
+                    TestDevice dev = clientTest.GetCurTestDevice();
+                    if (dev != null) {
+                        synchronized (MainActivity.class) {
+                            result = dev.Operation(1,  (int) y/SELECT_ITEM_HEIGHT);
+                        }
+                        if (result)
+                            UpdateHMI();
+                    }
+
+// test for all device answer one call
+//                    for(TestDevice dev:audioTest.testDevices){
+//                        synchronized (MainActivity.class){
+//                            result = dev.Operation(1,(int)x,(int)y);
+//                        }
+//                        if(result){
+//                            if(audioTest.curDevice==dev){
+//                                UpdateHMI(dev);
+//                            }
+//                        }
+//                    }
+                }
+            }
+            return true;
+        });
+
+        Button bt = (Button)findViewById(R.id.increaseId);
+        bt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+//                if(testCount==0) {
+//                    testCount = 1;
+//                    audioTestId = AudioMgr.OpenAudio("201051A1", 9090, 9092, "172.16.2.79", 8000, 20, Rtp.RTP_CODEC_711A, AudioDevice.SEND_RECV_MODE);
+//                }else {
+//                    new Thread() {
+//                        @Override
+//                        public void run() {
+//                            AudioMgr.CloseAudio(audioTestId);
+//                            audioTestId = AudioMgr.OpenAudio("201051A1", 9090, 9092, "172.16.2.79", 8000, 20, Rtp.RTP_CODEC_711A, AudioDevice.SEND_RECV_MODE);
+//                        }
+//                    }.start();
+//                }
+//                bt.setText("Audio test");
+
+//                if(testCount==0) {
+//                    audioTestId = AudioMgr.OpenAudio("201051A1", 9090, 9092, "172.16.2.79", 8000, 20, Rtp.RTP_CODEC_711A, AudioDevice.SEND_RECV_MODE);
+//                    testCount = 1;
+//                    bt.setText("Audio Start");
+//                }else{
+//                    AudioMgr.CloseAudio(audioTestId);
+//                    testCount = 0;
+//                    bt.setText("Audio Stop");
+//                }
+//                AudioMgr.CloseAudio(audioId);
+//                if(testCount==0){
+//                    testCount = 1;
+////                    SerialPort.SetGpioStatus(45,1);
+////                    bt.setText("MIC Hand");
+//                }else if(testCount==1){
+//                    testCount = 2;
+////                    SerialPort.SetGpioStatus(45,0);
+////                    bt.setText("MIC Main");
+//                }else if(testCount==2){
+//                    testCount = 3;
+////                    bt.setText("MIC Off");
+////                    AudioManager audioManager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
+////                    audioManager.setMicrophoneMute(false);
+//                }else if(testCount==3){
+//                    testCount = 0;
+////                    bt.setText("MIC On");
+////                    AudioManager audioManager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
+////                    audioManager.setMicrophoneMute(true);
+//                }
+
+
+//                UserInterface.RemoveAllDeviceOnServer();
+                if (clientTest != null) {
+                    FunctionTest();
+                    TestDevice dev = clientTest.GetCurTestDevice();
+                    if (dev != null) {
+                        if(dev.type == UserInterface.CALL_BED_DEVICE ){
+
+//                            TestDevice newDevice;
+//                            String oldDevId = audioTest.curDevice.id;
+//                            long idValue = Long.parseLong(audioTest.curDevice.id,16);
+//                            idValue++;
+//                            UserInterface.RemoveDevice(audioTest.curDevice.id);
+//                            newDevice = new TestDevice(UserInterface.CALL_BED_DEVICE,String.format("%X",idValue));
+//                            ReplaceDevice(oldDevId,newDevice);
+                        }else if(dev.type == UserInterface.CALL_DOOR_DEVICE||
+                                dev.type == UserInterface.CALL_NURSER_DEVICE){
+//                            audioTest.curDevice.SaveCallRecord();
+                        }
+
+                    }
+                }
+            }
+        });
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+        filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
+        wifiReceiver = new NetworkStateChangedReceiver();
+        registerReceiver(wifiReceiver,filter);
+    }
+
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if(wifiReceiver!=null)
+            unregisterReceiver(wifiReceiver);
+
+        if(terminalCallMessageHandler!=null) {
+            terminalCallMessageHandler.getLooper().quit();
+            terminalCallMessageHandler = null;
+        }
+
+        if(uiUpdateTimer!=null) {
+            uiUpdateTimer.cancel();
+            uiUpdateTimer = null;
+        }
+
+       isUIActive = false;
+       UserInterface.PrintLog("screen OnDestory");
+    }
+
+    private void InitGui(){
+
+        runOnUiThread(()->{
+            Spinner spinner;
+            int iTmp;
+            String[] arr;
+            ArrayAdapter<String> adapter;
+            spinner = findViewById(R.id.areaSelectId);
+
+            arr = clientTest.GetAreaList();
+
+            if(arr!=null) {
+
+                adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, arr);
+
+                spinner.setAdapter(adapter);
+
+                spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                    @Override
+                    public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                        clientTest.ChangeSelectArea(i);
+                        UpdateArea();
+                    }
+
+                    @Override
+                    public void onNothingSelected(AdapterView<?> adapterView) {
+
+                    }
+                });
+
+                UpdateArea();
+            }
+
+            spinner = findViewById(R.id.deviceSelectId);
+
+            spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                    clientTest.ChangeSelectDevice(i);
+                    TestDevice dev = clientTest.GetCurTestDevice();
+                    if(dev!=null){
+                        UpdateHMI();
+                    }
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> adapterView) {
+
+                }
+
+            });
+        });
+
+    }
+
+    private void UpdateArea(){
+        Spinner spinner;
+        int iTmp;
+        String[] arr;
+        ArrayAdapter<String> adapter;
+
+        spinner = findViewById(R.id.deviceSelectId);
+
+        arr = clientTest.GetCurAreaDevList();
+
+        if(arr==null){
+            spinner.removeAllViews();
+        }else{
+
+            adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, arr);
+
+            spinner.setAdapter(adapter);
+
+            UpdateHMI();
+
+        }
+
+    }
+
+    private class CallMessageProcess extends Thread{
+
+        public CallMessageProcess(){
+            super("UserMessageProcess");
+        }
+
+        @Override
+        public void run() {
+            Looper.prepare();
+            terminalCallMessageHandler = new Handler(message -> {
+                int msgType = message.arg1;
+                UserMessage terminalMsg = (UserMessage)message.obj;
+                TestDevice device=null;
+                boolean result;
+
+                if(msgType==UserMessage.MESSAGE_INIT_FINISHED&&isGuiInit==false) {
+                    InitGui();
+                    isGuiInit = true;
+                }
+                synchronized(MainActivity.class) {
+                    if (clientTest == null)
+                        return false;
+
+                    result = clientTest.ProcessMessage(msgType,terminalMsg);
+
+                }
+
+                if(result) {
+                    if(msgType==UserMessage.MESSAGE_DEVICES_INFO)
+                        UpdateNurserHMI();
+                    else
+                        UpdateHMI();
+                }
+                return false;
+            });
+
+            CallMsgReceiver.SetMessageHandler(terminalCallMessageHandler);
+            Looper.loop();
+            UserInterface.PrintLog("CallMessageProcess Exit!!!!!");
+        }
+    }
+
+    private void UpdateNurserHMI(){
+        if(isUIActive) {
+            runOnUiThread(() -> {
+                synchronized (MainActivity.class) {
+                    TestDevice dev = clientTest.GetCurTestDevice();
+                    if(dev!=null) {
+                        TextView tv = findViewById(R.id.deviceStatusId);
+                        if (dev.type == UserInterface.CALL_NURSER_DEVICE) {
+                            String status;
+                            status = dev.GetNurserDeviceInfo();
+                            tv.setText(status);
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    private void UpdateHMI(){
+        if(isUIActive) {
+            runOnUiThread(() -> {
+                String status;
+                synchronized (MainActivity.class) {
+                    TestDevice dev = clientTest.GetCurTestDevice();
+                    TextView tv = findViewById(R.id.deviceStatusId);
+                    status = dev.GetDeviceInfo();
+
+                    tv.setText(status.toString());
+
+                    if (dev.type == UserInterface.CALL_NURSER_DEVICE) {
+                        dev.QueryDevs();
+                    }
+
+                    tv = findViewById(R.id.callListId);
+                    status = dev.GetCallInfo();
+                    tv.setText(status);
+                    Button bt = findViewById(R.id.increaseId);
+                    if(dev.type == UserInterface.CALL_NURSER_DEVICE){
+                        if(dev.IsTalking()){
+                            if(dev.isVideo)
+                                bt.setText("Close Video");
+                            else
+                                bt.setText("Open Video");
+                        }else{
+                            if(dev.transferAreaId.isEmpty()){
+                                bt.setText("Set Tranfer");
+                            }else{
+                                bt.setText("Clear Tranfer");
+                            }
+                        }
+                    }else if(dev.type == UserInterface.CALL_BED_DEVICE){
+                        if(dev.bedlistenCalls){
+                            bt.setText("Clear Listen");
+                        }else{
+                            bt.setText("Set Listen");
+                        }
+                    }else{
+                        bt.setText("");
+                    }
+                }
+            });
+        }
+    }
+
+    class NetworkStateChangedReceiver extends BroadcastReceiver{
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if(WifiManager.WIFI_STATE_CHANGED_ACTION.equals(intent.getAction())){
+                int state = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE,-1);
+                switch(state){
+                    case WifiManager.WIFI_STATE_DISABLED:
+                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Disabled!!");
+                        break;
+                    case WifiManager.WIFI_STATE_DISABLING:
+                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Disabling!!");
+                        break;
+                    case WifiManager.WIFI_STATE_ENABLED:
+                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Enabled!!");
+                        break;
+                    case WifiManager.WIFI_STATE_ENABLING:
+                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Enabling!!");
+                        break;
+                }
+            }
+            if(WifiManager.NETWORK_STATE_CHANGED_ACTION.equals(intent.getAction())){
+                NetworkInfo networkInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+                NetworkInfo.State state = networkInfo.getState();
+                if(state ==NetworkInfo.State.CONNECTING){
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Connecting!!");
+                }else if(state == NetworkInfo.State.CONNECTED){
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Connected!!");
+                }else if(state == NetworkInfo.State.DISCONNECTING){
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Disconnecting!!");
+                }else if(state == NetworkInfo.State.DISCONNECTED){
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Disconnected!!");
+                }else if(state == NetworkInfo.State.SUSPENDED){
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Suspended!!");
+                }else if(state == NetworkInfo.State.UNKNOWN){
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Unknow!!");
+                }
+            }
+        }
+    }
+}

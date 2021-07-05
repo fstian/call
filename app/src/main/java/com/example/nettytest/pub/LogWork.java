@@ -91,7 +91,7 @@ public class LogWork {
         long curTime;
         Date date;
         
-        if (degLevel >= dbgLevel) {
+        if (degLevel >= dbgLevel||degLevel==LOG_TEMP_DBG) {
             switch (module) {
                 case TERMINAL_PHONE_MODULE:
                     isPrint = terminalPhoneModuleLogEnable;
@@ -141,6 +141,10 @@ public class LogWork {
                     isPrint = debugModuleLogEnable;
                     tag = "HT500_DEBUG          ";
                     break;
+            }
+
+            if(degLevel==LOG_TEMP_DBG){
+                isPrint = true;
             }
             if (isPrint) {
                 curTime = System.currentTimeMillis();

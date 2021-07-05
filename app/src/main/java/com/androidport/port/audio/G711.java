@@ -1,4 +1,4 @@
-package com.usecomcalllib.androidPort.audio;
+package com.androidport.port.audio;
 
 public class G711 {
     private static int SIGN_BIT = (0x80);        /* Sign bit for a A-law byte. */

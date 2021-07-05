@@ -2,6 +2,7 @@ package com.example.nettytest.terminal.terminalphone;
 
 import com.alibaba.fastjson.*;
 import com.example.nettytest.pub.CallPubMessage;
+import com.example.nettytest.pub.DeviceStatistics;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.JsonPort;
 import com.example.nettytest.pub.LogWork;
@@ -211,6 +212,7 @@ public class TerminalPhoneManager {
                                                             e.printStackTrace();
                                                         }
                                                     }
+                                                    resJson.clear();
                                                 }
                                             } else if (type == SystemSnap.SNAP_DEL_LOG_REQ) {
                                                 String logFileName;
@@ -230,6 +232,7 @@ public class TerminalPhoneManager {
                                                 }
                                             }
                                         }
+                                        json.clear();
                                     }
                                 } catch (IOException e) {
                                     e.printStackTrace();
@@ -679,5 +682,17 @@ public class TerminalPhoneManager {
         return result;
     }
 
+    public DeviceStatistics GetRegStatist() {
+        DeviceStatistics statics = new DeviceStatistics();
+        synchronized (TerminalPhoneManager.class) {
+            for(TerminalPhone phone:clientPhoneLists.values()) {
+                if(phone.isReg)
+                    statics.regSuccNum++;
+                else
+                    statics.regFailNum++;
+            }
+        }
+        return statics;
+    }
 
 }

@@ -95,6 +95,11 @@ public class HandlerMgr {
     static public void PhoneDevSendBuf(String ID,ByteBuf buf){
         terminalDevManager.DevSendBuf(ID,buf);
     }
+    
+    static public DeviceStatistics GetTerminalRegDevNum() {
+        DeviceStatistics devStatist = terminalPhoneMgr.GetRegStatist();
+        return devStatist;
+    }
 
 // for TerminalTranscation
     static public boolean AddPhoneTrans(String ID, Transaction trans){
@@ -221,6 +226,9 @@ public class HandlerMgr {
         return terminalPhoneMgr.QuerySystemConfig(devid);
     }
 
+    static public int GetTerminalCalNum() {
+        return terminalPhoneMgr.GetCallCount();
+    }
 
 
 // for backend TcpNetDevice
@@ -268,6 +276,10 @@ public class HandlerMgr {
 
     static public long GetBackEndRunSecond(){
         return backEndPhoneMgr.GetRunSecond();
+    }
+    
+    static public DeviceStatistics GetBackEndRegDevNum() {
+        return backEndPhoneMgr.GetRegStatistics();
     }
 
 

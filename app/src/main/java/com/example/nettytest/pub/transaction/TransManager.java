@@ -219,11 +219,15 @@ public class TransManager {
                 iCount++;
             }
 
-            if(transArray!=null){
+            if(transArray!=null&&resourceInfo!=null){
                 if(transArray.size()>0){
                     res = resourceInfo.toString().getBytes();
                     resList.add(res);
                 }
+            }
+
+            if(resourceInfo!=null){
+                resourceInfo.clear();
             }
         } catch (JSONException e) {
             e.printStackTrace();

@@ -46,6 +46,7 @@ public class TerminalCallManager {
 
     public byte[] MakeCallSnap(String devId,boolean isReg){
         JSONObject json = new JSONObject();
+        String snap;
         try {
             json.put(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_TERMINAL_CALL_RES);
             json.put(SystemSnap.SNAP_RUN_TIME_NAME, HandlerMgr.GetTerminalRunSecond());
@@ -70,7 +71,10 @@ public class TerminalCallManager {
             e.printStackTrace();
         }
 
-        return json.toString().getBytes();
+
+        snap = json.toString();
+        json.clear();
+        return snap.getBytes();
     }
 
     public int EndCall(String id,String callid){
@@ -394,8 +398,8 @@ public class TerminalCallManager {
                 callid = updateReqP.callId;
                 call = callLists.get(callid);
                 if(call!=null){
-                    call.UpdateTimeOver();
-                    callLists.remove(callid);
+                    if(call.UpdateTimeOver())
+                        callLists.remove(callid);
                 }
                 break;
             case ProtocolPacket.END_REQ:
