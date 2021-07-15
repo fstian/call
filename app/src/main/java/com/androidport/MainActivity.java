@@ -365,6 +365,8 @@ public class    MainActivity extends AppCompatActivity {
         filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
         wifiReceiver = new NetworkStateChangedReceiver();
         registerReceiver(wifiReceiver,filter);
+
+        //StartUdpRecvTest();
     }
 
 
@@ -613,5 +615,47 @@ public class    MainActivity extends AppCompatActivity {
                 }
             }
         }
+    }
+    DatagramSocket testsocket;
+    void StartUdpRecvTest(){
+        new Thread(){
+            @Override
+            public void run() {
+
+                while(true){
+                    System.out.println("qkq test Do UDP socket Test ");
+                    try {
+                        testsocket = new  DatagramSocket(19900);
+                        testsocket.setSoTimeout(1000);
+                        new Thread(){
+                            @Override
+                            public void run() {
+                                testsocket.close();
+                            }
+                        }.start();
+                        new Thread(){
+                            @Override
+                            public void run() {
+                                byte[] recvBuf=new byte[1024];
+                                DatagramPacket pack = new DatagramPacket(recvBuf,recvBuf.length);
+                                try {
+                                    testsocket.receive(pack);
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }.start();
+                    } catch (SocketException e) {
+                        e.printStackTrace();
+                    }
+
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }.start();
     }
 }

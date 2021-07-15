@@ -184,6 +184,7 @@ public class TerminalPhone extends PhoneDevice {
             regMsg.transferAreaId = resP.transferAreaId;
             regMsg.enableListenCall = resP.listenCallEnable;
             regMsg.snapPort = resP.snapPort;
+            regMsg.isReg = true;
             this.areaId = resP.areaId;
             isListenCall = resP.listenCallEnable;
             HandlerMgr.TerminalStartSnap(resP.snapPort);
