@@ -2,6 +2,7 @@ package com.example.nettytest.userinterface;
 
 public class CallLogMessage extends UserMessage{
     public String callId;
+    public String areaId;
     
     public String callerNum;
     public String callerName;
@@ -30,6 +31,7 @@ public class CallLogMessage extends UserMessage{
     public CallLogMessage(){
         super();
         callId = "";
+        areaId = "";
 
         callerNum = "";
         callerName = "";

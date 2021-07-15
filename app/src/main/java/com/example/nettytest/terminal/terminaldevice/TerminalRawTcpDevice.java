@@ -68,7 +68,7 @@ public class TerminalRawTcpDevice extends RawTcpNetDevice {
                                         if(chnnl.isConnected()) {
 //                                            sc.socket().setReuseAddress(true);
 //                                            sc.socket().setSoTimeout(2000);
-                                            LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_TEMP_DBG,"Raw-TCP Client %s connecte to server success with local port %d", id,chnnl.socket().getLocalPort());
+                                            LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_ERROR,"Raw-TCP Client %s connecte to server success with local port %d", id,chnnl.socket().getLocalPort());
                                             isPrintError = true;
                                         }else {
                                             LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_ERROR,"Raw-TCP Client %s connecte to server Fail", id);
@@ -113,7 +113,7 @@ public class TerminalRawTcpDevice extends RawTcpNetDevice {
                         } catch (IOException e) {
                             e.printStackTrace();
                             if(isPrintError) {
-                                LogWork.Print(LogWork.TERMINAL_NET_MODULE, LogWork.LOG_TEMP_DBG, "Raw-TCP Client %s Tcp Error in Recv with Msg, Reset the TCP connection", id, e.getMessage());
+                                LogWork.Print(LogWork.TERMINAL_NET_MODULE, LogWork.LOG_ERROR, "Raw-TCP Client %s Tcp Error in Recv with Msg, Reset the TCP connection", id, e.getMessage());
                                 isPrintError = false;
                             }
                             isReset = true;

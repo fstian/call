@@ -6,6 +6,7 @@ public class RegResPack extends ProtocolPacket{
     public String areaId;
     public String areaName;
     public String transferAreaId;
+    public int snapPort;
     public boolean listenCallEnable;
 
     public RegResPack(){
@@ -16,6 +17,7 @@ public class RegResPack extends ProtocolPacket{
         transferAreaId = "";
         areaName = "";
         listenCallEnable = false;
+        snapPort = 11005;
     }
 
     public RegResPack(int status,RegReqPack regPack){
@@ -27,5 +29,6 @@ public class RegResPack extends ProtocolPacket{
         areaName = "";
         transferAreaId = "";
         listenCallEnable = false;
+        snapPort = 11005;
     }
 }

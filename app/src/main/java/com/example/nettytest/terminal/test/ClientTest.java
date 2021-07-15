@@ -38,82 +38,95 @@ public class ClientTest {
     public long testStartTime = 0;
     private int printSkip = 10;
 
+    static ClientSnapThread snapThread = null; 
+
+    class ClientSnapThread extends Thread{
+        public ClientSnapThread(){
+            super("UserSnapThread");
+        }
+
+        @Override
+        public void run() {
+            byte[] recvBuf = new byte[1024];
+            DatagramPacket recvPack;
+            while (!testSocket.isClosed()) {
+                java.util.Arrays.fill(recvBuf,(byte)0);
+                recvPack = new DatagramPacket(recvBuf, recvBuf.length);
+                try {
+                    testSocket.receive(recvPack);
+                    if (recvPack.getLength() > 0) {
+                        String recv = new String(recvBuf, "UTF-8");
+                        JSONObject json = JSONObject.parseObject(recv);
+                        if(json!=null){
+                            TestInfo info = new TestInfo();
+                            int type = json.getIntValue(SystemSnap.SNAP_CMD_TYPE_NAME);
+                            if (type == SystemSnap.SNAP_TEST_REQ) {
+                                int isAuto = json.getIntValue(SystemSnap.SNAP_AUTOTEST_NAME);
+                                int isRealTime = json.getIntValue(SystemSnap.SNAP_REALTIME_NAME);
+                                int timeUnit = json.getIntValue(SystemSnap.SNAP_TIMEUNIT_NAME);
+                                info.isAutoTest = isAuto == 1;
+
+                                info.isRealTimeFlash = isRealTime == 1;
+
+                                info.timeUnit = timeUnit;
+
+                                synchronized(areaList){
+                                    for(TestArea area:areaList){
+                                        for (TestDevice dev : area.devList) {
+                                            if (dev == null)
+                                                break;
+                                            dev.SetTestInfo(info);
+
+                                        }
+                                    }
+                                }
+
+                                if (info.isAutoTest) {
+                                    StartTestTimer();
+                                } else {
+                                    StopTestTimer();
+                                }
+                            } else if (type == SystemSnap.SNAP_MMI_CALL_REQ) {
+                                String devId = json.getString(SystemSnap.SNAP_DEVID_NAME);
+                                for(TestArea area:areaList){
+                                    for (TestDevice dev : area.devList) {
+                                        if (dev.devid.compareToIgnoreCase(devId) == 0) {
+                                            byte[] resBuf = dev.MakeSnap();
+                                            DatagramPacket resPack = new DatagramPacket(resBuf, resBuf.length, recvPack.getAddress(), recvPack.getPort());
+                                            testSocket.send(resPack);
+                                        }
+                                    }
+                                }
+                            }
+                            json.clear();
+                        }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private void StartClientSnap(int port){
+        if(snapThread==null){
+            try {
+                testSocket = new DatagramSocket(PhoneParam.snapStartPort);
+                snapThread = new ClientSnapThread();
+                snapThread.start();
+            } catch (SocketException e) {
+                e.printStackTrace();
+            }
+
+
+        }
+    }
+
     public ClientTest(){
 
         areaList = new ArrayList<>();
-        try {
-            testSocket = new DatagramSocket(PhoneParam.snapStartPort);
-        } catch (SocketException e) {
-            e.printStackTrace();
-        }
-
-        if(testSocket!=null){
-            new Thread("UserSnapThread"){
-                @Override
-                public void run() {
-                    byte[] recvBuf = new byte[1024];
-                    DatagramPacket recvPack;
-                    while (!testSocket.isClosed()) {
-                        java.util.Arrays.fill(recvBuf,(byte)0);
-                        recvPack = new DatagramPacket(recvBuf, recvBuf.length);
-                        try {
-                            testSocket.receive(recvPack);
-                            if (recvPack.getLength() > 0) {
-                                String recv = new String(recvBuf, "UTF-8");
-                                JSONObject json = JSONObject.parseObject(recv);
-                                if(json!=null){
-                                    TestInfo info = new TestInfo();
-                                    int type = json.getIntValue(SystemSnap.SNAP_CMD_TYPE_NAME);
-                                    if (type == SystemSnap.SNAP_TEST_REQ) {
-                                        int isAuto = json.getIntValue(SystemSnap.SNAP_AUTOTEST_NAME);
-                                        int isRealTime = json.getIntValue(SystemSnap.SNAP_REALTIME_NAME);
-                                        int timeUnit = json.getIntValue(SystemSnap.SNAP_TIMEUNIT_NAME);
-                                        info.isAutoTest = isAuto == 1;
-
-                                        info.isRealTimeFlash = isRealTime == 1;
-
-                                        info.timeUnit = timeUnit;
-
-                                        synchronized(areaList){
-                                            for(TestArea area:areaList){
-                                                for (TestDevice dev : area.devList) {
-                                                    if (dev == null)
-                                                        break;
-                                                    dev.SetTestInfo(info);
-
-                                                }
-                                            }
-                                        }
-
-                                        if (info.isAutoTest) {
-                                            StartTestTimer();
-                                        } else {
-                                            StopTestTimer();
-                                        }
-                                    } else if (type == SystemSnap.SNAP_MMI_CALL_REQ) {
-                                        String devId = json.getString(SystemSnap.SNAP_DEVID_NAME);
-                                        for(TestArea area:areaList){
-                                            for (TestDevice dev : area.devList) {
-                                                if (dev.devid.compareToIgnoreCase(devId) == 0) {
-                                                    byte[] resBuf = dev.MakeSnap();
-                                                    DatagramPacket resPack = new DatagramPacket(resBuf, resBuf.length, recvPack.getAddress(), recvPack.getPort());
-                                                    testSocket.send(resPack);
-                                                }
-                                            }
-                                        }
-                                    }
-                                    json.clear();
-                                }
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }.start();
-        }
     }
 
     private void StartTestTimer(){
@@ -163,7 +176,7 @@ public class ClientTest {
 
         synchronized(areaList){
             if(selectArea<areaList.size()){
-                area = areaList.get(selectDevice);
+                area = areaList.get(selectArea);
                 if(area.devList.size()>0){
                     nameList = new String[area.devList.size()];
                     for(iTmp=0;iTmp<area.devList.size();iTmp++){
@@ -212,7 +225,7 @@ public class ClientTest {
 
         deviceNum = PhoneParam.deviceList.size();
         if(PhoneParam.clientActive){
-            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Begin Add Client Device");
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Begin Add Client Device");
             synchronized(areaList){
                 for(iTmp=0;iTmp<deviceNum;iTmp++){
                     dev = PhoneParam.deviceList.get(iTmp);
@@ -235,7 +248,7 @@ public class ClientTest {
                     }
                 }
             }
-            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Finished Add %d Client Device",deviceNum);
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Finished Add %d Client Device",deviceNum);
 
         }
         return num;
@@ -299,7 +312,12 @@ public class ClientTest {
                                         StopTest(callResult);
                                     break;
                                 case UserMessage.MESSAGE_REG_INFO:
-                                    dev.UpdateRegisterInfo((UserRegMessage)msg);
+                                    UserRegMessage regMsg =(UserRegMessage)msg ;
+                                    dev.UpdateRegisterInfo(regMsg);
+                                    if(regMsg.isReg){
+                                        StartClientSnap(regMsg.snapPort);
+                                    }
+                                    
                                     break;
                                 case UserMessage.MESSAGE_DEVICES_INFO:
                                     dev.UpdateDeviceList((UserDevsMessage)msg);
@@ -353,9 +371,9 @@ public class ClientTest {
             if(printSkip==0) {
                 printSkip = 10;
                 terminalstatics = UserInterface.GetTerminalStatistics();
-                LogWork.Print(LogWork.TERMINAL_USER_MODULE, LogWork.LOG_TEMP_DBG, "Terminal Has %d Call, %d Trans, %d Dev RegSucc, %d Dev RegFail",terminalstatics.callNum,terminalstatics.transNum,terminalstatics.regSuccDevNum,terminalstatics.regFailDevNum);
+                LogWork.Print(LogWork.TERMINAL_USER_MODULE, LogWork.LOG_DEBUG, "Terminal Has %d Call, %d Trans, %d Dev RegSucc, %d Dev RegFail",terminalstatics.callNum,terminalstatics.transNum,terminalstatics.regSuccDevNum,terminalstatics.regFailDevNum);
                 backEndStatics = UserInterface.GetBackEndStatistics();
-                LogWork.Print(LogWork.TERMINAL_USER_MODULE, LogWork.LOG_TEMP_DBG, "BackEnd Has %d CallConvergence, %d Trans, %d Dev RegSucc, %d Dev RegFail",backEndStatics.callConvergenceNum,backEndStatics.transNum,backEndStatics.regSuccDevNum,backEndStatics.regFailDevNum);
+                LogWork.Print(LogWork.TERMINAL_USER_MODULE, LogWork.LOG_DEBUG, "BackEnd Has %d CallConvergence, %d Trans, %d Dev RegSucc, %d Dev RegFail",backEndStatics.callConvergenceNum,backEndStatics.transNum,backEndStatics.regSuccDevNum,backEndStatics.regFailDevNum);
             }
         }
 

@@ -65,8 +65,6 @@ public class DevicesQuery {
     
     static final int QUERY_RETRY_TIME = 10;
 
-    static final int QUERY_RESTART_TIME = 30;
-
     static final int QUERY_RETRY_MAX = 5;
     
     int state = QUERY_STATE_IDLE;
@@ -127,6 +125,7 @@ public class DevicesQuery {
     }
     
     private void BeginQuery() {
+        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Begin Query Process!!!!!!!!!!!!!!!!!!!!!");
         state = QUERY_STATE_AREAS;
         areaPos = 0;
         tickCount = 0;
@@ -183,7 +182,6 @@ public class DevicesQuery {
                 
             }
         }.start();
-        System.out.println("Http Query Begin !!!!!!");
         BeginQuery();
     }
     
@@ -194,7 +192,7 @@ public class DevicesQuery {
         case QUERY_STATE_IDLE:
             if(msg.type==QUERY_TIMER_TICK) {
                 tickCount++;
-                if(tickCount>QUERY_RESTART_TIME) {
+                if(tickCount>PhoneParam.serviceUpdateTime) {
                     tickCount = 0;
                     BeginQuery();
                 }
@@ -344,14 +342,13 @@ public class DevicesQuery {
             @Override
             public void onFailure(Call c, IOException e) {
                 // TODO Auto-generated method stub
-                System.out.println("Send "+url+" Fail!!!!!!!");
                 LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_ERROR,String.format("Send %s Fail!!!!",url));
             }
 
             @Override
             public void onResponse(Call c, Response res) {
               
-//                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,String.format("Send %s And Recv Res !!!!",url));
+                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,String.format("Send %s And Recv Res !!!!",url));
 
                 String resValue =null;
                 
@@ -393,7 +390,7 @@ public class DevicesQuery {
                 // TODO Auto-generated method stub
                 int result=-1;
                 String resString = null;
-//                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,String.format("Recv Res for Req %s in Thread %d !!!!",url,Thread.currentThread().getId()));
+               LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,String.format("Recv Res for Req %s in Thread %d !!!!",url,Thread.currentThread().getId()));
                 if(res.code()==200) {
                     try {
                         resString = res.body().string();
@@ -431,7 +428,7 @@ public class DevicesQuery {
             @Override
             public void onResponse(Call c, Response res) {
                 String resString = null;
-//                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,String.format("Recv Res for Req %s in Thread %d !!!!",url,Thread.currentThread().getId()));
+                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,String.format("Recv Res for Req %s in Thread %d !!!!",url,Thread.currentThread().getId()));
             	
                 if(res.code()==200) {
                     try {

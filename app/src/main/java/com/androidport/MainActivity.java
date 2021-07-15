@@ -95,9 +95,9 @@ public class    MainActivity extends AppCompatActivity {
 
                     UserInterface.PrintLog("Begin Init Audio Test");
 
-                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Begin Read Params");
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Begin Read Params");
                     PhoneParam.InitPhoneParam("/sdcard/","devConfig.conf");
-                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Finished Read Params");
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Finished Read Params");
 
                     clientTest = new ClientTest();
                     serverTest = new ServerTest();
@@ -118,7 +118,7 @@ public class    MainActivity extends AppCompatActivity {
                         terminalCallMessageHandler.sendMessage(initMsg);
                     }
                     
-                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Finished Init Audio Test");
+                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Finished Init Audio Test");
                 }
             }.start();
         }
@@ -168,17 +168,17 @@ public class    MainActivity extends AppCompatActivity {
     }
 
     private void InitServerDevice(){
-        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Begin Start Call Server");
+        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Begin Start Call Server");
         serverTest.CreateServerDevice();
     }
 
     private void InitClientDevice(){
 
-        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Begin Add Client Device");
+        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Begin Add Client Device");
         clientTest.CreateClientDevice();
         clientTest.ChangeSelectArea(0);
         clientTest.ChangeSelectDevice(0);
-        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Finished Add Client Device");
+        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Finished Add Client Device");
     }
 
     @SuppressLint("ClickableViewAccessibility")

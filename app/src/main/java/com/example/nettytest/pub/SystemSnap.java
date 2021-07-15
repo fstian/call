@@ -1,5 +1,10 @@
 package com.example.nettytest.pub;
 
+import com.example.nettytest.userinterface.PhoneParam;
+
+import java.net.DatagramSocket;
+import java.net.SocketException;
+
 public class SystemSnap {
 
     public static final int SNAP_TEST_REQ = 1;
@@ -28,6 +33,9 @@ public class SystemSnap {
 
     public static final int SNAP_DEV_REQ = 9;
     public static final int SNAP_DEV_RES = 109;
+
+    public static final int SNAP_SYSTEM_INFO_REQ = 11;
+    public static final int SNAP_SYSTEM_INFO_RES = 111;
 
     public static final int SNAP_DEL_LOG_REQ = 10;
 
@@ -80,5 +88,45 @@ public class SystemSnap {
     public static final String AUDIO_RTP_DATARATE_NAME = "dataRate";
     public static final String AUDIO_RTP_PTIME_NAME = "PTime";
     public static final String AUDIO_RTP_AEC_DELAY_NAME = "aecDelay";
+
+    public static final String SNAP_INFO_CALLCONVERGENCE_NUM_NAME = "callConvergenceNum";
+    public static final String SNAP_INFO_CALL_NUM_NAME = "callNum";
+    public static final String SNAP_INFO_CLIENT_TRANS_NUM_NAME = "clientTransNum";
+    public static final String SNAP_INFO_CLIENT_REGSUCC_NUM_NAME = "clientRegSuccNum";
+    public static final String SNAP_INFO_CLIENT_REGFAIL_NUM_NAME = "clientRegFailNum";
+    public static final String SNAP_INFO_BACKEND_TRANS_NUM_NAME = "backEndTransNum";
+    public static final String SNAP_INFO_BACKEND_REGSUCC_NUM_NAME = "backEndRegSuccNum";
+    public static final String SNAP_INFO_BACKEND_REGFAIL_NUM_NAME = "backEndRegFailNum";
+
+    public static DatagramSocket OpenSnapSocket(int startPort,int group){
+        DatagramSocket socket=null;
+        int iTmp;
+        int port ;
+        if(startPort==0)
+            startPort = 11005;
+        port=startPort;
+        switch(group){
+            case PhoneParam.SNAP_MMI_GROUP:
+                port = startPort;
+                break;
+            case PhoneParam.SNAP_TERMINAL_GROUP:
+                port = startPort+PhoneParam.SNAP_PORT_INTERVAL;
+                break;
+            case PhoneParam.SNAP_BACKEND_GROUP:
+                port = startPort+2*PhoneParam.SNAP_PORT_INTERVAL;
+                break;
+        }
+        for(iTmp = 0;iTmp<=PhoneParam.SNAP_PORT_INTERVAL;iTmp++){
+            socket = null;
+            try {
+                socket = new DatagramSocket(port+iTmp);
+            } catch (SocketException e) {
+                e.printStackTrace();
+            }
+            if(socket!=null)
+                break;
+        }
+        return socket;
+    }
 
 }

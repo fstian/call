@@ -35,8 +35,10 @@ public class TerminalUdpDevice extends UdpNetDevice {
                         localSocket.receive(pack);
                         if(pack.getLength()>0) {
                             ProtocolPacket packet = ProtocolFactory.ParseData(pack.getData());
-                            LogWork.Print(LogWork.TERMINAL_NET_MODULE, LogWork.LOG_DEBUG, "Terminal %s Recv Data from %s:%d, type is %s", packet.receiver ,pack.getAddress().getHostAddress(), pack.getPort(),ProtocolPacket.GetTypeName(packet.type));
-                            HandlerMgr.PhoneProcessPacket(packet);
+                            if(packet!=null){
+                                LogWork.Print(LogWork.TERMINAL_NET_MODULE, LogWork.LOG_DEBUG, "Terminal %s Recv Data from %s:%d, type is %s", packet.receiver ,pack.getAddress().getHostAddress(), pack.getPort(),ProtocolPacket.GetTypeName(packet.type));
+                                HandlerMgr.PhoneProcessPacket(packet);
+                            }
                         }
                     } catch (IOException e) {
                         e.printStackTrace();

@@ -27,6 +27,7 @@ public class PhoneParam {
     final static String JSON_TCP_MODE_NAME = "TCP";
     final static String JSON_RAWTCP_MODE_NAME = "RAW-TCP";
     final static String JSON_SERVICE_NAME = "service";
+    final static String JSON_UPDATE_TIME_NAME = "updateTime";
     
     final static String JSON_AREAS_NAME = "areas";
     final static String JSON_AREA_NAME_NAME = "areaName";
@@ -89,6 +90,7 @@ public class PhoneParam {
     public static boolean serviceActive = false;
     public static String serviceAddress = "127.0.0.1";
     public static int servicePort = 80;
+    public static int serviceUpdateTime = 120;
     
     public static int aecDelay = DEFAULT_AEC_DELAY;
     public static int callRtpPTime = 20;
@@ -230,6 +232,8 @@ public class PhoneParam {
         
         try {
             json = JSONObject.parseObject(info);
+            if(json==null)
+                return ;
             snapStartPort = json.getIntValue(JSON_SNAP_PORT_NAME);
             serverJson = json.getJSONObject(JSON_SERVE_NAME);
             serviceJson = json.getJSONObject(JSON_SERVICE_NAME);
@@ -239,6 +243,7 @@ public class PhoneParam {
                 serviceAddress = JsonPort.GetJsonString(serviceJson,JSON_ADDRESS_NAME);
                 servicePort = serviceJson.getIntValue(JSON_PORT_NAME);
                 serviceActive = serviceJson.getBooleanValue(JSON_ACTIVE_NAME);
+                serviceUpdateTime = serviceJson.getIntValue(JSON_UPDATE_TIME_NAME);
             }
 
             if(serverJson!=null){

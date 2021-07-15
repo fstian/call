@@ -136,6 +136,10 @@ public class HandlerMgr {
         terminalPhoneMgr.SetMessageHandler(h);
     }
 
+    static public void TerminalStartSnap(int port){
+        terminalPhoneMgr.StartSnap(port);
+    }
+
     static public void SetBackEndMessageHandler(ArrayList<CallPubMessage> h){
         backEndPhoneMgr.SetMessageHandler(h);
     }

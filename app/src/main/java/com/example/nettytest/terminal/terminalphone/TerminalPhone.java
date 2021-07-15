@@ -169,7 +169,7 @@ public class TerminalPhone extends PhoneDevice {
         return callManager.GetCallCount();
     }
 
-    public void UpdateRegStatus(int status,String areaId,String areaName,String transferAreaId,boolean listenState){
+    public void UpdateRegStatus(int status,RegResPack resP){
         UserRegMessage regMsg = new UserRegMessage();
 
         regMsg.devId = id;
@@ -179,12 +179,14 @@ public class TerminalPhone extends PhoneDevice {
             isReg = true;
             regWaitCount = PhoneParam.CLIENT_REG_EXPIRE;
             regMsg.type = UserCallMessage.REGISTER_MESSAGE_SUCC;
-            regMsg.areaId = areaId;
-            regMsg.areaName = areaName;
-            regMsg.transferAreaId = transferAreaId;
-            regMsg.enableListenCall = listenState;
-            this.areaId = areaId;
-            isListenCall = listenState;
+            regMsg.areaId = resP.areaId;
+            regMsg.areaName = resP.areaName;
+            regMsg.transferAreaId = resP.transferAreaId;
+            regMsg.enableListenCall = resP.listenCallEnable;
+            regMsg.snapPort = resP.snapPort;
+            this.areaId = resP.areaId;
+            isListenCall = resP.listenCallEnable;
+            HandlerMgr.TerminalStartSnap(resP.snapPort);
         }else if(status==ProtocolPacket.STATUS_TIMEOVER){
             LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_WARN,"Phone %s Reg TimerOver ",id);
             isReg = false;

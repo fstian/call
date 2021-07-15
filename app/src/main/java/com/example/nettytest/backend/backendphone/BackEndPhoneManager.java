@@ -2,6 +2,7 @@ package com.example.nettytest.backend.backendphone;
 
 import com.alibaba.fastjson.*;
 import com.example.nettytest.backend.backendcall.BackEndCallConvergenceManager;
+import com.example.nettytest.pub.BackEndStatistics;
 import com.example.nettytest.pub.CallParams;
 import com.example.nettytest.pub.CallPubMessage;
 import com.example.nettytest.pub.DeviceStatistics;
@@ -202,34 +203,6 @@ public class BackEndPhoneManager {
     }
 
  
-    private DatagramSocket OpenSnapSocket(int group){
-        DatagramSocket socket=null;
-        int iTmp;
-        int port =PhoneParam.snapStartPort;
-        switch(group){
-            case PhoneParam.SNAP_MMI_GROUP:
-                port = PhoneParam.snapStartPort;
-                break;
-            case PhoneParam.SNAP_TERMINAL_GROUP:
-                port = PhoneParam.snapStartPort+PhoneParam.SNAP_PORT_INTERVAL;
-                break;
-            case PhoneParam.SNAP_BACKEND_GROUP:
-                port = PhoneParam.snapStartPort+2*PhoneParam.SNAP_PORT_INTERVAL;
-                break;
-        }
-        for(iTmp = 0;iTmp<=PhoneParam.SNAP_PORT_INTERVAL;iTmp++){
-            socket = null;
-            try {
-                socket = new DatagramSocket(port+iTmp);
-            } catch (SocketException e) {
-                e.printStackTrace();
-            }
-            if(socket!=null)
-                break;
-        }
-        return socket;
-    }
-
     public int AddArea(String areaId,String areaName){
         int result = FailReason.FAIL_REASON_NO;
         BackEndZone area;
@@ -372,7 +345,7 @@ public class BackEndPhoneManager {
                     DatagramPacket recvPack;
                     ArrayList<byte[]> resList;
                     DatagramSocket testSocket;
-                    testSocket = OpenSnapSocket(PhoneParam.SNAP_BACKEND_GROUP);
+                    testSocket = SystemSnap.OpenSnapSocket(PhoneParam.snapStartPort,PhoneParam.SNAP_BACKEND_GROUP);
                     if(testSocket!=null){
                         DatagramPacket resPack;
                         while (!testSocket.isClosed()) {
@@ -402,6 +375,39 @@ public class BackEndPhoneManager {
     //                                                    resPack = new DatagramPacket(data, data.length, recvPack.getAddress(), recvPack.getPort());
     //                                                    testSocket.send(resPack);
     //                                                }
+                                                }else if(type == SystemSnap.SNAP_SYSTEM_INFO_REQ){
+                                                    byte[] systemInfo;
+                                                    systemInfo = MakeSystemInfo();
+                                                    if(systemInfo!=null){
+                                                        resPack = new DatagramPacket(systemInfo, systemInfo.length, recvPack.getAddress(), recvPack.getPort());
+                                                        testSocket.send(resPack);
+                                                    }
+
+
+                                                } else if (type == SystemSnap.LOG_CONFIG_REQ_CMD) {
+                                                    int value;
+                                                    LogWork.backEndNetModuleLogEnable = json.getIntValue(SystemSnap.LOG_BACKEND_NET_NAME) == 1;
+
+                                                    LogWork.backEndDeviceModuleLogEnable = json.getIntValue(SystemSnap.LOG_BACKEND_DEVICE_NAME) == 1;
+
+                                                    LogWork.backEndCallModuleLogEnable = json.getIntValue(SystemSnap.LOG_BACKEND_CALL_NAME) == 1;
+
+                                                    LogWork.backEndPhoneModuleLogEnable = json.getIntValue(SystemSnap.LOG_BACKEND_PHONE_NAME) == 1;
+
+
+                                                    LogWork.transactionModuleLogEnable = json.getIntValue(SystemSnap.LOG_TRANSACTION_NAME) == 1;
+
+                                                    LogWork.debugModuleLogEnable = json.getIntValue(SystemSnap.LOG_DEBUG_NAME) == 1;
+
+                                                    LogWork.bLogToFiles = json.getIntValue(SystemSnap.LOG_WIRTE_FILES_NAME) == 1;
+
+                                                    value = json.getIntValue(SystemSnap.LOG_FILE_INTERVAL_NAME);
+                                                    if (value <= 0)
+                                                        value = 1;
+                                                    LogWork.logInterval = value;
+
+                                                    LogWork.dbgLevel = json.getIntValue(SystemSnap.LOG_DBG_LEVEL_NAME);
+
                                                 }
                                             }
                                             json.clear();
@@ -569,6 +575,7 @@ public class BackEndPhoneManager {
                     regResP.areaName = phone.devInfo.areaName;
                     regResP.transferAreaId = GetTransferAreaIdLocal(devID);
                     regResP.listenCallEnable = phone.enableListen;
+                    regResP.snapPort = PhoneParam.snapStartPort;
                 }
 
                 trans = new Transaction(devID,packet,regResP,Transaction.TRANSCATION_DIRECTION_S2C);
@@ -769,6 +776,22 @@ public class BackEndPhoneManager {
             phoneList = area.GetDeviceList();
 
         return phoneList;
+    }
+
+    private byte[] MakeSystemInfo(){
+        BackEndStatistics backEndStatist = UserInterface.GetBackEndStatistics();
+        JSONObject json = new JSONObject();
+        byte[] result = null;
+
+        json.put(SystemSnap.SNAP_CMD_TYPE_NAME,SystemSnap.SNAP_SYSTEM_INFO_RES);
+        json.put(SystemSnap.SNAP_INFO_CALLCONVERGENCE_NUM_NAME,backEndStatist.callConvergenceNum);
+        json.put(SystemSnap.SNAP_INFO_BACKEND_TRANS_NUM_NAME,backEndStatist.transNum);
+        json.put(SystemSnap.SNAP_INFO_BACKEND_REGSUCC_NUM_NAME,backEndStatist.regSuccDevNum);
+        json.put(SystemSnap.SNAP_INFO_BACKEND_REGFAIL_NUM_NAME,backEndStatist.regFailDevNum);
+
+        result = json.toString().getBytes();
+        json.clear();
+        return result;
     }
 
 }

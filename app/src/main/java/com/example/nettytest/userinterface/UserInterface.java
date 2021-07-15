@@ -38,9 +38,9 @@ public class UserInterface {
     public final static int CALL_DIRECTION_S2C = 1;
     public final static int CALL_DIRECTION_C2S = 2;
 
-    public final static int CALL_ANSWER_MODE_STOP = 1;
-    public final static int CALL_ANSWER_MODE_HANDLE = 2;
-    public final static int CALL_ANSWER_MODE_ANSWER = 3;
+    public final static int CALL_ANSWER_MODE_STOP = 1;  //answer and stop
+    public final static int CALL_ANSWER_MODE_HANDLE = 2;   // not answer, stop by other
+    public final static int CALL_ANSWER_MODE_ANSWER = 3;  // not answer , stop by caller
 
     public final static int NET_MODE_TCP = 1;
     public final static int NET_MODE_UDP = 2;
