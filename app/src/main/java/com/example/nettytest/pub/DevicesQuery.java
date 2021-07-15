@@ -13,6 +13,7 @@ import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 import com.alibaba.fastjson.*;
+import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.ServerDeviceInfo;
 import com.example.nettytest.userinterface.UserArea;
 import com.example.nettytest.userinterface.UserDevice;
@@ -63,8 +64,6 @@ public class DevicesQuery {
     static final int QUERY_STATE_PARAMS = 3;
     
     static final int QUERY_RETRY_TIME = 10;
-
-    static final int QUERY_RESTART_TIME = 30;
 
     static final int QUERY_RETRY_MAX = 5;
     
@@ -126,6 +125,7 @@ public class DevicesQuery {
     }
     
     private void BeginQuery() {
+        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Begin Query Process!!!!!!!!!!!!!!!!!!!!!");
         state = QUERY_STATE_AREAS;
         areaPos = 0;
         tickCount = 0;
@@ -182,7 +182,6 @@ public class DevicesQuery {
                 
             }
         }.start();
-        System.out.println("Http Query Begin !!!!!!");
         BeginQuery();
     }
     
@@ -193,7 +192,7 @@ public class DevicesQuery {
         case QUERY_STATE_IDLE:
             if(msg.type==QUERY_TIMER_TICK) {
                 tickCount++;
-                if(tickCount>QUERY_RESTART_TIME) {
+                if(tickCount>PhoneParam.serviceUpdateTime) {
                     tickCount = 0;
                     BeginQuery();
                 }
@@ -343,14 +342,13 @@ public class DevicesQuery {
             @Override
             public void onFailure(Call c, IOException e) {
                 // TODO Auto-generated method stub
-                System.out.println("Send "+url+" Fail!!!!!!!");
                 LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_ERROR,String.format("Send %s Fail!!!!",url));
             }
 
             @Override
             public void onResponse(Call c, Response res) {
               
-//                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,String.format("Send %s And Recv Res !!!!",url));
+                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,String.format("Send %s And Recv Res !!!!",url));
 
                 String resValue =null;
                 
@@ -392,7 +390,7 @@ public class DevicesQuery {
                 // TODO Auto-generated method stub
                 int result=-1;
                 String resString = null;
-//                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,String.format("Recv Res for Req %s in Thread %d !!!!",url,Thread.currentThread().getId()));
+               LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,String.format("Recv Res for Req %s in Thread %d !!!!",url,Thread.currentThread().getId()));
                 if(res.code()==200) {
                     try {
                         resString = res.body().string();
@@ -430,7 +428,7 @@ public class DevicesQuery {
             @Override
             public void onResponse(Call c, Response res) {
                 String resString = null;
-//                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,String.format("Recv Res for Req %s in Thread %d !!!!",url,Thread.currentThread().getId()));
+                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,String.format("Recv Res for Req %s in Thread %d !!!!",url,Thread.currentThread().getId()));
             	
                 if(res.code()==200) {
                     try {
@@ -536,29 +534,33 @@ public class DevicesQuery {
         JSONArray paramList;
         JSONObject param;
 
-        json=JSONObject.parseObject(data);
-        if(json==null)
-            return -1;
+        try{
+            json=JSONObject.parseObject(data);
+            if(json==null)
+                return -1;
         
-        status = json.getIntValue(JSON_STATUS_NAME);
-        if(JSON_STATUS_OK == status) {
-            resultJson = json.getJSONObject(JSON_RESULT_NAME);
-            if(resultJson==null)
-                return -2;
-            paramList = resultJson.getJSONArray(JSON_LIST_NAME);
-            if(paramList==null)
-                return -3;
-            result = 0;
-            CallParams callParam = new CallParams();
-            for(iTmp=0;iTmp<paramList.size();iTmp++){
-                param = paramList.getJSONObject(iTmp);
-                if(UpdateCallParam(callParam,param)){
-                    result++;
+            status = json.getIntValue(JSON_STATUS_NAME);
+            if(JSON_STATUS_OK == status) {
+                resultJson = json.getJSONObject(JSON_RESULT_NAME);
+                if(resultJson==null)
+                    return -2;
+                paramList = resultJson.getJSONArray(JSON_LIST_NAME);
+                if(paramList==null)
+                    return -3;
+                result = 0;
+                CallParams callParam = new CallParams();
+                for(iTmp=0;iTmp<paramList.size();iTmp++){
+                    param = paramList.getJSONObject(iTmp);
+                    if(UpdateCallParam(callParam,param)){
+                        result++;
+                    }
                 }
+                UserInterface.UpdateAreaParam(areaId, callParam);
             }
-            UserInterface.UpdateAreaParam(areaId, callParam);
+            json.clear();
+        }catch(JSONException e){
+            e.printStackTrace();
         }
-
 
         return result;
     }
@@ -573,45 +575,56 @@ public class DevicesQuery {
 
         ArrayList<UserDevice> userDeviceList = new ArrayList<>();
         ArrayList<ServerDeviceInfo> deviceInfoList = new ArrayList<>();
-        
-        json = JSONObject.parseObject(data);
-        if(json==null)
-            return -1;
-        status = json.getIntValue(JSON_STATUS_NAME);
-        if(JSON_STATUS_OK == status) {
-            result = json.getJSONObject(JSON_RESULT_NAME);
-            if(result==null)
-                return -2;
-            deviceList = result.getJSONArray(JSON_LIST_NAME);
-            if(deviceList==null)
-                return -3;
-            for(iTmp = 0; iTmp<deviceList.size();iTmp++) {
-                UserDevice device = new UserDevice();
-                ServerDeviceInfo deviceInfo = new ServerDeviceInfo();
-                JSONObject jsonDevice = deviceList.getJSONObject(iTmp);
 
-                device.type = jsonDevice.getIntValue(JSON_DEVICE_TYPE_NAME);
-                device.devid = JsonPort.GetJsonString(jsonDevice,JSON_DEVICE_ID_NAME);
-                device.bedName = JsonPort.GetJsonString(jsonDevice,JSON_BED_NAME_NAME);
-                if(device.type==UserInterface.CALL_EMERGENCY_DEVICE)
-                    device.netMode = UserInterface.NET_MODE_UDP;
-                else
-                    device.netMode = UserInterface.NET_MODE_TCP;
-                userDeviceList.add(device);
+        try{
+            json = JSONObject.parseObject(data);
+            if(json==null)
+                return -1;
+            status = json.getIntValue(JSON_STATUS_NAME);
+            if(JSON_STATUS_OK == status) {
+                result = json.getJSONObject(JSON_RESULT_NAME);
+                if(result==null)
+                    return -2;
+                deviceList = result.getJSONArray(JSON_LIST_NAME);
+                if(deviceList==null)
+                    return -3;
+                for(iTmp = 0; iTmp<deviceList.size();iTmp++) {
+                    UserDevice device = new UserDevice();
+                    ServerDeviceInfo deviceInfo = new ServerDeviceInfo();
+                    JSONObject jsonDevice = deviceList.getJSONObject(iTmp);
+                    int netMode = UserInterface.NET_MODE_TCP;
 
-                deviceInfo.areaId = areaId;
-                deviceInfo.areaName = areaName; 
-                deviceInfo.bedName = JsonPort.GetJsonString(jsonDevice,JSON_BED_NAME_NAME);
-                deviceInfo.deviceName = JsonPort.GetJsonString(jsonDevice,JSON_DEVICE_NAME_NAME);
-                deviceInfo.roomId = JsonPort.GetJsonString(jsonDevice,JSON_ROOM_ID_NAME);
-                deviceInfoList.add(deviceInfo);
+                    device.type = jsonDevice.getIntValue(JSON_DEVICE_TYPE_NAME);
+                    device.devid = JsonPort.GetJsonString(jsonDevice,JSON_DEVICE_ID_NAME);
+                    device.bedName = JsonPort.GetJsonString(jsonDevice,JSON_BED_NAME_NAME);
 
+                    if(PhoneParam.emerUseUdp){
+                        if(device.type==UserInterface.CALL_EMERGENCY_DEVICE){
+                            netMode = UserInterface.NET_MODE_UDP;
+                        }
+                    }
+                    device.netMode = netMode;
+                    userDeviceList.add(device);
+
+                    deviceInfo.areaId = areaId;
+                    deviceInfo.areaName = areaName; 
+                    deviceInfo.bedName = JsonPort.GetJsonString(jsonDevice,JSON_BED_NAME_NAME);
+                    deviceInfo.deviceName = JsonPort.GetJsonString(jsonDevice,JSON_DEVICE_NAME_NAME);
+                    deviceInfo.roomId = JsonPort.GetJsonString(jsonDevice,JSON_ROOM_ID_NAME);
+                    deviceInfoList.add(deviceInfo);
+
+                }
+                UserInterface.UpdateAreaDevices(areaId,userDeviceList,deviceInfoList);
+                json.clear();
+                return deviceList.size();
+            }else {
+                json.clear();
+                return -100;
             }
-            UserInterface.UpdateAreaDevices(areaId,userDeviceList,deviceInfoList);
-            return deviceList.size();
-        }else {
-            return -100;
+        }catch(JSONException e){
+            e.printStackTrace();
         }
+        return -100;
     }
     
     private ArrayList<UserArea> UpdateAreas(String data){
@@ -625,29 +638,34 @@ public class DevicesQuery {
 
         ArrayList<UserArea> areaList =null;
 
-        json = JSONObject.parseObject(data);
-        if(json!=null){
-            status = json.getIntValue(JSON_STATUS_NAME);
-            if(JSON_STATUS_OK == status) {
-                result = json.getJSONObject(JSON_RESULT_NAME);
-                if(result!=null){
-                    zoneList = result.getJSONArray(JSON_LIST_NAME);
-                    if(zoneList!=null){
-                        areaList = new ArrayList<>();
-                        for(iTmp=0;iTmp<zoneList.size();iTmp++) {
-                            String zoneName;
-                            String zoneId;
-                            zone = zoneList.getJSONObject(iTmp);
-                            zoneName = JsonPort.GetJsonString(zone,JSON_ZONE_NAME_NAME);
-                            zoneId = JsonPort.GetJsonString(zone,JSON_ZONE_ID_NAME);
-                            if(zoneId!=null&&!zoneId.isEmpty()) {
-                                areaInfo = new UserArea(zoneId,zoneName);
-                                areaList.add(areaInfo);
+        try{
+            json = JSONObject.parseObject(data);
+            if(json!=null){
+                status = json.getIntValue(JSON_STATUS_NAME);
+                if(JSON_STATUS_OK == status) {
+                    result = json.getJSONObject(JSON_RESULT_NAME);
+                    if(result!=null){
+                        zoneList = result.getJSONArray(JSON_LIST_NAME);
+                        if(zoneList!=null){
+                            areaList = new ArrayList<>();
+                            for(iTmp=0;iTmp<zoneList.size();iTmp++) {
+                                String zoneName;
+                                String zoneId;
+                                zone = zoneList.getJSONObject(iTmp);
+                                zoneName = JsonPort.GetJsonString(zone,JSON_ZONE_NAME_NAME);
+                                zoneId = JsonPort.GetJsonString(zone,JSON_ZONE_ID_NAME);
+                                if(zoneId!=null&&!zoneId.isEmpty()) {
+                                    areaInfo = new UserArea(zoneId,zoneName);
+                                    areaList.add(areaInfo);
+                                }
                             }
                         }
                     }
                 }
+                json.clear();
             }
+        }catch(JSONException e){
+            e.printStackTrace();
         }
         return areaList;
 

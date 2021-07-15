@@ -27,6 +27,8 @@ import com.example.nettytest.userinterface.TerminalDeviceInfo;
 
 
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 public class TerminalCallManager {
 
@@ -44,8 +46,10 @@ public class TerminalCallManager {
 
     public byte[] MakeCallSnap(String devId,boolean isReg){
         JSONObject json = new JSONObject();
+        String snap;
         try {
             json.put(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_TERMINAL_CALL_RES);
+            json.put(SystemSnap.SNAP_RUN_TIME_NAME, HandlerMgr.GetTerminalRunSecond());
             JSONArray callArray = new JSONArray();
             json.put(SystemSnap.SNAP_DEVID_NAME,devId);
             if(isReg)
@@ -67,7 +71,10 @@ public class TerminalCallManager {
             e.printStackTrace();
         }
 
-        return json.toString().getBytes();
+
+        snap = json.toString();
+        json.clear();
+        return snap.getBytes();
     }
 
     public int EndCall(String id,String callid){
@@ -80,6 +87,20 @@ public class TerminalCallManager {
             LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_ERROR,"DEV %s End Call Fail, Could not find Call %s",id,callid);
             for(TerminalCall scanCall:callLists.values()){
                 LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_ERROR,"DEV %s Has Call %s from %s to %s",id,scanCall.callID,scanCall.caller,scanCall.callee);
+            }
+        }
+
+        return result;
+    }
+
+    public int EndCall(String id,int type){
+        int result = ProtocolPacket.STATUS_OK;
+        for(Iterator<Map.Entry<String, TerminalCall>> it = callLists.entrySet().iterator(); it.hasNext();) {
+            Map.Entry<String, TerminalCall> item = it.next();
+            TerminalCall call = item.getValue();
+            if(call.type==type) {
+                result = call.EndCall();
+                it.remove();
             }
         }
 
@@ -377,8 +398,8 @@ public class TerminalCallManager {
                 callid = updateReqP.callId;
                 call = callLists.get(callid);
                 if(call!=null){
-                    call.UpdateTimeOver();
-                    callLists.remove(callid);
+                    if(call.UpdateTimeOver())
+                        callLists.remove(callid);
                 }
                 break;
             case ProtocolPacket.END_REQ:

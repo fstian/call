@@ -115,7 +115,7 @@ public class UserMessage {
                 msgName = "Video answered";
                 break;
             case CALL_VIDEO_REQ_ANSWER:
-                msgName = "Video Req answer";
+                msgName = "Video answer";
                 break;
             case CALL_VIDEO_END:
                 msgName = "Video End";

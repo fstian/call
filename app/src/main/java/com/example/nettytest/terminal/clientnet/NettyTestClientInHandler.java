@@ -21,8 +21,10 @@ public class NettyTestClientInHandler extends ChannelInboundHandlerAdapter {
         ByteBuf m = (ByteBuf)msg;
         try {
             ProtocolPacket packet = ProtocolFactory.ParseData(m);
-            LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_DEBUG,"Client %s Read %s Packet From Netty",devID, ProtocolPacket.GetTypeName(packet.type));
-            HandlerMgr.PhoneProcessPacket(packet);
+            if(packet!=null){
+                LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_DEBUG,"Client %s Read %s Packet From Netty",devID, ProtocolPacket.GetTypeName(packet.type));
+                HandlerMgr.PhoneProcessPacket(packet);
+            }
         }finally {
             m.release();
         }

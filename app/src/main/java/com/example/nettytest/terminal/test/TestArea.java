@@ -1,6 +1,4 @@
-package com.usecomcalllib.androidTest;
-
-import com.usecomcalllib.androidTest.TestDevice;
+package com.example.nettytest.terminal.test;
 
 import java.util.ArrayList;
 

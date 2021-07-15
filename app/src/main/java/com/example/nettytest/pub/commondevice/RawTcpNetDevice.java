@@ -1,7 +1,6 @@
 package com.example.nettytest.pub.commondevice;
 
 
-import android.text.Selection;
 
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
@@ -34,7 +33,7 @@ public class RawTcpNetDevice extends NetDevice {
                 sc.write(ByteBuffer.wrap(data));
                 LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_DEBUG,"Raw-TCP dev %s Send data succ",id);
             } catch (IOException e) {
-                LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_ERROR,"Raw-TCP dev %s Send data fail for %s",id,e.getMessage());
+                LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_ERROR,"Raw-TCP dev %s Send data fail with msg %s",id,e.getMessage());
                 e.printStackTrace();
             }
         }else{

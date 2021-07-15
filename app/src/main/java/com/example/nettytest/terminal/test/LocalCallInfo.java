@@ -1,4 +1,4 @@
-package com.usecomcalllib.androidTest;
+package com.example.nettytest.terminal.test;
 
 import com.example.nettytest.userinterface.UserCallMessage;
 

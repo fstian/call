@@ -1,28 +1,23 @@
-package com.usecomcalllib.androidPort;
+package com.androidport.port;
 
 
 import android.os.Handler;
 import android.os.Message;
 
 import com.example.nettytest.pub.CallPubMessage;
-import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
-import com.example.nettytest.pub.protocol.ProtocolPacket;
+import com.example.nettytest.pub.MsgReceiver;
 import com.example.nettytest.userinterface.UserCallMessage;
-import com.example.nettytest.userinterface.UserInterface;
 import com.example.nettytest.userinterface.UserMessage;
 import com.example.nettytest.userinterface.UserVideoMessage;
-import com.usecomcalllib.androidPort.audio.AudioMgr;
+import com.androidport.port.audio.AudioMgr;
 
 import java.util.ArrayList;
 
-public class CallMsgReceiver {
+public class CallMsgReceiver extends MsgReceiver {
 
-    static Handler userMessageHandler = null;
-    static ArrayList<CallPubMessage> msgList;
-
-    static Handler backendMessageHandler = null;
-    static ArrayList<CallPubMessage> backEndMsgList;
+    static protected Handler userMessageHandler = null;
+    static protected Handler backendMessageHandler = null;
 
     static String audioId = "";
     static String callId = "";
@@ -32,26 +27,15 @@ public class CallMsgReceiver {
         if(userMessageHandler==null){
 
             userMessageHandler = h;
-            msgList = new ArrayList<>();
-            HandlerMgr.SetTerminalMessageHandler(msgList);
+            CreateTerminalMsgList();
 
-            new Thread("UesrMsgReceiver"){
+            new Thread("TermMsgReceiver"){
                 @Override
                 public void run() {
                     ArrayList<CallPubMessage> newMsgList = new ArrayList<>();
                     CallPubMessage msg;
                     while (!isInterrupted()) {
-                        synchronized (msgList) {
-                            try {
-                                msgList.wait();
-                                while (msgList.size() > 0) {
-                                    msg = msgList.remove(0);
-                                    newMsgList.add(msg);
-                                }
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                        }
+                        newMsgList = GetTerminalMsgs();
 //                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"CallMsgRecevier Recv %d Terminal Msg",newMsgList.size());
                         int type;
                         while (newMsgList.size() > 0) {
@@ -64,9 +48,14 @@ public class CallMsgReceiver {
                                 UserCallMessage callMsg = (UserCallMessage) userMsg.obj;
                                 if (callMsg.type == UserMessage.CALL_MESSAGE_CONNECT || callMsg.type == UserMessage.CALL_MESSAGE_ANSWERED) {
                                     callId = callMsg.callId;
-                                    audioDevId = callMsg.devId;
-                                    audioId = AudioMgr.OpenAudio(callMsg.devId, callMsg.localRtpPort, callMsg.remoteRtpPort, callMsg.remoteRtpAddress, callMsg.rtpSample, callMsg.rtpPTime, callMsg.rtpCodec, callMsg.audioMode);
-                                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, "Open Audio %s for Dev %s Call %s", audioId, audioDevId, callId);
+                                    String id = AudioMgr.OpenAudio(callMsg.devId, callMsg.localRtpPort, callMsg.remoteRtpPort, callMsg.remoteRtpAddress, callMsg.rtpSample, callMsg.rtpPTime, callMsg.rtpCodec, callMsg.audioMode);
+                                    if(!id.isEmpty()){
+                                        audioDevId = callMsg.devId;
+                                        audioId = id;
+                                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, "Open Audio %s for Dev %s Call %s", audioId, audioDevId, callId);
+                                    }else{
+                                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_ERROR, "Open Audio Fail, Audio is Occupy by Dev %s Call %s Audio", audioDevId, callId,audioId);
+                                    }
                                 } else if (callMsg.type == UserMessage.CALL_MESSAGE_DISCONNECT) {
                                     if (callMsg.callId.compareToIgnoreCase(callId) == 0 && callMsg.devId.compareToIgnoreCase(audioDevId) == 0) {
                                         AudioMgr.CloseAudio(audioId);
@@ -109,35 +98,23 @@ public class CallMsgReceiver {
         if(backendMessageHandler==null){
 
             backendMessageHandler = h;
-            backEndMsgList = new ArrayList<>();
-            HandlerMgr.SetBackEndMessageHandler(backEndMsgList);
+            CreateBackEndMsgList();
 
-            new Thread("UesrMsgReceiver"){
+            new Thread("BackEndMsgReceiver"){
                 @Override
                 public void run() {
                     ArrayList<CallPubMessage> newMsgList = new ArrayList<>();
                     CallPubMessage msg;
                     while(!isInterrupted()){
-                        synchronized (backEndMsgList){
-                            try {
-                                backEndMsgList.wait();
-                                while(backEndMsgList.size()>0) {
-                                    msg = backEndMsgList.remove(0);
-                                    newMsgList.add(msg);
-                                }
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-
+                        newMsgList = GetBackEndMsgs();
 //                           LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"CallMsgRecevier Recv %d BackEnd Msg",newMsgList.size());
 
-                            while(newMsgList.size()>0){
-                                msg = newMsgList.remove(0);
-                                Message userMsg = backendMessageHandler.obtainMessage();
-                                userMsg.arg1 = msg.arg1;
-                                userMsg.obj = msg.obj;
-                                backendMessageHandler.sendMessage(userMsg);
-                            }
+                        while(newMsgList.size()>0){
+                            msg = newMsgList.remove(0);
+                            Message userMsg = backendMessageHandler.obtainMessage();
+                            userMsg.arg1 = msg.arg1;
+                            userMsg.obj = msg.obj;
+                            backendMessageHandler.sendMessage(userMsg);
                         }
                     }
 

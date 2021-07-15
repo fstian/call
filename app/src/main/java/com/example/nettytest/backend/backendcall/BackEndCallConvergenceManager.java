@@ -7,6 +7,7 @@ import com.example.nettytest.pub.CallPubMessage;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.SystemSnap;
+import com.example.nettytest.pub.commondevice.PhoneDevice;
 import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.pub.protocol.AnswerReqPack;
 import com.example.nettytest.pub.protocol.AnswerResPack;
@@ -58,6 +59,7 @@ public class BackEndCallConvergenceManager {
             json.put(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_BACKEND_CALL_RES);
             json.put(SystemSnap.SNAP_DEVID_NAME, devid);
             json.put(SystemSnap.SNAP_VER_NAME,PhoneParam.VER_STR);
+            json.put(SystemSnap.SNAP_RUN_TIME_NAME,HandlerMgr.GetBackEndRunSecond());
             JSONArray outCalls = new JSONArray();
             JSONArray incomingCalls = new JSONArray();
             JSONObject calljson;
@@ -97,7 +99,20 @@ public class BackEndCallConvergenceManager {
             e.printStackTrace();
         }
 
+        json.clear();
 
+        return result;
+    }
+
+    private boolean CheckDevTypeInviteEnable(int type){
+        boolean result = true;
+        if(type== PhoneDevice.CORRIDOR_CALL_DEVICE||
+            type==PhoneDevice.TV_CALL_DEVICE||
+            type==PhoneDevice.DOOR_CALL_DEVICE||
+            type==PhoneDevice.WHITE_BOARD_DEVICE||
+            type==PhoneDevice.DOOR_LIGHT_CALL_DEVICE){
+            result = false;
+        }
         return result;
     }
 
@@ -107,14 +122,32 @@ public class BackEndCallConvergenceManager {
             return  false;
         if(!phone.isReg)
             return false;
-        for(BackEndCallConvergence callConvergence:callConvergenceList.values()){
-            if(!callConvergence.CheckInviteEnable(phone)) {
-                result = false;
-                break;
+        if(!CheckDevTypeInviteEnable(phone.type)){
+            LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"Dev %s Type is %d, Not Support Build Call",phone.id,phone.type);
+            result = false;
+        }else{
+            for(BackEndCallConvergence callConvergence:callConvergenceList.values()){
+                if(!callConvergence.CheckInviteEnable(phone)) {
+                    result = false;
+                    break;
+                }
             }
         }
         return result;
     }
+
+        private boolean CheckDevTypeAnswerEnable(int type){
+        boolean result = true;
+        if(type==PhoneDevice.TV_CALL_DEVICE||
+            type==PhoneDevice.WHITE_BOARD_DEVICE||
+            type==PhoneDevice.DOOR_LIGHT_CALL_DEVICE||
+            type==PhoneDevice.EMER_CALL_DEVICE){
+
+            result = false;
+        }
+        return result;
+    }
+
 
     private boolean CheckAnswerEnable(BackEndPhone phone,String callid){
         boolean result = true;
@@ -122,6 +155,10 @@ public class BackEndCallConvergenceManager {
             return false;
         if(!phone.isReg)
             return false;
+        if(!CheckDevTypeAnswerEnable(phone.type)){
+            LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"Dev %s Type is %d, Not Support Answer Call",phone.id,phone.type);
+            return false;
+        }
         BackEndCallConvergence curCallConvergence = callConvergenceList.get(callid);
         if(curCallConvergence==null)
             return false;
@@ -135,20 +172,20 @@ public class BackEndCallConvergenceManager {
         return result;
     }
 
-    public boolean CheckForwardEnable(BackEndPhone phone,int callType){
-        boolean result = true;
-        if(phone == null)
-            return false;
-        if(!phone.isReg)
-            return false;
-        for(BackEndCallConvergence callConvergence:callConvergenceList.values()){
-            if(!callConvergence.CheckForwardEnable(phone,callType)) {
-                result = false;
-                break;
-            }
-        }
-        return result;
-    }
+//    public boolean CheckForwardEnable(BackEndPhone phone,int callType){
+//        boolean result = true;
+//        if(phone == null)
+//            return false;
+//        if(!phone.isReg)
+//            return false;
+//        for(BackEndCallConvergence callConvergence:callConvergenceList.values()){
+//            if(!callConvergence.CheckForwardEnable(phone,callType)) {
+//                result = false;
+//                break;
+//            }
+//        }
+//        return result;
+//    }
 
     private boolean CheckInvitedEnable(BackEndPhone phone){
         boolean result = true;
@@ -402,7 +439,7 @@ public class BackEndCallConvergenceManager {
     }
     
     public void SetUserMessageList(ArrayList<CallPubMessage> list) {
-        if(msgList!=null)
+        if(msgList==null)
             msgList = list;
     }
 

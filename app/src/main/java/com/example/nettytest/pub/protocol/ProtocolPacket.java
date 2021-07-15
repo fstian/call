@@ -9,6 +9,7 @@ public class ProtocolPacket {
     public final static String PACKET_CONTEXT_NAME = "context";
     public final static String PACKET_LISTEN_STATE_NAME = "listenState";
     public final static String PACKET_TRANSFER_STATE_NAME = "transferState";
+    public final static String PACKET_SNAP_PORT_NAME = "snapPort";
 
     public final static String PACKET_DEVTYPE_NAME = "deviceType";
     public final static String PACKET_DEVID_NAME = "deviceID";

@@ -4,9 +4,12 @@ import com.example.nettytest.backend.backendphone.BackEndZone;
 import com.example.nettytest.backend.backendphone.BackEndConfig;
 import com.example.nettytest.backend.backendphone.BackEndPhone;
 import com.example.nettytest.backend.callserver.DemoServer;
+import com.example.nettytest.pub.BackEndStatistics;
 import com.example.nettytest.pub.CallParams;
+import com.example.nettytest.pub.DeviceStatistics;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
+import com.example.nettytest.pub.TerminalStatistics;
 import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.result.FailReason;
@@ -35,9 +38,9 @@ public class UserInterface {
     public final static int CALL_DIRECTION_S2C = 1;
     public final static int CALL_DIRECTION_C2S = 2;
 
-    public final static int CALL_ANSWER_MODE_STOP = 1;
-    public final static int CALL_ANSWER_MODE_HANDLE = 2;
-    public final static int CALL_ANSWER_MODE_ANSWER = 3;
+    public final static int CALL_ANSWER_MODE_STOP = 1;  //answer and stop
+    public final static int CALL_ANSWER_MODE_HANDLE = 2;   // not answer, stop by other
+    public final static int CALL_ANSWER_MODE_ANSWER = 3;  // not answer , stop by caller
 
     public final static int NET_MODE_TCP = 1;
     public final static int NET_MODE_UDP = 2;
@@ -58,20 +61,14 @@ public class UserInterface {
     }
 
     public static void CreateServerDevices(){
-        if(PhoneParam.serverActive) {
-            if(!PhoneParam.serviceActive){
-                for(int iTmp=0;iTmp<PhoneParam.devicesOnServer.size();iTmp++){
-                    UserDevice dev = PhoneParam.devicesOnServer.get(iTmp);
-                    UserInterface.AddAreaInfoOnServer(dev.areaId,"");
-                    UserInterface.AddDeviceOnServer(dev.devid,dev.type,dev.netMode,dev.areaId);
-                }
-            }else{
-                HandlerMgr.StartCheckDevices(PhoneParam.serviceAddress,PhoneParam.servicePort);
+        if(!PhoneParam.serviceActive){
+            for(int iTmp=0;iTmp<PhoneParam.devicesOnServer.size();iTmp++){
+                UserDevice dev = PhoneParam.devicesOnServer.get(iTmp);
+                UserInterface.AddAreaInfoOnServer(dev.areaId,"");
+                UserInterface.AddDeviceOnServer(dev.devid,dev.type,dev.netMode,dev.areaId);
             }
-        }
-        
-        if(PhoneParam.clientActive) {
-            
+        }else{
+            HandlerMgr.StartCheckDevices(PhoneParam.serviceAddress,PhoneParam.servicePort);
         }
     }
 
@@ -335,6 +332,22 @@ public class UserInterface {
         return result;
     }
 
+    public static OperationResult EndCall(String devid,int callType){
+        int operationCode;
+        OperationResult result;
+
+        operationCode = HandlerMgr.EndTerminalCall(devid,callType);
+        result = new OperationResult(operationCode);
+
+        if(operationCode== ProtocolPacket.STATUS_OK)
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"End Call type %d by %s success",callType,devid);
+        else
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"End Call type %d by %s Fail, Reason is %s",callType,devid,FailReason.GetFailName(result.reason));
+
+        result.callID = "";
+        return result;
+    }
+
     public static OperationResult AnswerCall(String devid, String callid){
         int operationCode;
         OperationResult result;
@@ -522,5 +535,26 @@ public class UserInterface {
         return PhoneParam.VER_STR;
     }
     
-   
+
+    public static TerminalStatistics GetTerminalStatistics() {
+        TerminalStatistics statist = new TerminalStatistics();
+        DeviceStatistics devStatist;
+        statist.callNum = HandlerMgr.GetTerminalCalNum();
+        statist.transNum =HandlerMgr.GetTermTransCount();
+        devStatist = HandlerMgr.GetTerminalRegDevNum();
+        statist.regSuccDevNum = devStatist.regSuccNum;
+        statist.regFailDevNum = devStatist.regFailNum;
+        return statist;
+    }
+
+    public static BackEndStatistics GetBackEndStatistics() {
+        BackEndStatistics statist = new BackEndStatistics();
+        DeviceStatistics devStatist;
+        statist.callConvergenceNum = HandlerMgr.GetBackCallCount();
+        statist.transNum =HandlerMgr.GetBackTransCount();
+        devStatist = HandlerMgr.GetBackEndRegDevNum();
+        statist.regSuccDevNum = devStatist.regSuccNum;
+        statist.regFailDevNum = devStatist.regFailNum;
+        return statist;
+    }
 }

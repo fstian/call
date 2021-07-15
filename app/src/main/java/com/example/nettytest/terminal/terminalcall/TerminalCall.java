@@ -460,7 +460,8 @@ public class TerminalCall extends CommonCall {
     }
 
 
-    public void UpdateTimeOver(){
+    public boolean UpdateTimeOver(){
+        boolean removeCall = false;
         updateTimeOverCount++;
         if(updateTimeOverCount>=2){
             UserCallMessage callMsg = new UserCallMessage();
@@ -470,9 +471,11 @@ public class TerminalCall extends CommonCall {
             callMsg.type = UserCallMessage.CALL_MESSAGE_UPDATE_FAIL;
             callMsg.reason = OperationResult.GetUserFailReason(ProtocolPacket.STATUS_TIMEOVER);
             HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
+            removeCall = true;
     //        if(!audioId.isEmpty())
     //            AudioMgr.CloseAudio(audioId);
         }
+        return removeCall;
     }
    
     private InviteReqPack BuildInvitePacket(TerminalDeviceInfo info){

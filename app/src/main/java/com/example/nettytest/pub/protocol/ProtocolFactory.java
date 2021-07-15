@@ -28,9 +28,17 @@ public class ProtocolFactory {
 
     public static ProtocolPacket ParseData(String data) {
         ProtocolPacket p = null;
+        if(data==null){
+            LogWork.Print(LogWork.DEBUG_MODULE, LogWork.LOG_ERROR, "Call JSON Para with NULL String");
+            return p;
+        }
         try {
-        	JSONObject json = JSONObject.parseObject(data);
-
+            JSONObject json = JSONObject.parseObject(data);
+            if(json==null){
+                LogWork.Print(LogWork.DEBUG_MODULE, LogWork.LOG_ERROR, "JSON Para String %s Fail",data);
+                return p;
+            }
+                
             JSONObject context;
             int type = json.getIntValue(ProtocolPacket.PACKET_TYPE_NAME);
             switch(type){
@@ -57,6 +65,7 @@ public class ProtocolFactory {
                         regResPack.areaName = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_AREANAME_NAME);
                         regResPack.transferAreaId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_TRANSFER_AREAID_NAME);
                         regResPack.listenCallEnable = context.getBooleanValue(ProtocolPacket.PACKET_LISTEN_STATE_NAME);
+                        regResPack.snapPort = context.getIntValue(ProtocolPacket.PACKET_SNAP_PORT_NAME);
                         p = regResPack;
                     }
                     break;
@@ -378,11 +387,12 @@ public class ProtocolFactory {
                     p = answerVideoResP;
                     break;
             }
+            json.clear();
+            json=null;
         }catch (JSONException e){
             e.printStackTrace();
-            LogWork.Print(LogWork.TERMINAL_NET_MODULE, LogWork.LOG_ERROR, "Recv Unparse data %s", data);
+            LogWork.Print(LogWork.TERMINAL_NET_MODULE, LogWork.LOG_TEMP_DBG, "Recv Unparse data %s", data);
         }
-
 
         return p;
     }
@@ -413,6 +423,7 @@ public class ProtocolFactory {
                     context.put(ProtocolPacket.PACKET_AREAID_NAME,regResP.areaId);
                     context.put(ProtocolPacket.PACKET_AREANAME_NAME,regResP.areaName);
                     context.put(ProtocolPacket.PACKET_TRANSFER_AREAID_NAME,regResP.transferAreaId);
+                    context.put(ProtocolPacket.PACKET_SNAP_PORT_NAME,regResP.snapPort);
                     context.put(ProtocolPacket.PACKET_LISTEN_STATE_NAME,regResP.listenCallEnable);
                     json.put(ProtocolPacket.PACKET_CONTEXT_NAME,context);
                     break;
@@ -629,7 +640,9 @@ public class ProtocolFactory {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        data = json.toString();
+        data = json.toString();       
+        json.clear();
+        json = null;
         return data;
     }
 

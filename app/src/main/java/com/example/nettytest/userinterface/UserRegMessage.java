@@ -7,6 +7,7 @@ public class UserRegMessage extends UserMessage {
     public String areaName;
     public String transferAreaId;
     public boolean enableListenCall;
+    public int snapPort;
 
     public UserRegMessage(){
         super();
@@ -14,5 +15,6 @@ public class UserRegMessage extends UserMessage {
         transferAreaId = "";
         areaName = "";
         enableListenCall = false;
+        snapPort = 11005;
     }
 }

@@ -27,6 +27,7 @@ public class PhoneParam {
     final static String JSON_TCP_MODE_NAME = "TCP";
     final static String JSON_RAWTCP_MODE_NAME = "RAW-TCP";
     final static String JSON_SERVICE_NAME = "service";
+    final static String JSON_UPDATE_TIME_NAME = "updateTime";
     
     final static String JSON_AREAS_NAME = "areas";
     final static String JSON_AREA_NAME_NAME = "areaName";
@@ -39,6 +40,7 @@ public class PhoneParam {
     final static String JSON_BED_NUM_NAME = "bedNum";
     final static String JSON_DOOR_NUM_NAME = "doorNum";
     final static String JSON_NURSER_NUM_NAME = "nurserNum";
+    final static String JSON_EMER_USE_UDP_NAME = "emerUseUdp";
     
 
     final static String JSON_CLIENT_NAME = "client";
@@ -82,11 +84,13 @@ public class PhoneParam {
     public static String callServerAddress = "127.0.0.1";
     public static boolean serverActive = false;
     public static boolean clientActive = false;
+    public static boolean emerUseUdp = false;
     public static int broadcallCastMode = BROADCALL_USE_BROADCAST;
     
     public static boolean serviceActive = false;
     public static String serviceAddress = "127.0.0.1";
     public static int servicePort = 80;
+    public static int serviceUpdateTime = 120;
     
     public static int aecDelay = DEFAULT_AEC_DELAY;
     public static int callRtpPTime = 20;
@@ -102,7 +106,7 @@ public class PhoneParam {
 
     public static int DEFAULT_SNAP_PORT = 11004;
 
-    public final static String VER_STR = "1.0.1";
+    public final static String VER_STR = "1.1.1";
 
     static private UserDevice CheckUserDevice(JSONObject device){
         UserDevice userdev = new UserDevice();
@@ -228,6 +232,8 @@ public class PhoneParam {
         
         try {
             json = JSONObject.parseObject(info);
+            if(json==null)
+                return ;
             snapStartPort = json.getIntValue(JSON_SNAP_PORT_NAME);
             serverJson = json.getJSONObject(JSON_SERVE_NAME);
             serviceJson = json.getJSONObject(JSON_SERVICE_NAME);
@@ -237,11 +243,13 @@ public class PhoneParam {
                 serviceAddress = JsonPort.GetJsonString(serviceJson,JSON_ADDRESS_NAME);
                 servicePort = serviceJson.getIntValue(JSON_PORT_NAME);
                 serviceActive = serviceJson.getBooleanValue(JSON_ACTIVE_NAME);
+                serviceUpdateTime = serviceJson.getIntValue(JSON_UPDATE_TIME_NAME);
             }
 
             if(serverJson!=null){
                 callServerPort = serverJson.getIntValue(JSON_PORT_NAME);
                 serverActive = serverJson.getBooleanValue(JSON_ACTIVE_NAME);
+                emerUseUdp = serverJson.getBooleanValue(JSON_EMER_USE_UDP_NAME);
                 devicesJson = serverJson.getJSONArray(JSON_DEVICES_NAME);
                 areasJson = serverJson.getJSONArray(JSON_AREAS_NAME);
                 testAreas = serverJson.getJSONObject(JSON_TESTAREAS_NAME);
@@ -316,6 +324,7 @@ public class PhoneParam {
                     }
                 }
             }
+            json.clear();
         } catch (JSONException e) {
             e.printStackTrace();
         }
