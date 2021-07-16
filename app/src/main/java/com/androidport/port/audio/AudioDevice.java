@@ -203,6 +203,7 @@ public class AudioDevice {
         try {
             if(audioMode== AudioMode.RECV_ONLY_MODE||audioMode==AudioMode.SEND_RECV_MODE){
                 audioSocket = new DatagramSocket(srcPort);
+                audioSocket.setSoTimeout(300);
                 socketReadThread = new SocketReadThread();
                 socketReadThread.start();
                 while(!isSockReadRuning){
@@ -231,9 +232,6 @@ public class AudioDevice {
     private void CloseSocket(){
         int count = 0;
         if(audioSocket!=null) {
-            if(!audioSocket.isClosed()){
-                audioSocket.close();
-            }
             if(socketReadThread!=null)
                 socketReadThread.interrupt();
             while(isSockReadRuning){
@@ -247,6 +245,9 @@ public class AudioDevice {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
+            }
+            if(!audioSocket.isClosed()){
+                audioSocket.close();
             }
             socketReadThread = null;
             socketOpenCount--;
@@ -430,8 +431,8 @@ public class AudioDevice {
             isSockReadRuning = true;
             while(!isInterrupted()){
                 if(!audioSocket.isClosed()){
-                    recvPack = new DatagramPacket(recvBuf, recvBuf.length);
                     try {
+                        recvPack = new DatagramPacket(recvBuf, recvBuf.length);
                         audioSocket.receive(recvPack);
                         if(recvPack.getLength()>0){
 //                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv %d byte from %s:%d",recvPack.getLength(),recvPack.getAddress().getHostName(),recvPack.getPort());
@@ -441,10 +442,16 @@ public class AudioDevice {
                                 }else
                                     jb.addPackage(jbIndex,recvPack.getData(),recvPack.getLength());
                             }
+                        }else{
+                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Audio Socket Recv 0 bytes");
                         }
                     } catch (IOException e) {
+//                        e.printStackTrace();
+//                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Socket of Audio %s of Dev %s err with %s",id,devId,e.getMessage());
+                    } catch (NullPointerException e){
                         e.printStackTrace();
-                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Socket of Audio %s of Dev %s is Closed when recv",id,devId);
+                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Socket of Audio %s of Dev %s err with %s",id,devId,e.getMessage());
+                        break;
                     }
                 }else{
                     break;

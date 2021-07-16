@@ -112,12 +112,11 @@ public class ClientTest {
 
     private void StartClientSnap(int port){
         if(snapThread==null){
-            try {
-                testSocket = new DatagramSocket(PhoneParam.snapStartPort);
+//                testSocket = new DatagramSocket(PhoneParam.snapStartPort);
+            testSocket = SystemSnap.OpenSnapSocket(port,PhoneParam.SNAP_MMI_GROUP);
+            if(testSocket!=null){
                 snapThread = new ClientSnapThread();
                 snapThread.start();
-            } catch (SocketException e) {
-                e.printStackTrace();
             }
 
 
