@@ -37,11 +37,15 @@ public class SystemSnap {
     public static final int SNAP_SYSTEM_INFO_REQ = 11;
     public static final int SNAP_SYSTEM_INFO_RES = 111;
 
+    public static final int SNAP_CLEAN_CALL_REQ = 12;
+    public static final int SNAP_CLEAN_CALL_RES = 112;
+
     public static final int SNAP_DEL_LOG_REQ = 10;
 
     public static final String SNAP_AUTOTEST_NAME = "autoTest";
     public static final String SNAP_REALTIME_NAME = "realTime";
     public static final String SNAP_TIMEUNIT_NAME = "timeUnit";
+    public static final String SNAP_TEST_MODE_NAME = "testMode";
 
     public static final String SNAP_CMD_TYPE_NAME = "type";
     public static final String SNAP_AREAID_NAME = "areaId";
@@ -55,6 +59,9 @@ public class SystemSnap {
     public static final String SNAP_REG_NAME = "reg";
     public static final String SNAP_VER_NAME = "ver";
     public static final String SNAP_RUN_TIME_NAME = "runTime";
+
+    public static final String SNAP_LISTEN_STATUS_NAME = "listenStatus";
+    public static final String SNAP_TRANSFER_AREA_NAME = "transferAreaId";
 
     public static final String SNAP_INCOMINGS_NAME = "incomingCalls";
     public static final String SNAP_OUTGOINGS_NAME = "outGoingCalls";

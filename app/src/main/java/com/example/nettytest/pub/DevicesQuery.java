@@ -1,25 +1,26 @@
 package com.example.nettytest.pub;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.TimeUnit;
-
-import com.alibaba.fastjson.*;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONException;
+import com.alibaba.fastjson.JSONObject;
 import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.ServerDeviceInfo;
 import com.example.nettytest.userinterface.UserArea;
 import com.example.nettytest.userinterface.UserDevice;
 import com.example.nettytest.userinterface.UserInterface;
 
-import okhttp3.*;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Interceptor;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class DevicesQuery {
 	
@@ -74,13 +75,13 @@ public class DevicesQuery {
 
     int totalDeviceNum = 0;
     
-    ArrayList<UserArea> areas = new ArrayList<>();
+    ArrayList<UserArea> areas;
     
-    OkHttpClient client = null;
+    OkHttpClient client;
 
     int msgQueurId = 100000;
 
-    ArrayList<QueryMessage> msgList ;
+    final ArrayList<QueryMessage> msgList ;
 
     String serviceAddress;
     int servicePort;
@@ -141,7 +142,6 @@ public class DevicesQuery {
 
             @Override
             public void run() {
-                // TODO Auto-generated method stub
                 synchronized(msgList) {
                     
                     if(msgList.size()<5000) {
@@ -169,8 +169,8 @@ public class DevicesQuery {
                                 list.add(msg);
                             }                                                                                          
                         } catch (InterruptedException e) {
-                            // TODO Auto-generated catch block
                             e.printStackTrace();
+                            break;
                         }                        
                     }
 
@@ -260,7 +260,7 @@ public class DevicesQuery {
                 }
                 areaPos++;
                 if(areaPos>=areas.size()) {
-                    area = areas.get(areas.size()-1);
+//                    area = areas.get(areas.size()-1);
                     LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Http Query %d Aears and Get %d Devices!!!!!!!!!!!!!!",areaPos,totalDeviceNum);
                     areaPos = 0;
                     area = areas.get(areaPos);
@@ -293,7 +293,7 @@ public class DevicesQuery {
                 tickCount = 0;
 //                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Recv Params Res For Area %s",msg.areaId);
                 
-                int rtnVal = UpdateParams(msg.areaId,msg.res);
+                UpdateParams(msg.areaId,msg.res);
 
                 areaPos++;
 
@@ -312,8 +312,8 @@ public class DevicesQuery {
     
     private void httpGetProcess(String url,Callback cb) {
         if(client==null) {
-            client =  new OkHttpClient.Builder()  
-            .addInterceptor(new Interceptor() {  
+            client =  new OkHttpClient.Builder()
+            .addInterceptor(new Interceptor() {
                 public Response intercept(Chain chain) throws IOException {  
                     Request request = chain.request();  
                     Response response = chain.proceed(request);  
@@ -335,26 +335,26 @@ public class DevicesQuery {
     }
     
     private void QueryAreas() {
-        final String url = String.format("http://%s:%d/call/router/areas",serviceAddress,servicePort);
+        final String url = String.format("http://%s:%d/call/router/areas", serviceAddress, servicePort);
         areaPos = 0;
         
         httpGetProcess(url,new Callback() {
             @Override
             public void onFailure(Call c, IOException e) {
-                // TODO Auto-generated method stub
-                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_ERROR,String.format("Send %s Fail!!!!",url));
+                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_ERROR, String.format("Send %s Fail!!!!",url));
             }
 
             @Override
             public void onResponse(Call c, Response res) {
               
-                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,String.format("Send %s And Recv Res !!!!",url));
+                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG, String.format("Send %s And Recv Res !!!!",url));
 
-                String resValue =null;
+                String resValue;
                 
                 if(res.code()==200) {
                     try {
-                        resValue =res.body().string();
+//                        resValue =res.body().string();
+                        resValue =new String(res.body().bytes(),"UTF-8");
                         QueryMessage msg = new QueryMessage();
                         msg.type = QUERY_AREAS_RES;
                         msg.res = resValue;
@@ -364,7 +364,6 @@ public class DevicesQuery {
                             msgList.notify();   
                         }
                     } catch (IOException e) {
-                        // TODO Auto-generated catch block
                         e.printStackTrace();
                     } 
                 }
@@ -380,20 +379,18 @@ public class DevicesQuery {
 
             @Override
             public void onFailure(Call c, IOException e) {
-                // TODO Auto-generated method stub
-                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_ERROR,String.format("Recv Fail %s of Req %s in Thread %d!!!!",e.getMessage(),url,Thread.currentThread().getId()));
+                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_ERROR, String.format("Recv Fail %s of Req %s in Thread %d!!!!",e.getMessage(),url,Thread.currentThread().getId()));
 
             }
 
             @Override
             public void onResponse(Call c, Response res){
-                // TODO Auto-generated method stub
-                int result=-1;
-                String resString = null;
-               LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,String.format("Recv Res for Req %s in Thread %d !!!!",url,Thread.currentThread().getId()));
+                String resString;
+                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG, String.format("Recv Res for Req %s in Thread %d !!!!",url,Thread.currentThread().getId()));
                 if(res.code()==200) {
                     try {
                         resString = res.body().string();
+//                        resString =new String(res.body().bytes(),"UTF-8");
                         QueryMessage msg = new QueryMessage();
                         msg.type = QUERY_DEVICES_RES;
                         msg.res = resString;
@@ -405,7 +402,6 @@ public class DevicesQuery {
                             msgList.notify();   
                         }
                     } catch (IOException e) {
-                    // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
                 }
@@ -423,16 +419,16 @@ public class DevicesQuery {
         httpGetProcess(url,new Callback() {
             @Override
             public void onFailure(Call c, IOException e) {
-                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_ERROR,String.format("Recv Fail %s of Req %s in Thread %d!!!!",e.getMessage(),url,Thread.currentThread().getId()));
+                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_ERROR, String.format("Recv Fail %s of Req %s in Thread %d!!!!",e.getMessage(),url,Thread.currentThread().getId()));
             }            
             @Override
             public void onResponse(Call c, Response res) {
-                String resString = null;
-                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,String.format("Recv Res for Req %s in Thread %d !!!!",url,Thread.currentThread().getId()));
+                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG, String.format("Recv Res for Req %s in Thread %d !!!!",url,Thread.currentThread().getId()));
             	
                 if(res.code()==200) {
                     try {
                         String resValue =res.body().string();
+//                        String resValue =new String(res.body().bytes(),"UTF-8");
                         QueryMessage msg = new QueryMessage();
                         msg.type = QUERY_PARAMS_RES;
                         msg.res = resValue;
@@ -443,7 +439,6 @@ public class DevicesQuery {
                             msgList.notify();   
                         }
                     } catch (IOException e) {
-                        // TODO Auto-generated catch block
                         e.printStackTrace();
                     } 
                 }
@@ -456,8 +451,7 @@ public class DevicesQuery {
 
 
     private boolean UpdateCallParam(CallParams param,JSONObject jsonObj){
-        boolean result = false;
-        
+
         String paramId;
         int paramVal;
         
@@ -465,64 +459,24 @@ public class DevicesQuery {
         paramVal = jsonObj.getIntValue(JSON_PARAM_PARAM_VALUE);
 
         if(paramId.compareToIgnoreCase(JSON_PARAM_NORMALCALLTOBED)==0) {
-            if(paramId!= null){
-                if(paramVal==1)
-                    param.normalCallToBed = true;
-                else
-                    param.normalCallToBed = false;
-            }
+            param.normalCallToBed = paramVal != 1;
         }else if(paramId.compareToIgnoreCase(JSON_PARAM_NORMALCALLTOROOM)==0) {
-            if(paramId!= null){
-                if(paramVal==0)
-                    param.normalCallToRoom = false;
-                else
-                    param.normalCallToRoom = true;
-            }
+            param.normalCallToRoom = paramVal != 0;
         }else if(paramId.compareToIgnoreCase(JSON_PARAM_NORMALCALLTOTV)==0) {
-            if(paramId!= null){
-                if(paramVal==0)
-                    param.normalCallToTV = false;
-                else
-                    param.normalCallToTV = true;
-            }
+            param.normalCallToTV = paramVal != 0;
         }else if(paramId.compareToIgnoreCase(JSON_PARAM_NORMALCALLTOCORRIDOR)==0) {
-            if(paramId!= null){
-                if(paramVal==0)
-                    param.normalCallToCorridor= false;
-                else
-                    param.normalCallToCorridor = true;
-            }
+            param.normalCallToCorridor= paramVal != 0;
         }else if(paramId.compareToIgnoreCase(JSON_PARAM_EMERCALLTOBED)==0) {
-            if(paramId!= null){
-                if(paramVal==1)
-                    param.emerCallToBed = true;
-                else
-                    param.emerCallToBed = false;
-            }
+            param.emerCallToBed = paramVal == 1;
         }else if(paramId.compareToIgnoreCase(JSON_PARAM_EMERCALLTOROOM)==0) {
-            if(paramId!= null){
-                if(paramVal==1)
-                    param.emerCallToRoom= false;
-                else
-                    param.emerCallToRoom = true;
-            }
+            param.emerCallToRoom= paramVal != 1;
         }else if(paramId.compareToIgnoreCase(JSON_PARAM_EMERCALLTOTV)==0) {
-            if(paramId!= null){
-                if(paramVal==1)
-                    param.emerCallToTV= false;
-                else
-                    param.emerCallToTV= true;
-            }
+            param.emerCallToTV= paramVal != 1;
         }else if(paramId.compareToIgnoreCase(JSON_PARAM_EMERCALLTOCORRIDOR)==0) {
-            if(paramId!= null){
-                if(paramVal==1)
-                    param.emerCallToCorridor= false;
-                else
-                    param.emerCallToCorridor= true;
-            }
+            param.emerCallToCorridor= paramVal != 1;
         }
 
-        return result;
+        return true;
     }
     
     private int UpdateParams(String areaId,String data) {
@@ -567,7 +521,7 @@ public class DevicesQuery {
 
     
     private int UpdateDevices(String areaId,String areaName,String data) {
-        int status = -1;
+        int status;
         int iTmp;
         JSONObject json;
         JSONObject result;
@@ -605,13 +559,16 @@ public class DevicesQuery {
                     }
                     device.netMode = netMode;
                     userDeviceList.add(device);
-
                     deviceInfo.areaId = areaId;
                     deviceInfo.areaName = areaName; 
                     deviceInfo.bedName = JsonPort.GetJsonString(jsonDevice,JSON_BED_NAME_NAME);
                     deviceInfo.deviceName = JsonPort.GetJsonString(jsonDevice,JSON_DEVICE_NAME_NAME);
                     deviceInfo.roomId = JsonPort.GetJsonString(jsonDevice,JSON_ROOM_ID_NAME);
                     deviceInfoList.add(deviceInfo);
+                    if(device.devid.compareToIgnoreCase("20105143")==0) {
+                        deviceInfo.roomId = JsonPort.GetJsonString(jsonDevice,JSON_ROOM_ID_NAME);
+                        System.out.println(String.format("Qkq Test Dev name=%s,room=%s,area=%s(%s) len=%d", deviceInfo.deviceName,deviceInfo.roomId,deviceInfo.areaId,deviceInfo.areaName,deviceInfo.areaName.getBytes().length));
+                    }
 
                 }
                 UserInterface.UpdateAreaDevices(areaId,userDeviceList,deviceInfoList);
@@ -633,7 +590,7 @@ public class DevicesQuery {
         JSONArray zoneList;
         JSONObject zone;
         UserArea areaInfo;
-        int status=0;
+        int status;
         int iTmp;
 
         ArrayList<UserArea> areaList =null;

@@ -16,7 +16,7 @@ public class TcpNetDevice extends NetDevice{
 
     public void SendBuffer(ByteBuf buf){
         if(channel!=null) {
-            if(channel.isActive()) {
+            if(channel.isActive()&&channel.isWritable()) {
                 channel.writeAndFlush(buf);
             }
         }

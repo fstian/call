@@ -207,8 +207,7 @@ public class UserInterface {
     }
 
     public static ArrayList<UserDevice> GetDeviceInfoOnServer(String areaId){
-        ArrayList<UserDevice> devLists = HandlerMgr.GetBackEndPhoneInfo(areaId);
-        return devLists;
+        return HandlerMgr.GetBackEndPhoneInfo(areaId);
     }
 
     public static int UpdateAreas(ArrayList<UserArea> areaList) {
@@ -510,7 +509,7 @@ public class UserInterface {
     }
 
     public static int GetDeviceType(String name){
-        int type = CALL_BED_DEVICE;
+        int type;
 
         if(name.compareToIgnoreCase("bed")==0)
             type = CALL_BED_DEVICE;
@@ -528,6 +527,8 @@ public class UserInterface {
             type = CALL_CORRIDOR_DEVICE;
         else if(name.compareToIgnoreCase("whiteBoard")==0)
             type = CALL_WHITE_BOARD_DEVICE;
+        else
+            type = CALL_UNKNOW_DEVICE;
         return type;
     }
 

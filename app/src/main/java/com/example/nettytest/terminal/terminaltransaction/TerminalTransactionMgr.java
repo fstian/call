@@ -41,4 +41,8 @@ public class TerminalTransactionMgr extends TransManager {
         HandlerMgr.PhoneDevSendBuf(ID,buf);
     }
 
+    @Override
+    public void SendTransactionBuf(String ID,String data){
+        HandlerMgr.PhoneDevSendBuf(ID,data);
+    }
 }

@@ -40,12 +40,12 @@ public class BackEndCallConvergence {
 
     boolean isVideoMode;
 
-    private String callerNum;
-    private String calleeNum;
+    private final String callerNum;
+    private final String calleeNum;
     private String answerNum;
     private String enderNum;
 
-    private String inviteAreaId;
+    private final String inviteAreaId;
 
     ArrayList<BackEndCall> listenCallList;
 
@@ -57,6 +57,7 @@ public class BackEndCallConvergence {
 
         BackEndCall listenCall;
         InviteReqPack invitePacket;
+        InviteResPack inviteResP;
 
         String listenAreaId;
         boolean isTransfer = false;
@@ -70,7 +71,11 @@ public class BackEndCallConvergence {
         
         ArrayList<BackEndPhone> listenDevices = HandlerMgr.GetBackEndListenDevices(listenAreaId,pack.callType);
 
-        InviteResPack inviteResP = new InviteResPack(ProtocolPacket.STATUS_OK,pack);
+        if(listenDevices.size()>0){
+            inviteResP = new InviteResPack(ProtocolPacket.STATUS_OK,pack);
+        }else{
+            inviteResP = new InviteResPack(ProtocolPacket.STATUS_OK,pack);
+        }
 
         Transaction transaction = new Transaction(caller.id,pack, inviteResP,Transaction.TRANSCATION_DIRECTION_S2C);
         HandlerMgr.AddBackEndTrans(pack.msgID,transaction);
@@ -101,12 +106,13 @@ public class BackEndCallConvergence {
                 invitePacket.msgID = UniqueIDManager.GetUniqueID(phone.id, UniqueIDManager.MSG_UNIQUE_ID);
 
                 listenCall = new BackEndCall(phone.id, invitePacket);
+                listenCall.inviteReqMsgId = invitePacket.msgID;
                 transaction = new Transaction(phone.id, invitePacket,Transaction.TRANSCATION_DIRECTION_S2C);
                 HandlerMgr.AddBackEndTrans(invitePacket.msgID, transaction);
                 listenCallList.add(listenCall);
             }
         }
-        inviteCall.state = CommonCall.CALL_STATE_DIALING;
+        inviteCall.state = CommonCall.CALL_STATE_INCOMING;
         startTime = System.currentTimeMillis();
         answerTime = 0;
         isVideoMode = false;
@@ -138,6 +144,7 @@ public class BackEndCallConvergence {
             invitePacket.msgID = UniqueIDManager.GetUniqueID(callee.id, UniqueIDManager.MSG_UNIQUE_ID);
             transaction = new Transaction(callee.id, invitePacket, Transaction.TRANSCATION_DIRECTION_S2C);
             HandlerMgr.AddBackEndTrans(invitePacket.msgID, transaction);
+            inviteCall.inviteReqMsgId = invitePacket.msgID;
         }
         inviteCall.state = CommonCall.CALL_STATE_INCOMING;
 
@@ -146,7 +153,7 @@ public class BackEndCallConvergence {
         isVideoMode = false;
     }
 
-    public boolean SingleEnd(EndReqPack endReqP){
+    public boolean RecvSingleEnd(EndReqPack endReqP){
         EndResPack endResP;
         Transaction trans;
         
@@ -275,6 +282,9 @@ public class BackEndCallConvergence {
             }
         }
 
+        if(!inviteCall.inviteReqMsgId.isEmpty())
+            HandlerMgr.RemoveBackEndTrans(inviteCall.inviteReqMsgId);
+
         for(CommonCall listenCall:listenCallList){
             if(listenCall.devID.compareToIgnoreCase(endReqP.sender)==0){
                 trans = new Transaction(listenCall.devID,endReqP, endResP,Transaction.TRANSCATION_DIRECTION_S2C);
@@ -283,6 +293,9 @@ public class BackEndCallConvergence {
                 endReqForwardP = new EndReqPack(endReqP,listenCall.devID);
                 trans = new Transaction(listenCall.devID,endReqForwardP,Transaction.TRANSCATION_DIRECTION_S2C);
                 HandlerMgr.AddBackEndTrans(endReqForwardP.msgID, trans);
+            }
+            if(!listenCall.inviteReqMsgId.isEmpty()){
+                HandlerMgr.RemoveBackEndTrans(listenCall.inviteReqMsgId);
             }
         }
 
@@ -312,6 +325,7 @@ public class BackEndCallConvergence {
         for(BackEndCall call:listenCallList){
             if(updateDevId.compareToIgnoreCase(call.devID)==0){
                 status = ProtocolPacket.STATUS_OK;
+                call.calleeWaitUpdateCount = 0;
                 break;
             }
         }
@@ -545,6 +559,22 @@ public class BackEndCallConvergence {
             StopCall();
         }
 
+        for(int iTmp=listenCallList.size()-1;iTmp>=0;iTmp--){
+            BackEndCall call = listenCallList.get(iTmp);
+            call.calleeWaitUpdateCount++;
+            if(call.calleeWaitUpdateCount>CommonCall.UPDATE_INTERVAL*2+5){
+                 LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"BackEnd Remove Dev %s From Call %s for Update TimeOver",call.devID,inviteCall.callID);               
+                listenCallList.remove(iTmp);
+            }
+        }
+
+        if(listenCallList.size()<=0){
+            if(inviteCall.state==CommonCall.CALL_STATE_INCOMING){
+                LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"BackEnd End Call %s for no Listener in This Call ",inviteCall.callID);
+                StopCall();
+            }
+        }
+
         if(inviteCall.callType==CommonCall.CALL_TYPE_BROADCAST){
             if(autoAnswerTime>=0){
                 if(autoAnswerTick<=autoAnswerTime){
@@ -568,9 +598,15 @@ public class BackEndCallConvergence {
 
     public void UpdateStatus(InviteResPack packet){
         if(packet.type == ProtocolPacket.CALL_RES ){
-            if(packet.status == ProtocolPacket.STATUS_OK)
-                inviteCall.state = CommonCall.CALL_STATE_RINGING;
-            else{
+            if(packet.status == ProtocolPacket.STATUS_OK){
+                for(BackEndCall listenCall:listenCallList){
+                    if(listenCall.devID.compareToIgnoreCase(packet.sender)==0){
+                        listenCall.state = CommonCall.CALL_STATE_RINGING;
+//                        LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_ERROR, "BackEnd Set dev %s  for Call %s Ring State", packet.sender,inviteCall.callID);
+                        break;
+                    }
+                }
+            }else{
                 if(inviteCall.type==CommonCall.CALL_TYPE_NORMAL||inviteCall.type == CommonCall.CALL_TYPE_ASSIST) {
                     if (packet.sender.compareToIgnoreCase(inviteCall.callee) == 0) {
                         LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_ERROR, "BackEnd End Call %s when Recv Call Res with %s from %s", inviteCall.callID, ProtocolPacket.GetResString(packet.status), inviteCall.callee);

@@ -12,15 +12,14 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LineBasedFrameDecoder;
 
 public class NettyTestClient {
-    private int port;
-    private String host;
-    private String devID;
+    private final int port;
+    private final String host;
+    private final String devID;
 
     public NettyTestClient(String devID,String h,int p){
         host = h;
         port = p;
         this.devID = devID;
-        System.out.println(String.format("Create NettyTest client %s",devID));
     }
 
     public void run() {
@@ -33,6 +32,7 @@ public class NettyTestClient {
                 protected void initChannel(SocketChannel socketChannel) {
                     socketChannel.pipeline().addLast(new LineBasedFrameDecoder(0x10000));
                     socketChannel.pipeline().addLast(new NettyTestClientInHandler(devID));
+//                        socketChannel.pipeline().addLast(new NettyTestClientExceptionHandler());
 //                    socketChannel.pipeline().addLast(new NettyTestClientOutHandler());
                 }
             });

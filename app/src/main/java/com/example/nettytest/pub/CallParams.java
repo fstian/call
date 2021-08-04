@@ -16,8 +16,6 @@ public class CallParams {
     public boolean boardCallToTV;
     public boolean boardCallToCorridor;
 
-    public boolean callToCorridor;
-
     public CallParams() {
         normalCallToBed = false;
         normalCallToRoom= true;

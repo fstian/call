@@ -43,12 +43,15 @@ public class CommonCall {
     public String remoteRtpAddress;
     public int remoteRtpPort;
 
+    public String inviteReqMsgId;
+
     public CommonCall(String caller,String callee,int type){
         this.callee = callee;
         this.caller = caller;
         answer = "";
         this.type = type;
         this.state = CALL_STATE_DIALING;
+        inviteReqMsgId = "";
 
         devID = caller;
         callID = UniqueIDManager.GetUniqueID(caller, UniqueIDManager.CALL_UNIQUE_ID);
@@ -84,6 +87,8 @@ public class CommonCall {
 
         remoteRtpAddress = pack.callerRtpIP;
         remoteRtpPort = pack.callerRtpPort;
+        
+        inviteReqMsgId = "";
         
         if(type==CALL_TYPE_BROADCAST){
             localRtpPort = PhoneParam.BROADCAST_CALL_RTP_PORT;

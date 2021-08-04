@@ -16,19 +16,19 @@ public class FailReason {
 
         switch(reason){
             case FAIL_REASON_NO:
-                failName = "No Error";
+                failName = "No_Error";
                 break;
             case FAIL_REASON_BUSY:
                 failName = "Busy";
                 break;
             case FAIL_REASON_NOTSUPPORT:
-                failName = "Not Support";
+                failName = "Not_Support";
                 break;
             case FAIL_REASON_NOTFOUND:
-                failName = "Not Found";
+                failName = "Not_Found";
                 break;
             case FAIL_REASON_TIMEOVER:
-                failName = "Time Over";
+                failName = "Time_Over";
                 break;
             case FAIL_REASON_CONFLICT:
                 failName = "Conflict";
@@ -37,7 +37,7 @@ public class FailReason {
                 failName = "Forbid";
                 break;
             default:
-                failName = "Unknow Error";
+                failName = "Unknow_Error";
                 break;
         }
 

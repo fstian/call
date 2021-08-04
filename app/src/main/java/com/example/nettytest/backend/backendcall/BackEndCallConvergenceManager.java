@@ -1,9 +1,10 @@
 package com.example.nettytest.backend.backendcall;
 
 
-import com.alibaba.fastjson.*;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONException;
+import com.alibaba.fastjson.JSONObject;
 import com.example.nettytest.backend.backendphone.BackEndPhone;
-import com.example.nettytest.pub.CallPubMessage;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.SystemSnap;
@@ -27,22 +28,18 @@ import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.userinterface.CallLogMessage;
 import com.example.nettytest.userinterface.PhoneParam;
-import com.example.nettytest.userinterface.UserInterface;
 import com.example.nettytest.userinterface.UserMessage;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 public class BackEndCallConvergenceManager {
 
     HashMap<String, BackEndCallConvergence> callConvergenceList;
 
-    ArrayList<CallPubMessage> msgList;
 
     public BackEndCallConvergenceManager(){
 
         callConvergenceList = new HashMap<>();
-        msgList = null;
     }
 
 
@@ -54,12 +51,17 @@ public class BackEndCallConvergenceManager {
     public byte[] MakeCallConvergenceSnap(String devid){
         byte[] result = null;
         JSONObject json = new JSONObject();
+        BackEndPhone phone;
+
+        phone = HandlerMgr.GetBackEndPhone(devid);
 
         try {
             json.put(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_BACKEND_CALL_RES);
             json.put(SystemSnap.SNAP_DEVID_NAME, devid);
             json.put(SystemSnap.SNAP_VER_NAME,PhoneParam.VER_STR);
             json.put(SystemSnap.SNAP_RUN_TIME_NAME,HandlerMgr.GetBackEndRunSecond());
+            json.put(SystemSnap.SNAP_LISTEN_STATUS_NAME,phone.enableListen);
+            
             JSONArray outCalls = new JSONArray();
             JSONArray incomingCalls = new JSONArray();
             JSONObject calljson;
@@ -230,13 +232,8 @@ public class BackEndCallConvergenceManager {
 
                     if(inviteReqPack.callee.compareToIgnoreCase(PhoneParam.CALL_SERVER_ID)==0){
                         LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv %s Req from %s to %s",CommonCall.GetCallTypeName(inviteReqPack.callType),caller.id,PhoneParam.CALL_SERVER_ID);
-                        if(inviteReqPack.callType== CommonCall.CALL_TYPE_BROADCAST){
-                            callConvergence = new BackEndCallConvergence(caller,inviteReqPack);
-                            callConvergenceList.put(inviteReqPack.callID,callConvergence);
-                        }else{
-                            callConvergence = new BackEndCallConvergence(caller,inviteReqPack);
-                            callConvergenceList.put(inviteReqPack.callID,callConvergence);
-                        }
+                        callConvergence = new BackEndCallConvergence(caller,inviteReqPack);
+                        callConvergenceList.put(inviteReqPack.callID,callConvergence);
                     }else if(CheckInvitedEnable(callee)){
                         LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv Call Req from %s to %s",caller.id,callee.id);
                         callConvergence = new BackEndCallConvergence(caller,callee,inviteReqPack);
@@ -283,7 +280,7 @@ public class BackEndCallConvergenceManager {
                             callConvergence.Release();
                         }else{
                             LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Remove %s From Call %s",endReqPack.endDevID,endReqPack.callID);
-                            callConvergence.SingleEnd(endReqPack);
+                            callConvergence.RecvSingleEnd(endReqPack);
                         }
                     }else if(callConvergence.inviteCall.type==CommonCall.CALL_TYPE_NORMAL||callConvergence.inviteCall.type==CommonCall.CALL_TYPE_EMERGENCY||callConvergence.inviteCall.type==CommonCall.CALL_TYPE_ASSIST) {
                         LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server End Call %s",endReqPack.callID);
@@ -438,21 +435,9 @@ public class BackEndCallConvergenceManager {
         
     }
     
-    public void SetUserMessageList(ArrayList<CallPubMessage> list) {
-        if(msgList==null)
-            msgList = list;
-    }
 
     private void PostUserMessage(int type,Object obj){
-        if(msgList!=null){
-            CallPubMessage msg = new CallPubMessage();
-            msg.arg1 = type;
-            msg.obj = obj;
-            synchronized(msgList) {
-                msgList.add(msg);
-                msgList.notify();
-            }
-        }
+        HandlerMgr.PostBackEndUserMsg(type,obj);
     }
 
 }

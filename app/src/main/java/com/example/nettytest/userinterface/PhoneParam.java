@@ -108,6 +108,8 @@ public class PhoneParam {
 
     public final static String VER_STR = "1.1.1";
 
+    public static String localAddress = "";
+
     static private UserDevice CheckUserDevice(JSONObject device){
         UserDevice userdev = new UserDevice();
         String netMode;
@@ -186,32 +188,30 @@ public class PhoneParam {
     static private ArrayList<UserDevice> CheckUserDeviceGroup(String areaId,JSONObject devGroupJson){
         ArrayList<UserDevice> list = new ArrayList<>();
         String sValue;
-        long beginId = 0;
-        int num = 0;
-        int type = 0;
-        int netMode = 0;
+        long beginId;
+        int num ;
+        int type ;
+        int netMode ;
         int iTmp;
         sValue = JsonPort.GetJsonString(devGroupJson,JSON_START_ID_NAME);
-        if(sValue!=null) {
-        	beginId = Integer.parseInt(sValue);
-        	num = devGroupJson.getIntValue(JSON_NUM_NAME);
-        	sValue = JsonPort.GetJsonString(devGroupJson,JSON_NET_MODE_NAME);
-            if(sValue.compareToIgnoreCase(JSON_UDP_MODE_NAME)==0)
-                netMode = UserInterface.NET_MODE_UDP;
-            else if(sValue.compareToIgnoreCase(JSON_RAWTCP_MODE_NAME)==0)
-                netMode = UserInterface.NET_MODE_RAW_TCP;
-            else
-                netMode = UserInterface.NET_MODE_TCP;
-            type = UserInterface.GetDeviceType(JsonPort.GetJsonString(devGroupJson,JSON_DEVICE_TYPE_NAME));
-            
-            for(iTmp=0;iTmp<num;iTmp++) {
-            	UserDevice dev = new UserDevice();
-            	dev.areaId = areaId;
-            	dev.devid = String.format("%d", beginId+iTmp);
-            	dev.type = type;
-            	dev.netMode = netMode;
-            	list.add(dev);
-            }
+        beginId = Integer.parseInt(sValue);
+        num = devGroupJson.getIntValue(JSON_NUM_NAME);
+        sValue = JsonPort.GetJsonString(devGroupJson,JSON_NET_MODE_NAME);
+        if(sValue.compareToIgnoreCase(JSON_UDP_MODE_NAME)==0)
+            netMode = UserInterface.NET_MODE_UDP;
+        else if(sValue.compareToIgnoreCase(JSON_RAWTCP_MODE_NAME)==0)
+            netMode = UserInterface.NET_MODE_RAW_TCP;
+        else
+            netMode = UserInterface.NET_MODE_TCP;
+        type = UserInterface.GetDeviceType(JsonPort.GetJsonString(devGroupJson,JSON_DEVICE_TYPE_NAME));
+
+        for(iTmp=0;iTmp<num;iTmp++) {
+            UserDevice dev = new UserDevice();
+            dev.areaId = areaId;
+            dev.devid = String.format("%d", beginId+iTmp);
+            dev.type = type;
+            dev.netMode = netMode;
+            list.add(dev);
         }
         return list;
     }
@@ -229,7 +229,7 @@ public class PhoneParam {
         JSONObject testAreas;
         UserDevice userdev;
         int iTmp,jTmp;
-        
+
         try {
             json = JSONObject.parseObject(info);
             if(json==null)
@@ -244,6 +244,8 @@ public class PhoneParam {
                 servicePort = serviceJson.getIntValue(JSON_PORT_NAME);
                 serviceActive = serviceJson.getBooleanValue(JSON_ACTIVE_NAME);
                 serviceUpdateTime = serviceJson.getIntValue(JSON_UPDATE_TIME_NAME);
+                if(serviceUpdateTime==0)
+                    serviceUpdateTime = 120;
             }
 
             if(serverJson!=null){
@@ -406,12 +408,24 @@ public class PhoneParam {
                     }
                 }
             }
-        }
-        catch (SocketException ex){
+        }        catch (SocketException ex){
             ex.printStackTrace();
+        }catch(NullPointerException e){
+            e.printStackTrace();
         }
 
+        if(!address.isEmpty()&&address.compareToIgnoreCase("0.0.0.0")!=0)
+            localAddress = address;
+        else if(!localAddress.isEmpty())
+            address = localAddress;
+        
         return address;
     }
 
+    public static void ResetLocalAddress(){
+        localAddress = "";
+    }
+
 }
+
+

@@ -28,20 +28,24 @@ public class UdpServer extends Thread{
             while(!isInterrupted()){
                 java.util.Arrays.fill(recvBuf,(byte)0);
                 recvPack = new DatagramPacket(recvBuf, recvBuf.length);
-                udpServerSocket.receive(recvPack);
-                if(recvPack.getLength()>0){
-                    ProtocolPacket packet = ProtocolFactory.ParseData(recvPack.getData());
-                    if(packet!=null) {
-                        LogWork.Print(LogWork.BACKEND_NET_MODULE,LogWork.LOG_DEBUG,"Server Recv Dev %s Data from %s:%d",packet.sender,recvPack.getAddress().getHostAddress(),recvPack.getPort());
-                        HandlerMgr.UpdateBackEndDevSocket(packet.sender,udpServerSocket,recvPack.getAddress(),recvPack.getPort());
-                        HandlerMgr.BackEndProcessPacket(packet);
+                try{
+                    udpServerSocket.receive(recvPack);
+                    if(recvPack.getLength()>0){
+                        ProtocolPacket packet = ProtocolFactory.ParseData(recvPack.getData());
+                        if(packet!=null) {
+                            LogWork.Print(LogWork.BACKEND_NET_MODULE,LogWork.LOG_DEBUG,"Server Recv Dev %s Data from %s:%d",packet.sender,recvPack.getAddress().getHostAddress(),recvPack.getPort());
+                            HandlerMgr.UpdateBackEndDevSocket(packet.sender,udpServerSocket,recvPack.getAddress(),recvPack.getPort());
+                            HandlerMgr.BackEndProcessPacket(packet);
+                        }
                     }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }catch(Exception ee){
+                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_ERROR,"Socket of Terminal Snap err with %s",ee.getMessage());
                 }
             }
             udpServerSocket.close();
         } catch (SocketException e) {
-            e.printStackTrace();
-        } catch(IOException e){
             e.printStackTrace();
         }
     }

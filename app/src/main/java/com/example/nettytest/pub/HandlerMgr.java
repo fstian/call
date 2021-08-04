@@ -2,20 +2,20 @@ package com.example.nettytest.pub;
 
 
 import com.example.nettytest.backend.backenddevice.BackEndDevManager;
-import com.example.nettytest.backend.backendphone.BackEndZone;
 import com.example.nettytest.backend.backendphone.BackEndConfig;
 import com.example.nettytest.backend.backendphone.BackEndPhone;
 import com.example.nettytest.backend.backendphone.BackEndPhoneManager;
+import com.example.nettytest.backend.backendphone.BackEndZone;
 import com.example.nettytest.backend.backendtranscation.BackEndTransactionMgr;
 import com.example.nettytest.pub.commondevice.PhoneDevice;
 import com.example.nettytest.pub.protocol.ConfigItem;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
+import com.example.nettytest.pub.result.FailReason;
 import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.terminal.terminaldevice.TerminalDevManager;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
 import com.example.nettytest.terminal.terminalphone.TerminalPhoneManager;
 import com.example.nettytest.terminal.terminaltransaction.TerminalTransactionMgr;
-import com.example.nettytest.pub.result.FailReason;
 import com.example.nettytest.userinterface.ServerDeviceInfo;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
 import com.example.nettytest.userinterface.UserCallMessage;
@@ -36,21 +36,23 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 
 public class HandlerMgr {
-    static private BackEndTransactionMgr backEndTransMgr = new BackEndTransactionMgr();
-    static private BackEndDevManager backEndDevMgr = new BackEndDevManager();
-    static private BackEndPhoneManager backEndPhoneMgr = new BackEndPhoneManager();
-
-    static private TerminalTransactionMgr terminalTransMgr = new TerminalTransactionMgr();
-    static private TerminalDevManager terminalDevManager = new TerminalDevManager();
-    static private TerminalPhoneManager terminalPhoneMgr = new TerminalPhoneManager();
-
-    static private DevicesQuery deviceQuery= null;
-
     final static int ANDORID_OS = 1;
     final static int LINUX_OS = 2;
     final static int WINDOWS_OS = 3;
 
-    static int OS_TYPE = ANDORID_OS;
+    static int OS_TYPE =ANDORID_OS;
+
+    static private final BackEndTransactionMgr backEndTransMgr = new BackEndTransactionMgr();
+    static private final BackEndDevManager backEndDevMgr = new BackEndDevManager();
+    static private final BackEndPhoneManager backEndPhoneMgr = new BackEndPhoneManager();
+
+    static private final TerminalTransactionMgr terminalTransMgr = new TerminalTransactionMgr();
+    static private final TerminalDevManager terminalDevManager = new TerminalDevManager();
+    static private final TerminalPhoneManager terminalPhoneMgr = new TerminalPhoneManager();
+
+    static private DevicesQuery deviceQuery= null;
+
+
 
 
 //for terminal TcpNetDevice
@@ -61,19 +63,20 @@ public class HandlerMgr {
         Properties prop = System.getProperties();
         osName = prop.getProperty("os.name");
         osName = osName.toLowerCase();
-        if(osName.indexOf("windows")>=0){
+        if(osName.contains("windows")){
             OS_TYPE = WINDOWS_OS;
         }else {
             OS_TYPE = LINUX_OS;
             Map<String, String> osMap = System.getenv();
             for (Map.Entry<String, String> entry : osMap.entrySet()) {
                 String key = entry.getKey();
-                if(key.indexOf("ANDROID")>=0){
+                if(key.contains("ANDROID")){
                     OS_TYPE = ANDORID_OS;
                     break;
                 }
             }
         }
+        System.out.println("Qkq Add Read OS Type is "+OS_TYPE);
     }
 
     static int GetOSType(){
@@ -96,14 +99,21 @@ public class HandlerMgr {
         terminalDevManager.DevSendBuf(ID,buf);
     }
     
+    static public void PhoneDevSendBuf(String ID,String data){
+        terminalDevManager.DevSendBuf(ID,data);
+    }
+
     static public DeviceStatistics GetTerminalRegDevNum() {
-        DeviceStatistics devStatist = terminalPhoneMgr.GetRegStatist();
-        return devStatist;
+        return terminalPhoneMgr.GetRegStatist();
     }
 
 // for TerminalTranscation
     static public boolean AddPhoneTrans(String ID, Transaction trans){
         return terminalTransMgr.AddTransaction(ID,trans);
+    }
+
+    static public boolean RemovePhoneTrans(String ID){
+        return terminalTransMgr.RemoveTransaction(ID);
     }
 
     static public int GetTermTransCount(){
@@ -132,16 +142,12 @@ public class HandlerMgr {
         terminalPhoneMgr.PostTerminalPhoneMessage(msg);
     }
 
-    static public void SetTerminalMessageHandler(ArrayList<CallPubMessage> h){
-        terminalPhoneMgr.SetMessageHandler(h);
-    }
-
     static public void TerminalStartSnap(int port){
         terminalPhoneMgr.StartSnap(port);
     }
 
-    static public void SetBackEndMessageHandler(ArrayList<CallPubMessage> h){
-        backEndPhoneMgr.SetMessageHandler(h);
+    static public void SetTerminalUserMsgReceiver(MsgReceiver receiver){
+        terminalPhoneMgr.SetMsgReceiver(receiver);
     }
 
     static public void SendMessageToUser(int type,Object obj){
@@ -256,11 +262,19 @@ public class HandlerMgr {
         backEndDevMgr.DevSendBuf(ID, buf);
     }
 
+    static public void BackEndDevSendBuf(String ID,String data){
+        backEndDevMgr.DevSendBuf(ID, data);
+    }
 
 //for backend transcation
     static public void AddBackEndTrans(String ID,Transaction trans){
         backEndTransMgr.AddTransaction(ID,trans);
     }
+
+    static public boolean RemoveBackEndTrans(String ID){
+        return backEndTransMgr.RemoveTransaction(ID);
+    }
+
 
     static public void BackEndProcessPacket(ProtocolPacket packet){
         backEndTransMgr.ProcessPacket(packet);
@@ -449,6 +463,14 @@ public class HandlerMgr {
 
     public static ArrayList<byte[]> GetBackEndTransInfo(){
         return backEndTransMgr.GetTransactionDetail(SystemSnap.SNAP_BACKEND_TRANS_RES);
+    }
+
+    public static void SetBackEndMsgReceiver(MsgReceiver receiver) {
+        backEndPhoneMgr.SetMsgReceiver(receiver);
+    }
+
+    public static void PostBackEndUserMsg(int type, Object obj) {
+        backEndPhoneMgr.PostBackEndUserMsg(type,obj);
     }
 
 // get audio Owner

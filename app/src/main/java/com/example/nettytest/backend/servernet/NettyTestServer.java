@@ -14,7 +14,7 @@ import io.netty.handler.codec.LineBasedFrameDecoder;
 
 public class NettyTestServer {
 
-    private int port;
+    private final int port;
 
 
     public NettyTestServer(int p){
@@ -33,6 +33,7 @@ public class NettyTestServer {
                 protected void initChannel(SocketChannel socketChannel) {
                     socketChannel.pipeline().addLast(new LineBasedFrameDecoder(0x10000));
                     socketChannel.pipeline().addLast(new NettyTestServerHandler());
+//                    socketChannel.pipeline().addLast(new NettyTestServerExceptionHandler());
                 }
             }).option(ChannelOption.SO_BACKLOG, 128).childOption(ChannelOption.SO_KEEPALIVE, true);
 

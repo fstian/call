@@ -1,7 +1,6 @@
 package com.androidport.port.audio;
 
 import com.example.nettytest.pub.LogWork;
-import com.example.nettytest.pub.UniqueIDManager;
 
 public class AudioMgr {
     static AudioDevice audio = null;
@@ -11,9 +10,9 @@ public class AudioMgr {
             if (audio == null) {
                 audio = new AudioDevice(devId,src, dst, address, sample, ptime, codec, mode);
             } else {
-                //audio.AudioSwitch(devId,src, dst, address, sample, ptime, codec, mode);
-                //return dump audioId;
-                return "";
+                audio.AudioSwitch(devId,src, dst, address, sample, ptime, codec, mode);
+//                return dump audioId;
+//                return "";
             }
             return audio.id;
         }
@@ -44,8 +43,7 @@ public class AudioMgr {
         LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Dev %s Try to suspend Audio %s ",devId,id);
         synchronized (AudioMgr.class) {
             if (audio != null) {
-                if(audio.AudioSuspend(id)) {
-                }
+                audio.AudioSuspend(id);
             }
         }
     }
@@ -54,8 +52,7 @@ public class AudioMgr {
         LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Dev %s Try to resume Audio %s ",devId,id);
         synchronized (AudioMgr.class) {
             if (audio != null) {
-                if(audio.AudioResume(id)) {
-                }
+                audio.AudioResume(id);
             }
         }
     }

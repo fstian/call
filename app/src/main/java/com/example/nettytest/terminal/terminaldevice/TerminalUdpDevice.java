@@ -42,6 +42,8 @@ public class TerminalUdpDevice extends UdpNetDevice {
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
+                    }catch(Exception ee){
+                        LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_ERROR,"Socket of UDP of Dev %s err with %s",id,ee.getMessage());
                     }
                 }else{
                     try {

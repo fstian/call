@@ -6,8 +6,8 @@ import com.example.nettytest.pub.HandlerMgr;
 
 public class DemoServer {
 
-    Thread serverThread = null;
-    UdpServer udpServer = null;
+    Thread serverThread;
+    UdpServer udpServer;
 
     public DemoServer(final int port){
         

@@ -30,13 +30,13 @@ public class ProtocolFactory {
         ProtocolPacket p = null;
         if(data==null){
             LogWork.Print(LogWork.DEBUG_MODULE, LogWork.LOG_ERROR, "Call JSON Para with NULL String");
-            return p;
+            return null;
         }
         try {
             JSONObject json = JSONObject.parseObject(data);
             if(json==null){
                 LogWork.Print(LogWork.DEBUG_MODULE, LogWork.LOG_ERROR, "JSON Para String %s Fail",data);
-                return p;
+                return null;
             }
                 
             JSONObject context;
@@ -388,14 +388,40 @@ public class ProtocolFactory {
                     break;
             }
             json.clear();
-            json=null;
         }catch (JSONException e){
             e.printStackTrace();
-            LogWork.Print(LogWork.TERMINAL_NET_MODULE, LogWork.LOG_TEMP_DBG, "Recv Unparse data %s", data);
+            LogWork.Print(LogWork.TERMINAL_USER_MODULE, LogWork.LOG_TEMP_DBG, "Recv Unparse data %s", data);
+            if(HasNoPrintableChar(data)){
+                LogWork.Print(LogWork.TERMINAL_USER_MODULE, LogWork.LOG_TEMP_DBG, "Recv Unparse data %s", GetRawData(data));
+            }
         }
 
         return p;
     }
+
+    public static boolean HasNoPrintableChar(String data){
+        boolean flag = false;
+        byte[] bdata = data.getBytes();
+        int len = bdata.length;
+        for(int iTmp=0;iTmp<len;iTmp++){
+            if(bdata[iTmp]<0x20) {
+                flag = true;
+                break;
+            }
+        }
+        return flag;
+    }
+
+    public static String GetRawData(String data){
+        byte[] bdata = data.getBytes();
+        int len = bdata.length;
+        StringBuilder raw = new StringBuilder();
+        for(int iTmp=0;iTmp<len;iTmp++) {
+            raw.append(String.format("%02x",bdata[iTmp]));
+        }
+        return raw.toString();
+    }
+
 
 
     public static String PacketData(ProtocolPacket p){
@@ -642,7 +668,6 @@ public class ProtocolFactory {
         }
         data = json.toString();       
         json.clear();
-        json = null;
         return data;
     }
 

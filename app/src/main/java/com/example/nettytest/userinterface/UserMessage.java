@@ -29,6 +29,7 @@ public class UserMessage {
     public final static int CALL_VIDEO_ANSWERED = 11;
     public final static int CALL_VIDEO_END = 12;
     public final static int CALL_VIDEO_REQ_ANSWER = 13;
+    public final static int CALL_MESSAGE_UPDATE_SUCC = 14;
 
     public final static int CALL_MESSAGE_SUCC_MAX = 100;
     public final static int CALL_MESSAGE_INVITE_FAIL = 101;
@@ -62,81 +63,84 @@ public class UserMessage {
 
         switch(type){
             case REGISTER_MESSAGE_SUCC:
-                msgName = "Register Succ";
+                msgName = "Register_Succ";
                 break;
             case REGISTER_MESSAGE_FAIL:
-                msgName = "Register Fail";
+                msgName = "Register_Fail";
                 break;
             case CALL_MESSAGE_INCOMING:
-                msgName = "Incoming Call";
+                msgName = "Incoming_Call";
                 break;
             case CALL_MESSAGE_CONNECT:
-                msgName = "Call Connected";
+                msgName = "Call_Connected";
                 break;
             case CALL_MESSAGE_DISCONNECT:
-                msgName = "Call Disconnected";
+                msgName = "Call_Disconnected";
                 break;
             case CALL_MESSAGE_RINGING:
-                msgName = "Call Ringing";
+                msgName = "Call_Ringing";
                 break;
             case CALL_MESSAGE_ANSWERED:
-                msgName = "Call Answered";
+                msgName = "Call_Answered";
                 break;
             case CALL_MESSAGE_UNKNOWFAIL:
-                msgName = "Call Fail";
+                msgName = "Call_Fail";
                 break;
             case CALL_MESSAGE_INVITE_FAIL:
-                msgName = "Invite Fail";
+                msgName = "Invite_Fail";
                 break;
             case CALL_MESSAGE_ANSWER_FAIL:
-                msgName = "Answer Fail";
+                msgName = "Answer_Fail";
                 break;
             case CALL_MESSAGE_END_FAIL:
-                msgName = "End Fail";
+                msgName = "End_Fail";
                 break;
             case CALL_MESSAGE_UPDATE_FAIL:
-                msgName = "Update Fail";
+                msgName = "Update_Fail";
+                break;
+            case CALL_MESSAGE_UPDATE_SUCC:
+                msgName = "Update_Succ";
                 break;
 
             case CALL_MESSAGE_UNKONWQ:
-                msgName = "Message Unknow";
+                msgName = "Message_Unknow";
                 break;
             case DEV_MESSAGE_LIST:
-                msgName = "Dev List";
+                msgName = "Dev_List";
                 break;
             case CONFIG_MESSAGE_LIST:
-                msgName = "Config List";
+                msgName = "Config_List";
                 break;
 
             case CALL_VIDEO_INVITE:
-                msgName = "Video Invite";
+                msgName = "Video_Invite";
                 break;
             case CALL_VIDEO_ANSWERED:
-                msgName = "Video answered";
+                msgName = "Video_answered";
                 break;
             case CALL_VIDEO_REQ_ANSWER:
-                msgName = "Video answer";
+                msgName = "Video_answer";
                 break;
             case CALL_VIDEO_END:
-                msgName = "Video End";
+                msgName = "Video_End";
                 break;
 
             case CALL_LISTEN_SUCC:
-                msgName = "Listen End";
+                msgName = "Listen_End";
                 break;
             case CALL_TRANSFER_SUCC:
-                msgName = "Transfer Succ";
+                msgName = "Transfer_Succ";
                 break;
 
             case CALL_TRANSFER_FAIL:
-                msgName = "Transfer Fail";
+                msgName = "Transfer_Fail";
                 break;
             case CALL_LISTEN_FAIL:
-                msgName = "Listen Fail";
+                msgName = "Listen_Fail";
                 break;
 
             default:
-                msgName = "Message Unknow DD";
+                msgName = "Message_Unknow_DD";
                 break;
         }
 

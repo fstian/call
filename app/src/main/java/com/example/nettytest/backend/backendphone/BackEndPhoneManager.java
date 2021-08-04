@@ -1,6 +1,7 @@
 package com.example.nettytest.backend.backendphone;
 
-import com.alibaba.fastjson.*;
+import com.alibaba.fastjson.JSONException;
+import com.alibaba.fastjson.JSONObject;
 import com.example.nettytest.backend.backendcall.BackEndCallConvergenceManager;
 import com.example.nettytest.pub.BackEndStatistics;
 import com.example.nettytest.pub.CallParams;
@@ -9,6 +10,7 @@ import com.example.nettytest.pub.DeviceStatistics;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.JsonPort;
 import com.example.nettytest.pub.LogWork;
+import com.example.nettytest.pub.MsgReceiver;
 import com.example.nettytest.pub.SystemSnap;
 import com.example.nettytest.pub.commondevice.PhoneDevice;
 import com.example.nettytest.pub.protocol.ConfigItem;
@@ -27,15 +29,15 @@ import com.example.nettytest.pub.protocol.TransferReqPack;
 import com.example.nettytest.pub.protocol.TransferResPack;
 import com.example.nettytest.pub.result.FailReason;
 import com.example.nettytest.pub.transaction.Transaction;
+import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.ServerDeviceInfo;
 import com.example.nettytest.userinterface.UserDevice;
 import com.example.nettytest.userinterface.UserInterface;
-import com.example.nettytest.userinterface.PhoneParam;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -55,34 +57,61 @@ public class BackEndPhoneManager {
     static Thread snapThread = null;
     long runSecond;
 
-    private BackEndCallConvergenceManager backEndCallConvergencyMgr;
+    private final BackEndCallConvergenceManager backEndCallConvergencyMgr;
+
+    BackEndPhoneMsgReceiver msgReceiver;
     
-    private class BackendPhoneMsg{
-    	int type;
-    	Object obj;
-    	
-    	public BackendPhoneMsg(int type,Object obj) {
-    		this.type = type;
-    		this.obj = obj;
-    	}
+    MsgReceiver userMsgReceiver;
+    
+
+    private class BackEndPhoneMsgReceiver extends MsgReceiver{
+        public BackEndPhoneMsgReceiver(String name){
+            super(name);
+        }
+
+        @Override
+        public void CallPubMessageRecv(ArrayList<CallPubMessage> list) {
+            CallPubMessage msg;
+            ProtocolPacket packet;
+            int type;
+
+            synchronized (BackEndPhoneManager.class) {
+                while(list.size()>0) {
+                    msg = list.remove(0);
+                    type = msg.arg1;
+                    switch(type) {
+                        case MSG_NEW_PACKET:
+                            packet = (ProtocolPacket) msg.obj;
+                            PacketRecvProcess(packet);
+                            break;
+                        case MSG_SECOND_TICK:
+                            CallConvergencySecondTick();
+                            UpdatePhonesRegTick();
+                            break;
+                        case MSG_REQ_TIMEOVER:
+                            packet = (ProtocolPacket) msg.obj;
+                            PacketTimeOverProcess(packet);
+                            break;
+                        default:
+                            throw new IllegalStateException("Unexpected value: " +type);
+                    }
+                }
+            }
+        }
     }
     
-    private ArrayList<BackendPhoneMsg> phoneMsgList;
-    
-    public void SetMessageHandler(ArrayList<CallPubMessage> list) {
-        backEndCallConvergencyMgr.SetUserMessageList(list);
-    }
 
     public BackEndPhoneManager(){
         serverAreaLists = new HashMap<>();
         systemConfigList = new ArrayList<>();
-        phoneMsgList = new ArrayList<>();
+        
+        userMsgReceiver = null;
+
+        msgReceiver = new BackEndPhoneMsgReceiver("BackEndMsgReceiver");
 
         HandlerMgr.ReadSystemType();
 
         backEndCallConvergencyMgr = new BackEndCallConvergenceManager();
-        BackEndPhoneThread msgProcessThread = new BackEndPhoneThread();
-        msgProcessThread.start();
 
         new Timer("BackEndTimeTick").schedule(new TimerTask() {
             @Override
@@ -101,21 +130,14 @@ public class BackEndPhoneManager {
 
 // only used in callconverce
     public BackEndPhone GetDevice(String id){
-        BackEndPhone matchedPhone=null;
-        synchronized(phoneMsgList) {
-
-            matchedPhone = GetLocalDevice(id);
-        }
+        BackEndPhone matchedPhone;
+        matchedPhone = GetLocalDevice(id);
         return matchedPhone;
 
     }
     
     public int PostBackEndPhoneMessage(int type,Object obj) {
-    	synchronized(phoneMsgList) {
-    		BackendPhoneMsg msg = new BackendPhoneMsg(type,obj);
-    		phoneMsgList.add(msg);
-    		phoneMsgList.notify();
-    	}
+    	msgReceiver.AddMessage(type,obj);
     	return 0;
     }
     
@@ -167,7 +189,7 @@ public class BackEndPhoneManager {
 
     private String GetTransferAreaIdLocal(String phoneId){
         String areaId = "";
-        BackEndPhone matchedPhone=null;
+        BackEndPhone matchedPhone;
         for(BackEndZone area:serverAreaLists.values()){
             matchedPhone = area.GetDevice(phoneId);
             if(matchedPhone!=null){
@@ -180,7 +202,7 @@ public class BackEndPhoneManager {
 
     private String GetWorkAreaIdLocal(String phoneId){
         String areaId = "";
-        BackEndPhone matchedPhone=null;
+        BackEndPhone matchedPhone;
         for(BackEndZone area:serverAreaLists.values()){
             matchedPhone = area.GetDevice(phoneId);
             if(matchedPhone!=null){
@@ -191,9 +213,8 @@ public class BackEndPhoneManager {
         return areaId;
     }
 
-// only used in callconverce
     public String GetListenAreaId(String phoneId){
-        String areaId = "";
+        String areaId;
 
         areaId = GetTransferAreaIdLocal(phoneId);
         if(areaId.isEmpty()){
@@ -343,7 +364,6 @@ public class BackEndPhoneManager {
                 public void run() {
                     byte[] recvBuf = new byte[1024];
                     DatagramPacket recvPack;
-                    ArrayList<byte[]> resList;
                     DatagramSocket testSocket;
                     testSocket = SystemSnap.OpenSnapSocket(PhoneParam.snapStartPort,PhoneParam.SNAP_BACKEND_GROUP);
                     if(testSocket!=null){
@@ -382,8 +402,18 @@ public class BackEndPhoneManager {
                                                         resPack = new DatagramPacket(systemInfo, systemInfo.length, recvPack.getAddress(), recvPack.getPort());
                                                         testSocket.send(resPack);
                                                     }
-
-
+                                                } else if (type == SystemSnap.SNAP_DEL_LOG_REQ&&!PhoneParam.clientActive) {
+                                                    String logFileName;
+                                                    int logIndex = 1;
+                                                    File logFile;
+                                                    while (logIndex<=100) {
+                                                        logFileName = LogWork.GetLogFileName(logIndex);
+                                                        logFile = new File(logFileName);
+                                                        if (logFile.exists() && logFile.isFile()) {
+                                                            logFile.delete();
+                                                        }
+                                                        logIndex++;
+                                                    }
                                                 } else if (type == SystemSnap.LOG_CONFIG_REQ_CMD) {
                                                     int value;
                                                     LogWork.backEndNetModuleLogEnable = json.getIntValue(SystemSnap.LOG_BACKEND_NET_NAME) == 1;
@@ -408,6 +438,8 @@ public class BackEndPhoneManager {
 
                                                     LogWork.dbgLevel = json.getIntValue(SystemSnap.LOG_DBG_LEVEL_NAME);
 
+                                                }else if(type == SystemSnap.SNAP_DEL_LOG_REQ){
+                                                    LogWork.ResetLogIndex();
                                                 }
                                             }
                                             json.clear();
@@ -418,6 +450,8 @@ public class BackEndPhoneManager {
                                 e.printStackTrace();
                             } catch (JSONException e) {
                                 e.printStackTrace();
+                            }catch(Exception ee){
+                                LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_ERROR,"Socket of BackEnd Snap err with %s",ee.getMessage());
                             }
                         }
                     }
@@ -537,16 +571,41 @@ public class BackEndPhoneManager {
     private ArrayList<ConfigItem> GetDeviceConfig(String id){
         BackEndPhone matchedPhone;
         ArrayList<ConfigItem> paramList = new ArrayList<>();
-        synchronized (BackEndPhoneManager.class) {
-            matchedPhone = GetLocalDevice(id);
-            if (matchedPhone != null)
-                matchedPhone.GetDeviceConfig(paramList);
-        }
+        matchedPhone = GetLocalDevice(id);
+        if (matchedPhone != null)
+            matchedPhone.GetDeviceConfig(paramList);
         return paramList;
     }
     
     private ArrayList<ConfigItem> GetSystemConfig(){
         return systemConfigList;
+    }
+
+    private void ClearAllListen(){
+        for(BackEndZone area:serverAreaLists.values()){
+            area.ClearAllListen();
+        }
+    }
+
+    private int  SetListenDevice(String id,boolean status){
+        BackEndPhone phone;
+        int resStatus = ProtocolPacket.STATUS_OK;
+        
+        phone = GetLocalDevice(id);
+        if(phone==null){
+            resStatus = ProtocolPacket.STATUS_NOTFOUND;
+        }else{
+            if(phone.type!=PhoneDevice.BED_CALL_DEVICE){
+                resStatus = ProtocolPacket.STATUS_NOTSUPPORT;
+            }else{
+                if(status){
+                    ClearAllListen();
+                }            
+                phone.enableListen = status;
+                resStatus = ProtocolPacket.STATUS_OK;
+            }
+        }
+        return resStatus;
     }
 
     private void PacketRecvProcess(ProtocolPacket packet){
@@ -585,7 +644,7 @@ public class BackEndPhoneManager {
                 TransferReqPack transferPacket = (TransferReqPack)packet;
                 String areaId = transferPacket.transferAreaId;
                 boolean state = transferPacket.transferEnabled;
-                int hasTransferedCount = 0;
+                int hasTransferedCount;
                 phone = GetLocalDevice(devID);
                 if(phone==null){
                     resStatus = ProtocolPacket.STATUS_NOTFOUND;
@@ -612,17 +671,7 @@ public class BackEndPhoneManager {
             break;
             case ProtocolPacket.CALL_LISTEN_REQ:
                 ListenCallReqPack listenPacket=(ListenCallReqPack)packet;
-                phone = GetLocalDevice(devID);
-                if(phone==null){
-                    resStatus = ProtocolPacket.STATUS_NOTFOUND;
-                }else{
-                    if(phone.type!=PhoneDevice.BED_CALL_DEVICE){
-                        resStatus = ProtocolPacket.STATUS_NOTSUPPORT;
-                    }else{
-                        phone.enableListen = listenPacket.listenEnable;
-                        resStatus = ProtocolPacket.STATUS_OK;
-                    }
-                }
+                resStatus = SetListenDevice(devID,listenPacket.listenEnable);
                 ListenCallResPack listgenResP = new ListenCallResPack(resStatus,listenPacket);
 
                 trans = new Transaction(devID,packet,listgenResP,Transaction.TRANSCATION_DIRECTION_S2C);
@@ -692,56 +741,6 @@ public class BackEndPhoneManager {
         CallConvergencyProcessTimeOver(packet);
     }
 
-    private class BackEndPhoneThread extends Thread{
-        public BackEndPhoneThread(){
-            super("BackEndPhoneThread");
-        }
-        
-        @Override
-        public void run() {
-        	ArrayList<BackendPhoneMsg> localMsgList = new ArrayList<>();
-        	BackendPhoneMsg msg;
-        	ProtocolPacket packet;
-        	while(!isInterrupted()) {
-        		synchronized (phoneMsgList) {
-        			try {
-						phoneMsgList.wait();
-	        			while(phoneMsgList.size()>0) {
-	        				msg = phoneMsgList.remove(0);
-	        				localMsgList.add(msg);
-	        			}
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-        		}
-        		
-	        	while(localMsgList.size()>0) {
-	        		msg = localMsgList.remove(0);
-	        		synchronized(BackEndPhoneManager.class) {
-		        		switch(msg.type) {
-			                case MSG_NEW_PACKET:
-			                    packet = (ProtocolPacket) msg.obj;
-			                    PacketRecvProcess(packet);
-			                    break;
-			                case MSG_SECOND_TICK:
-			                    CallConvergencySecondTick();
-			                    UpdatePhonesRegTick();
-			                    break;
-			                case MSG_REQ_TIMEOVER:
-			                    packet = (ProtocolPacket) msg.obj;
-			                    PacketTimeOverProcess(packet);
-			                    break;
-			                default:
-			                    throw new IllegalStateException("Unexpected value: " +msg.type);
-		        		}
-	        		}
-	        	}    		
-        	
-        	}
-        }
-    }
-
     private void UpdatePhonesRegTick(){
         for(BackEndZone area:serverAreaLists.values()){
             area.IncreaseRegTick();
@@ -781,7 +780,7 @@ public class BackEndPhoneManager {
     private byte[] MakeSystemInfo(){
         BackEndStatistics backEndStatist = UserInterface.GetBackEndStatistics();
         JSONObject json = new JSONObject();
-        byte[] result = null;
+        byte[] result;
 
         json.put(SystemSnap.SNAP_CMD_TYPE_NAME,SystemSnap.SNAP_SYSTEM_INFO_RES);
         json.put(SystemSnap.SNAP_INFO_CALLCONVERGENCE_NUM_NAME,backEndStatist.callConvergenceNum);
@@ -792,6 +791,17 @@ public class BackEndPhoneManager {
         result = json.toString().getBytes();
         json.clear();
         return result;
+    }
+
+    public void SetMsgReceiver(MsgReceiver receiver) {
+        userMsgReceiver = receiver;
+    }
+
+    public void PostBackEndUserMsg(int type, Object obj) {
+        if(userMsgReceiver!=null) {
+            CallPubMessage msg = new CallPubMessage(type,obj);
+            userMsgReceiver.AddMessage(msg);
+        }
     }
 
 }

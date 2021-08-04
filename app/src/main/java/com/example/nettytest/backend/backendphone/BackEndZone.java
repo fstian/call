@@ -1,7 +1,6 @@
 package com.example.nettytest.backend.backendphone;
 
 import com.example.nettytest.pub.CallParams;
-import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.commondevice.PhoneDevice;
 import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.pub.result.FailReason;
@@ -29,8 +28,7 @@ public class BackEndZone {
     }
 
     public BackEndPhone GetDevice(String id){
-        BackEndPhone phone = phoneList.get(id);
-        return phone;
+        return phoneList.get(id);
     }
 
     public ArrayList<PhoneDevice> GetDeviceList(){
@@ -79,6 +77,13 @@ public class BackEndZone {
     public int IncreaseRegTick(){
         for(BackEndPhone phone:phoneList.values()) {
             phone.IncreaseRegTick();
+        }
+        return 0;
+    }
+
+    public int ClearAllListen(){
+        for(BackEndPhone phone:phoneList.values()) {
+            phone.enableListen  =  false;
         }
         return 0;
     }
