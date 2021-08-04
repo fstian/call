@@ -1,93 +1,84 @@
 package com.example.nettytest.pub.commondevice;
 
+import com.example.nettytest.pub.CallPubMessage;
+import com.example.nettytest.pub.MsgReceiver;
+
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
+import io.netty.util.CharsetUtil;
 
 public class NetDeviceManager {
     protected final HashMap<String, NetDevice> devLists;
-    DeviceSendDataThread sendThread;
+    NetDeviceMgrMsgReciever msgReceiver;
 
-    ArrayList<NetManagerMsg> netMassageList;
+    final private int SEND_DATA_MSG =1;
 
-    private class NetSendMessage {
+    private class NetDeviceMgrMsgReciever extends MsgReceiver{
+        public NetDeviceMgrMsgReciever(String name){
+            super(name);
+        }
+
+        @Override
+        public void CallPubMessageRecv(ArrayList<CallPubMessage> list) {
+            int type;
+            CallPubMessage msg;
+            synchronized (NetDeviceManager.class) {
+                while(list.size()>0) {
+                    msg = list.remove(0);
+                    type = msg.arg1;
+                    if(type == SEND_DATA_MSG){
+                        NetSendMessage sendMsg = (NetSendMessage)msg.obj;
+                        sendMsg.dev.SendBuffer(sendMsg.data);
+                    }
+                }
+            }
+        }
+    }
+
+    private static class NetSendMessage {
         NetDevice dev;
         byte[] data;
 
     }
 
-    private class NetManagerMsg{
-        int type;
-        NetSendMessage msg;
-
-        public NetManagerMsg(int type, NetSendMessage msg) {
-            this.type = type;
-            this.msg = msg;
-        }
+    private void AddNetSendMessage(NetSendMessage msg) {
+        msgReceiver.AddMessage(SEND_DATA_MSG,msg);
     }
 
-
-    private int AddNetSendMessage(int type, NetSendMessage msg) {
-        synchronized(netMassageList) {
-            NetManagerMsg netMsg = new NetManagerMsg(type,msg);
-            netMassageList.add(netMsg);
-            netMassageList.notify();
-        }
-        return 0;
-    }
-
-    private class DeviceSendDataThread extends Thread{
-        ArrayList<NetManagerMsg> localMsgList;
-
-        @Override
-        public void run() {
-            NetManagerMsg  msg;
-            String test = "aaaa\r\n";
-            String[] splitData = test.split("\r\n");
-
-            while(!isInterrupted()) {
-                synchronized(netMassageList) {
-                    try {
-                        netMassageList.wait();
-                        while(netMassageList.size()>0) {
-                            msg = netMassageList.remove(0);
-                            localMsgList.add(msg);
-                        }
-                    } catch (InterruptedException e) {
-                    // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                }
-
-                while(localMsgList.size()>0) {
-                    msg = localMsgList.remove(0);
-                    int type = msg.type;
-                    if(type == 1){
-                        NetSendMessage sendMsg = (NetSendMessage)msg.msg;
-                        sendMsg.dev.SendBuffer(sendMsg.data);
-                    }
-                }
-            }
-
-        }
-
-        public DeviceSendDataThread(){
-            super("UdpDeviceSendThread");
-            localMsgList = new ArrayList<NetManagerMsg>();
-        }
-    }
 
     public NetDeviceManager(){
         devLists = new HashMap<>();
-        sendThread = new DeviceSendDataThread();
-        sendThread.start();
-        netMassageList = new ArrayList<>();
+        msgReceiver = new NetDeviceMgrMsgReciever("NetDevMgrMsgReceiver");
     }
 
+    public void DevSendBuf(String id, String data){
+        NetDevice matchedDev;
+        synchronized (NetDeviceManager.class) {
+            matchedDev = devLists.get(id);
+            if(matchedDev!=null){
+                if(matchedDev.netType ==NetDevice.UDP_NET_DEVICE||
+                   matchedDev.netType == NetDevice.RAW_TCP_NET_DEVICE) {
+                    byte[] bdata = data.getBytes(CharsetUtil.UTF_8);
+                    NetSendMessage sendMsg = new NetSendMessage();
+                    sendMsg.data = bdata;
+                    sendMsg.dev = matchedDev;
+                    // couldn't send data in Main Thread
+                    AddNetSendMessage(sendMsg);
+                }else if(matchedDev.netType ==NetDevice.TCP_NET_DEVICE){
+                    TcpNetDevice dev = (TcpNetDevice)matchedDev;
+                    byte[] bytes = data.getBytes(CharsetUtil.UTF_8);
+                    ByteBuf buf = Unpooled.wrappedBuffer(bytes);
+                    dev.SendBuffer(buf);
+                }
+            }
+        }
+    }
 
     public void DevSendBuf(String id, ByteBuf buf){
         NetDevice matchedDev;
@@ -96,14 +87,14 @@ public class NetDeviceManager {
             if(matchedDev!=null){
                 if(matchedDev.netType ==NetDevice.UDP_NET_DEVICE||
                    matchedDev.netType == NetDevice.RAW_TCP_NET_DEVICE) {
-                    NetDevice dev = matchedDev;
                     byte[] data = new byte[buf.readableBytes()];
                     int readerIndex = buf.readerIndex();
                     buf.getBytes(readerIndex,data);
                     NetSendMessage sendMsg = new NetSendMessage();
                     sendMsg.data = data;
-                    sendMsg.dev = dev;
-                    AddNetSendMessage(1,sendMsg);
+                    sendMsg.dev = matchedDev;
+                    // couldn't send data in Main Thread
+                    AddNetSendMessage(sendMsg);
 
                 }else if(matchedDev.netType ==NetDevice.TCP_NET_DEVICE) {
                     TcpNetDevice dev = (TcpNetDevice)matchedDev;

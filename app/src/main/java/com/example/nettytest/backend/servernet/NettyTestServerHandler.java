@@ -37,8 +37,9 @@ public class NettyTestServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        super.exceptionCaught(ctx, cause);
-        cause.printStackTrace();
+//        super.exceptionCaught(ctx, cause);
+//        cause.printStackTrace();
+        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Netty Sever Dev %s Caught err %s",devId,cause.getMessage());
         ctx.close();
     }
 

@@ -27,6 +27,7 @@ import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
+import com.example.nettytest.userinterface.UserInterface;
 import com.example.nettytest.userinterface.UserMessage;
 import com.example.nettytest.userinterface.UserVideoMessage;
 
@@ -36,8 +37,6 @@ public class TerminalCall extends CommonCall {
     private int updateTick;
 
     private int updateTimeOverCount ;
-
-    String audioId = "";
 
     int autoAnswerTime;
     int autoAnswerTick;
@@ -55,11 +54,13 @@ public class TerminalCall extends CommonCall {
         Transaction inviteTransaction = new Transaction(devID,invitePack,Transaction.TRANSCATION_DIRECTION_C2S);
         LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s invite Phone %s, CallID = %s! ",caller,callee,callID);
         HandlerMgr.AddPhoneTrans(invitePack.msgID,inviteTransaction);
+        inviteReqMsgId = invitePack.msgID;
     }
 
     // incoming call
     public TerminalCall(InviteReqPack pack){
         super(pack.receiver,pack);
+        inviteReqMsgId = "";
         updateTick =CommonCall.UPDATE_INTERVAL;
         autoAnswerTime = pack.autoAnswerTime;
         autoAnswerTick = 0;
@@ -180,6 +181,9 @@ public class TerminalCall extends CommonCall {
 //        if(!audioId.isEmpty())
 //            AudioMgr.CloseAudio(audioId);
 
+        if(!inviteReqMsgId.isEmpty())
+            HandlerMgr.RemovePhoneTrans(inviteReqMsgId);
+
         Transaction endTransaction = new Transaction(devID,endPack,Transaction.TRANSCATION_DIRECTION_C2S);
         HandlerMgr.AddPhoneTrans(endPack.msgID,endTransaction);
 
@@ -264,15 +268,16 @@ public class TerminalCall extends CommonCall {
         if(pack.status!=ProtocolPacket.STATUS_OK){
             LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone %s Recv %d(%s) for Update in Call %s!",devID,pack.status,ProtocolPacket.GetResString(pack.status),callID);
             state = CommonCall.CALL_STATE_DISCONNECTED;
-            callMsg.type = UserCallMessage.CALL_MESSAGE_DISCONNECT;
+            callMsg.type = UserCallMessage.CALL_MESSAGE_UPDATE_FAIL;
             callMsg.reason = OperationResult.GetUserFailReason(pack.status);
-
-            HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
 
         }else{
             updateTimeOverCount = 0;
             LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv OK for Update in Call %s! ",devID,callID);
+            callMsg.type = UserCallMessage.CALL_MESSAGE_UPDATE_SUCC;
+
         }
+        HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
 
     }
 
@@ -503,6 +508,7 @@ public class TerminalCall extends CommonCall {
         invitePack.sample = audioSample;
 
         invitePack.callerRtpIP = PhoneParam.GetLocalAddress();
+        UserInterface.PrintLog("Build Invite on Local  %s:%d",invitePack.callerRtpIP,localRtpPort);
         invitePack.callerRtpPort = localRtpPort;
         if(type==CALL_TYPE_BROADCAST){
             invitePack.autoAnswerTime = PhoneParam.BROADCALL_ANSWER_WAIT;
@@ -540,6 +546,7 @@ public class TerminalCall extends CommonCall {
 
         answerReqPack.answererRtpPort = localRtpPort;
         answerReqPack.answererRtpIP = PhoneParam.GetLocalAddress();
+        UserInterface.PrintLog("Build Answer on Local  %s:%d",answerReqPack.answererRtpIP,localRtpPort);
 
         answerReqPack.codec = audioCodec;
         answerReqPack.pTime = rtpTime;

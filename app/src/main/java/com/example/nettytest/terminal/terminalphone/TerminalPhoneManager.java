@@ -1,11 +1,13 @@
 package com.example.nettytest.terminal.terminalphone;
 
-import com.alibaba.fastjson.*;
+import com.alibaba.fastjson.JSONException;
+import com.alibaba.fastjson.JSONObject;
 import com.example.nettytest.pub.CallPubMessage;
 import com.example.nettytest.pub.DeviceStatistics;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.JsonPort;
 import com.example.nettytest.pub.LogWork;
+import com.example.nettytest.pub.MsgReceiver;
 import com.example.nettytest.pub.SystemSnap;
 import com.example.nettytest.pub.TerminalStatistics;
 import com.example.nettytest.pub.commondevice.PhoneDevice;
@@ -34,39 +36,73 @@ import com.example.nettytest.userinterface.TerminalDeviceInfo;
 import com.example.nettytest.userinterface.UserInterface;
 import com.example.nettytest.userinterface.UserMessage;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class TerminalPhoneManager {
     HashMap<String, TerminalPhone> clientPhoneLists;
     
-    ArrayList<CallPubMessage> userMsgQ = null;
     public static final int MSG_NEW_PACKET = 1;
     public static final int MSG_SECOND_TICK = 2;
     public static final int MSG_REQ_TIMEOVER = 3;
-    static Thread snapThread = null;
+    Thread snapThread = null;
     long runSecond = 0;
+     
+    MsgReceiver userMsgReceiver = null;
+    TerminalPhoneMsgRecevier phoneMsgRecevier;
 
-    private ArrayList<CallPubMessage> pubMsgList;
+    class TerminalPhoneMsgRecevier extends MsgReceiver{
+        public TerminalPhoneMsgRecevier(String name){
+            super(name);
+        }
+
+        @Override
+        public void CallPubMessageRecv(ArrayList<CallPubMessage> list) {
+            CallPubMessage msg;
+            ProtocolPacket packet;
+            int type;
+            synchronized (TerminalPhoneManager.class) {
+                while(list.size()>0) {
+                    msg = list.remove(0);
+                    type = msg.arg1;
+                    switch (type) {
+                        case MSG_NEW_PACKET:
+                            packet = (ProtocolPacket) msg.obj;
+                            PacketRecvProcess(packet);
+                            break;
+                        case MSG_SECOND_TICK:
+                            for (TerminalPhone phone : clientPhoneLists.values()) {
+                                phone.UpdateSecondTick();
+                            }
+                            break;
+                        case MSG_REQ_TIMEOVER:
+                            packet = (ProtocolPacket) msg.obj;
+                            PacketTimeOverProcess(packet);
+                            break;
+                        default:
+                            throw new IllegalStateException("Unexpected value: " + type);
+                    }
+                }
+            }
+        }
+    }
+
+    public void SetMsgReceiver(MsgReceiver receiver){
+        userMsgReceiver = receiver;
+    }
 
     public TerminalPhoneManager(){
         clientPhoneLists = new HashMap<>();
-        pubMsgList = new ArrayList<>();
+        phoneMsgRecevier = new TerminalPhoneMsgRecevier("TermMsgReceiver");
 
         HandlerMgr.ReadSystemType();
 
-        TerminalPhoneThread terminalPhoneThread = new TerminalPhoneThread();
-        terminalPhoneThread.start();
         new Timer("TerminalTimeTick").schedule(new TimerTask() {
             @Override
             public void run() {
@@ -178,21 +214,7 @@ public class TerminalPhoneManager {
                                                 resJson.clear();
                                             }
                                         } else if (type == SystemSnap.SNAP_DEL_LOG_REQ) {
-                                            String logFileName;
-                                            int logIndex = 1;
-                                            File logFile;
-                                            while (true) {
-                                                logFileName = String.format("/storage/self/primary/CallModuleLog%04d.txt", logIndex);
-                                                logFile = new File(logFileName);
-                                                if (logFile.exists() && logFile.isFile()) {
-                                                    logFile.delete();
-                                                } else {
-                                                    break;
-                                                }
-                                                logIndex++;
-                                                if (logIndex > 1000)
-                                                    break;
-                                            }
+                                           LogWork.ResetLogIndex();
                                         }else if(type==SystemSnap.SNAP_SYSTEM_INFO_REQ){
                                             byte[] systemInfo;
                                             systemInfo = MakeSystemInfo();
@@ -213,6 +235,8 @@ public class TerminalPhoneManager {
                                 e.printStackTrace();
                             } catch (JSONException e) {
                                 e.printStackTrace();
+                            }catch(Exception ee){
+                                LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_ERROR,"Socket of Terminal Snap err with %s",ee.getMessage());
                             }
                         }
                     }
@@ -246,11 +270,6 @@ public class TerminalPhoneManager {
         }
     }
 
-    public void SetMessageHandler(ArrayList<CallPubMessage> msgQ){
-        if(userMsgQ==null)
-            userMsgQ = msgQ;
-    }
-
     public int GetCallCount(){
         int count = 0;
         synchronized (TerminalPhoneManager.class){
@@ -262,15 +281,8 @@ public class TerminalPhoneManager {
     }
 
     public void SendUserMessage(int type,Object data){
-        if (userMsgQ != null) {
-            synchronized(userMsgQ) {
-                CallPubMessage msg = new CallPubMessage();
-                msg.arg1 = type;
-                msg.obj = data;
-                userMsgQ.add(msg);
-                userMsgQ.notify();
-            }
-        }
+        if(userMsgReceiver!=null)
+            userMsgReceiver.AddMessage(type,data);
     }
 
     public TerminalPhone GetDevice(String id){
@@ -283,12 +295,7 @@ public class TerminalPhoneManager {
     }
 
     public void PostTerminalPhoneMessage(CallPubMessage msg){
-        if (pubMsgList != null) {            
-            synchronized(pubMsgList) {
-                pubMsgList.add(msg);
-                pubMsgList.notify();                
-            }
-        }
+        phoneMsgRecevier.AddMessage(msg);
     }
 
     public String BuildCall(String caller,String callee,int callType){
@@ -298,8 +305,11 @@ public class TerminalPhoneManager {
         synchronized (TerminalPhoneManager.class) {
             matchedDev = clientPhoneLists.get(caller);
             if(matchedDev!=null){
-                callid = matchedDev.MakeOutGoingCall(callee,callType);
-            }else{
+                if(matchedDev.isReg)
+                    callid = matchedDev.MakeOutGoingCall(callee,callType);
+            }
+
+            if(callid==null){
                 LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_ERROR,"Build Call From %s to %s Fail, Could not Find DEV %s",caller,callee,caller);
             }
         }
@@ -603,57 +613,6 @@ public class TerminalPhoneManager {
 
     }
 
-    private class TerminalPhoneThread extends Thread{
-        public TerminalPhoneThread(){
-            super("TerminalPhoneThread");
-        }
-        
-        @Override
-        public void run() {
-            ArrayList<CallPubMessage> recvList = new ArrayList<>();
-            CallPubMessage msg = new CallPubMessage();
-            
-            while(!isInterrupted()) {                
-                synchronized(pubMsgList) {
-                    try {
-                        pubMsgList.wait();
-                    } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                    while(pubMsgList.size()>0) {
-                        msg = pubMsgList.remove(0);
-                        recvList.add(msg);
-                    }
-                }
-                
-                while(recvList.size()>0) {
-                    msg = recvList.remove(0);
-                    int type = msg.arg1;
-                    ProtocolPacket packet;
-                    synchronized (TerminalPhoneManager.class) {
-                        switch (type) {
-                            case MSG_NEW_PACKET:
-                                packet = (ProtocolPacket) msg.obj;
-                                PacketRecvProcess(packet);
-                                break;
-                            case MSG_SECOND_TICK:
-                                for (TerminalPhone phone : clientPhoneLists.values()) {
-                                    phone.UpdateSecondTick();
-                                }
-                                break;
-                            case MSG_REQ_TIMEOVER:
-                                packet = (ProtocolPacket) msg.obj;
-                                PacketTimeOverProcess(packet);
-                                break;
-                            default:
-                                throw new IllegalStateException("Unexpected value: " + type);
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     private byte[] MakeCallsSnap(String id){
         byte[] result = null;

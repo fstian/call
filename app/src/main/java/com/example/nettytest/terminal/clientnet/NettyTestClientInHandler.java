@@ -31,7 +31,13 @@ public class NettyTestClientInHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+//        super.exceptionCaught(ctx, cause);
+        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_TEMP_DBG,"Netty Client Dev %s Caught err %s",devID,cause.getMessage());
+        ctx.close();
+    }
 
+    @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         super.channelActive(ctx);
         HandlerMgr.UpdatePhoneDevChannel(devID,ctx.channel());

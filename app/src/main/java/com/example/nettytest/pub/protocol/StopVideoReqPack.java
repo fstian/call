@@ -5,7 +5,7 @@ import com.example.nettytest.pub.UniqueIDManager;
 public class StopVideoReqPack extends ProtocolPacket{
     public String callID;
 
-    public String stopVideoDevId;;
+    public String stopVideoDevId;
 
     private void CopyStopVideoData(StopVideoReqPack videoReq){
         CopyData(videoReq);

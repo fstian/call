@@ -38,8 +38,10 @@ public class TransManager {
                                 LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_INFO,"Dev %s Resend Req %s to Server",trans.devID,ProtocolPacket.GetTypeName(trans.reqPacket.type));
                             else if(trans.direction == Transaction.TRANSCATION_DIRECTION_S2C)
                                 LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_INFO,"Server Resend Req %s to Dev %s ",ProtocolPacket.GetTypeName(trans.reqPacket.type),trans.devID);
-                            ByteBuf buf  = Unpooled.copiedBuffer(ProtocolFactory.PacketData(trans.reqPacket).getBytes(),"\r\n".getBytes());
-                            SendTransactionBuf(trans.devID,buf);
+                                ByteBuf buf  = Unpooled.copiedBuffer(ProtocolFactory.PacketData(trans.reqPacket).getBytes(),"\r\n".getBytes());
+                                SendTransactionBuf(trans.devID,buf);
+//                                String sendData = ProtocolFactory.PacketData(trans.reqPacket)+"\r\n";
+//                                SendTransactionBuf(trans.devID,sendData);
                         }
                         break;
                     case Transaction.TRANSCATION_STATE_WAITRELEASE:
@@ -69,9 +71,32 @@ public class TransManager {
         }
     }
 
+
     public TransManager() {
         transLists = new HashMap<>();
     }
+
+    public boolean RemoveTransaction(String id){
+        boolean result = false;
+        synchronized (TransManager.class) {
+            Transaction trans = transLists.remove(id);
+            if(trans!=null){
+//                if(trans.direction==Transaction.TRANSCATION_DIRECTION_C2S)
+//                    LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_TEMP_DBG,"Dev %s Directly Remove Tran Req %s ",trans.devID,ProtocolPacket.GetTypeName(trans.reqPacket.type));
+//                else if(trans.direction == Transaction.TRANSCATION_DIRECTION_S2C)
+//                    LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_TEMP_DBG,"Server Directly Remove Tran Req %s ",ProtocolPacket.GetTypeName(trans.reqPacket.type));
+                if(trans.reqPacket!=null)
+                    trans.reqPacket.Release();
+                trans.reqPacket = null;
+                if(trans.resPacket!=null)
+                    trans.resPacket.Release();
+                trans.resPacket = null;
+                result = true;
+            }
+        }
+
+        return result;
+   }
 
     public int GetTransCount(){
         int count;
@@ -97,16 +122,20 @@ public class TransManager {
                 LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_DEBUG,"DEV %s Add %s to Server",tran.devID,ProtocolPacket.GetTypeName(tran.reqPacket.type));
             else if(tran.direction==Transaction.TRANSCATION_DIRECTION_S2C)
                 LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_DEBUG,"Server Add %s to DEV %s",ProtocolPacket.GetTypeName(tran.reqPacket.type),tran.devID);
-            ByteBuf buf = Unpooled.wrappedBuffer(ProtocolFactory.PacketData(tran.reqPacket).getBytes(),"\r\n".getBytes());
-            SendTransactionBuf(tran.devID,buf);
+                ByteBuf buf = Unpooled.wrappedBuffer(ProtocolFactory.PacketData(tran.reqPacket).getBytes(),"\r\n".getBytes());
+                SendTransactionBuf(tran.devID,buf);
+//                String sendData = ProtocolFactory.PacketData(tran.reqPacket)+"\r\n";
+//                SendTransactionBuf(tran.devID,sendData);
 
         }else if(tran.state == Transaction.TRANSCATION_STATE_RESPONDING){
             if(tran.direction==Transaction.TRANSCATION_DIRECTION_C2S)
                 LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv %s and Add %s to Server",tran.devID,ProtocolPacket.GetTypeName(tran.reqPacket.type),ProtocolPacket.GetTypeName(tran.resPacket.type));
             else if(tran.direction == Transaction.TRANSCATION_DIRECTION_S2C)
                 LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_DEBUG,"Server Recv %s and Add %s to DEV %s",ProtocolPacket.GetTypeName(tran.reqPacket.type),ProtocolPacket.GetTypeName(tran.resPacket.type),tran.devID);
-            ByteBuf buf = Unpooled.wrappedBuffer(ProtocolFactory.PacketData(tran.resPacket).getBytes(),"\r\n".getBytes());
-            SendTransactionBuf(tran.devID,buf);
+                ByteBuf buf = Unpooled.wrappedBuffer(ProtocolFactory.PacketData(tran.resPacket).getBytes(),"\r\n".getBytes());
+                SendTransactionBuf(tran.devID,buf);
+//                String sendData = ProtocolFactory.PacketData(tran.resPacket)+"\r\n";
+//                SendTransactionBuf(tran.devID,sendData);
         }
         return true;
     }
@@ -126,8 +155,10 @@ public class TransManager {
                         LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_INFO,"Server Rercev %s and Resend %s to Dev %s ",ProtocolPacket.GetTypeName(packet.type),ProtocolPacket.GetTypeName(trans.resPacket.type),trans.devID);
                     else if(trans.direction==Transaction.TRANSCATION_DIRECTION_C2S)
                         LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_INFO,"Dev %s Rerecv %s and Resend %s to Server ",trans.devID,ProtocolPacket.GetTypeName(packet.type),ProtocolPacket.GetTypeName(trans.resPacket.type));
-                    ByteBuf buf = Unpooled.wrappedBuffer(ProtocolFactory.PacketData(trans.resPacket).getBytes(),"\r\n".getBytes());
-                    SendTransactionBuf(trans.devID,buf);
+                        ByteBuf buf = Unpooled.wrappedBuffer(ProtocolFactory.PacketData(trans.resPacket).getBytes(),"\r\n".getBytes());
+                        SendTransactionBuf(trans.devID,buf);
+//                        String sendData = ProtocolFactory.PacketData(trans.resPacket)+"\r\n";
+//                        SendTransactionBuf(trans.devID,sendData);
                 }else if(trans.state== Transaction.TRANSCATION_STATE_REQUIRING) {
                     if(trans.direction==Transaction.TRANSCATION_DIRECTION_S2C)
                         LogWork.Print(LogWork.TRANSACTION_MODULE,LogWork.LOG_DEBUG,"Server Recv %s from DEV %s",ProtocolPacket.GetTypeName(packet.type),trans.devID);
@@ -165,6 +196,10 @@ public class TransManager {
     }
 
     public void SendTransactionBuf(String ID,ByteBuf buf){
+
+    }
+
+    public void SendTransactionBuf(String ID,String data){
 
     }
 
@@ -219,7 +254,7 @@ public class TransManager {
                 iCount++;
             }
 
-            if(transArray!=null&&resourceInfo!=null){
+            if(transArray != null){
                 if(transArray.size()>0){
                     res = resourceInfo.toString().getBytes();
                     resList.add(res);

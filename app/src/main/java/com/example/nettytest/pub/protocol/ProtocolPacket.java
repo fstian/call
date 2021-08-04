@@ -99,6 +99,7 @@ public class ProtocolPacket {
     public final static int STATUS_BUSY = 486;
     public final static int STATUS_NOTSUPPORT = 490;
     public final static int STATUS_DUPLICATE = 491;
+    public final static int STATUS_UNREACHABLE = 492;
 
     public final static int STATUS_DECLINE = 603;
 
@@ -164,6 +165,9 @@ public class ProtocolPacket {
                 break;
             case STATUS_BADREQ:
                 resName = "400 Bad Req";
+                break;
+            case STATUS_UNREACHABLE:
+                resName = "492 Unreachable";
                 break;
         }
         return resName;

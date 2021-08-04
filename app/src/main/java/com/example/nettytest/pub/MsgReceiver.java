@@ -1,63 +1,59 @@
 package com.example.nettytest.pub;
 
-import com.example.nettytest.pub.CallPubMessage;
-import com.example.nettytest.pub.HandlerMgr;
-
 import java.util.ArrayList;
 
 public class MsgReceiver {
-    static protected ArrayList<CallPubMessage> msgList=null;
 
-    static protected ArrayList<CallPubMessage> backEndMsgList=null;
+    final ArrayList<CallPubMessage> comMsgList;
 
-    public static int CreateTerminalMsgList(){
-        if(msgList==null){
-            msgList=new ArrayList<>();
-            HandlerMgr.SetTerminalMessageHandler(msgList);
-        }
-        return 0;
-    }
+    public MsgReceiver(String name){
+        comMsgList = new ArrayList<>();
+        new Thread(name){
+            @Override
+            public void run() {
+                ArrayList<CallPubMessage> newMsgList = new ArrayList<>();
+                CallPubMessage msg;
+                while(!isInterrupted()){
+                    synchronized (comMsgList){
+                        try {
+                            newMsgList.clear();
+                            comMsgList.wait();
+                            while (comMsgList.size()>0){
+                                msg = comMsgList.remove(0);
+                                newMsgList.add(msg);
+                            }
 
-    public static ArrayList<CallPubMessage> GetTerminalMsgs(){
-        ArrayList<CallPubMessage> msgs = new ArrayList<>();
-        CallPubMessage msg;
-        synchronized (msgList){
-            try {
-                msgList.wait();
-                while (msgList.size() > 0) {
-                    msg = msgList.remove(0);
-                    msgs.add(msg);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                            break;
+                        }
+                    }
+                    CallPubMessageRecv(newMsgList);
+                    newMsgList.clear();
                 }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+
             }
-        }
-        return msgs;
+        }.start();
     }
 
-    public static int CreateBackEndMsgList(){
-        if(backEndMsgList==null){
-            backEndMsgList=new ArrayList<>();
-            HandlerMgr.SetBackEndMessageHandler(backEndMsgList);
-        }
-        return 0;
+    public void CallPubMessageRecv(ArrayList<CallPubMessage> list){
+
     }
 
-    public static ArrayList<CallPubMessage> GetBackEndMsgs(){
-        ArrayList<CallPubMessage> msgs = new ArrayList<>();
-        CallPubMessage msg;
-        synchronized (backEndMsgList){
-            try {
-                backEndMsgList.wait();
-                while (backEndMsgList.size() > 0) {
-                    msg = backEndMsgList.remove(0);
-                    msgs.add(msg);
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+    public boolean AddMessage(int type, Object obj){
+        CallPubMessage msg = new CallPubMessage(type,obj);
+        synchronized (comMsgList){
+            comMsgList.add(msg);
+            comMsgList.notify();
         }
-        return msgs;
+        return true;
+    }
+    public boolean AddMessage(CallPubMessage msg){
+        synchronized (comMsgList){
+            comMsgList.add(msg);
+            comMsgList.notify();
+        }
+        return true;
     }
 }
 

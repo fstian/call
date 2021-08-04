@@ -2,20 +2,13 @@ package com.example.nettytest.terminal.terminaldevice;
 
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
-import com.example.nettytest.pub.commondevice.NetDevice;
 import com.example.nettytest.pub.commondevice.RawTcpNetDevice;
-import com.example.nettytest.pub.commondevice.UdpNetDevice;
 import com.example.nettytest.pub.protocol.ProtocolFactory;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.userinterface.PhoneParam;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -36,7 +29,7 @@ public class TerminalRawTcpDevice extends RawTcpNetDevice {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            new Thread("client"){
+            new Thread("client_"+id){
                 @Override
                 public void run() {
                     boolean isReset = true;
@@ -111,9 +104,9 @@ public class TerminalRawTcpDevice extends RawTcpNetDevice {
                                 }
                             }
                         } catch (IOException e) {
-                            e.printStackTrace();
+//                            e.printStackTrace();
                             if(isPrintError) {
-                                LogWork.Print(LogWork.TERMINAL_NET_MODULE, LogWork.LOG_ERROR, "Raw-TCP Client %s Tcp Error in Recv with Msg, Reset the TCP connection", id, e.getMessage());
+//                                LogWork.Print(LogWork.TERMINAL_NET_MODULE, LogWork.LOG_ERROR, "Raw-TCP Client %s Tcp Error in Recv with Msg, Reset the TCP connection", id, e.getMessage());
                                 isPrintError = false;
                             }
                             isReset = true;

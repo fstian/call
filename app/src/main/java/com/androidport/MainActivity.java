@@ -9,6 +9,7 @@ import android.content.pm.ActivityInfo;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -23,41 +24,23 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.androidport.port.CallMsgReceiver;
+import com.androidport.port.TerminalUserMsgReceiver;
 import com.example.nettytest.R;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
-import com.example.nettytest.pub.SystemSnap;
+import com.example.nettytest.pub.protocol.ProtocolFactory;
 import com.example.nettytest.terminal.test.ClientTest;
 import com.example.nettytest.terminal.test.ServerTest;
-import com.example.nettytest.userinterface.CallLogMessage;
-import com.example.nettytest.userinterface.ListenCallMessage;
-import com.example.nettytest.userinterface.ServerDeviceInfo;
-import com.example.nettytest.userinterface.PhoneParam;
-import com.example.nettytest.userinterface.TestInfo;
-import com.example.nettytest.userinterface.TransferMessage;
-import com.example.nettytest.userinterface.UserCallMessage;
-import com.example.nettytest.userinterface.UserConfig;
-import com.example.nettytest.userinterface.UserConfigMessage;
-import com.example.nettytest.userinterface.UserDevice;
-import com.example.nettytest.userinterface.UserDevsMessage;
-import com.example.nettytest.userinterface.UserInterface;
-import com.example.nettytest.userinterface.UserVideoMessage;
-import com.androidport.port.CallMsgReceiver;
-import com.example.nettytest.userinterface.UserMessage;
-import com.example.nettytest.userinterface.UserRegMessage;
-import com.example.nettytest.terminal.test.TestArea;
 import com.example.nettytest.terminal.test.TestDevice;
-
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.example.nettytest.userinterface.PhoneParam;
+import com.example.nettytest.userinterface.UserInterface;
+import com.example.nettytest.userinterface.UserMessage;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -70,8 +53,6 @@ public class    MainActivity extends AppCompatActivity {
     boolean isUIActive = false;
 
 
-    int iTestCount = 0;
-    String audioTestId="";
     boolean isGuiInit = false;
 
     static ClientTest clientTest  = null;
@@ -82,11 +63,9 @@ public class    MainActivity extends AppCompatActivity {
     Timer uiUpdateTimer = null;
 
     NetworkStateChangedReceiver wifiReceiver = null;
-    int testCount = 0;
-
-    String emerCallId = "";
 
     private void CreateAudioTest(){
+
         if(!isAudioTestCreate){
             new Thread("InitDevices"){
                 @Override
@@ -96,7 +75,8 @@ public class    MainActivity extends AppCompatActivity {
                     UserInterface.PrintLog("Begin Init Audio Test");
 
                     LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Begin Read Params");
-                    PhoneParam.InitPhoneParam("/sdcard/","devConfig.conf");
+//                    PhoneParam.InitPhoneParam("/sdcard/","devConfig.conf");
+                    PhoneParam.InitPhoneParam(Environment.getExternalStorageDirectory().getPath(),"devConfig.conf");
                     LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Finished Read Params");
 
                     clientTest = new ClientTest();
@@ -124,14 +104,9 @@ public class    MainActivity extends AppCompatActivity {
         }
     }
 
-    private void ReplaceDevice(String id,TestDevice dev){
-    }
-
 
     public void FunctionTest(){
         TestDevice dev;
-        String transferAreaId = "";
-        boolean listenCall = false;
         dev = clientTest.GetCurTestDevice();
         if(dev!=null){
             if(dev.type==UserInterface.CALL_NURSER_DEVICE){
@@ -145,7 +120,7 @@ public class    MainActivity extends AppCompatActivity {
                     }
                 }else{
                     if(dev.transferAreaId.isEmpty()){
-                        transferAreaId = clientTest.GetOtherAreaId(dev.areaId);
+                        String transferAreaId = clientTest.GetOtherAreaId(dev.areaId);
                         if(!transferAreaId.isEmpty()) {
                             UserInterface.SetTransferCall(dev.devid, transferAreaId, true);
                             UserInterface.PrintLog("Dev %s Set Transfer to %s", dev.devid, transferAreaId);
@@ -156,12 +131,8 @@ public class    MainActivity extends AppCompatActivity {
                     }
                 }
             }else if(dev.type==UserInterface.CALL_BED_DEVICE){
-                listenCall = dev.bedlistenCalls;
-                if(listenCall){
-                    UserInterface.SetListenCall(dev.devid,false);
-                }else{
-                    UserInterface.SetListenCall(dev.devid,true);
-                }
+                boolean listenCall = dev.bedlistenCalls;
+                UserInterface.SetListenCall(dev.devid, !listenCall);
             }
 
         }
@@ -216,7 +187,7 @@ public class    MainActivity extends AppCompatActivity {
                             }
                         }
                         tv = findViewById(R.id.audioOwnerId);
-                        String audioOwner = CallMsgReceiver.GetAudioOwner();
+                        String audioOwner = TerminalUserMsgReceiver.GetAudioOwner();
                         if (audioOwner.isEmpty()) {
                             tv.setText("Audio is Free");
                         } else {
@@ -236,7 +207,6 @@ public class    MainActivity extends AppCompatActivity {
             int action = motionEvent.getAction();
             if (action == MotionEvent.ACTION_DOWN) {
                 boolean result;
-                float x = motionEvent.getX();
                 float y = motionEvent.getY();
                 if(clientTest!=null) {
                     TestDevice dev = clientTest.GetCurTestDevice();
@@ -259,7 +229,6 @@ public class    MainActivity extends AppCompatActivity {
             int action = motionEvent.getAction();
             if(action==MotionEvent.ACTION_DOWN){
                 boolean result;
-                float x = motionEvent.getX();
                 float y = motionEvent.getY();
                 if(clientTest!=null) {
                     TestDevice dev = clientTest.GetCurTestDevice();
@@ -288,9 +257,7 @@ public class    MainActivity extends AppCompatActivity {
         });
 
         Button bt = (Button)findViewById(R.id.increaseId);
-        bt.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
+        bt.setOnClickListener(view -> {
 //                if(testCount==0) {
 //                    testCount = 1;
 //                    audioTestId = AudioMgr.OpenAudio("201051A1", 9090, 9092, "172.16.2.79", 8000, 20, Rtp.RTP_CODEC_711A, AudioDevice.SEND_RECV_MODE);
@@ -337,11 +304,10 @@ public class    MainActivity extends AppCompatActivity {
 
 
 //                UserInterface.RemoveAllDeviceOnServer();
-                if (clientTest != null) {
-                    FunctionTest();
-                    TestDevice dev = clientTest.GetCurTestDevice();
-                    if (dev != null) {
-                        if(dev.type == UserInterface.CALL_BED_DEVICE ){
+            if (clientTest != null) {
+                FunctionTest();
+                TestDevice dev = clientTest.GetCurTestDevice();
+                if(dev.type == UserInterface.CALL_BED_DEVICE ){
 
 //                            TestDevice newDevice;
 //                            String oldDevId = audioTest.curDevice.id;
@@ -350,13 +316,11 @@ public class    MainActivity extends AppCompatActivity {
 //                            UserInterface.RemoveDevice(audioTest.curDevice.id);
 //                            newDevice = new TestDevice(UserInterface.CALL_BED_DEVICE,String.format("%X",idValue));
 //                            ReplaceDevice(oldDevId,newDevice);
-                        }else if(dev.type == UserInterface.CALL_DOOR_DEVICE||
-                                dev.type == UserInterface.CALL_NURSER_DEVICE){
+                }else if(dev.type == UserInterface.CALL_DOOR_DEVICE||
+                        dev.type == UserInterface.CALL_NURSER_DEVICE){
 //                            audioTest.curDevice.SaveCallRecord();
-                        }
-
-                    }
                 }
+
             }
         });
 
@@ -395,7 +359,6 @@ public class    MainActivity extends AppCompatActivity {
 
         runOnUiThread(()->{
             Spinner spinner;
-            int iTmp;
             String[] arr;
             ArrayAdapter<String> adapter;
             spinner = findViewById(R.id.areaSelectId);
@@ -448,7 +411,6 @@ public class    MainActivity extends AppCompatActivity {
 
     private void UpdateArea(){
         Spinner spinner;
-        int iTmp;
         String[] arr;
         ArrayAdapter<String> adapter;
 
@@ -482,10 +444,9 @@ public class    MainActivity extends AppCompatActivity {
             terminalCallMessageHandler = new Handler(message -> {
                 int msgType = message.arg1;
                 UserMessage terminalMsg = (UserMessage)message.obj;
-                TestDevice device=null;
                 boolean result;
 
-                if(msgType==UserMessage.MESSAGE_INIT_FINISHED&&isGuiInit==false) {
+                if(msgType==UserMessage.MESSAGE_INIT_FINISHED&& !isGuiInit) {
                     InitGui();
                     isGuiInit = true;
                 }
@@ -539,7 +500,7 @@ public class    MainActivity extends AppCompatActivity {
                     TextView tv = findViewById(R.id.deviceStatusId);
                     status = dev.GetDeviceInfo();
 
-                    tv.setText(status.toString());
+                    tv.setText(status);
 
                     if (dev.type == UserInterface.CALL_NURSER_DEVICE) {
                         dev.QueryDevs();
@@ -584,16 +545,16 @@ public class    MainActivity extends AppCompatActivity {
                 int state = intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE,-1);
                 switch(state){
                     case WifiManager.WIFI_STATE_DISABLED:
-                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Disabled!!");
+                        LogWork.Print(LogWork.TERMINAL_USER_MODULE,LogWork.LOG_INFO,"Wifi Network is Disabled!!");
                         break;
                     case WifiManager.WIFI_STATE_DISABLING:
-                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Disabling!!");
+                        LogWork.Print(LogWork.TERMINAL_USER_MODULE,LogWork.LOG_INFO,"Wifi Network is Disabling!!");
                         break;
                     case WifiManager.WIFI_STATE_ENABLED:
-                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Enabled!!");
+                        LogWork.Print(LogWork.TERMINAL_USER_MODULE,LogWork.LOG_INFO,"Wifi Network is Enabled!!");
                         break;
                     case WifiManager.WIFI_STATE_ENABLING:
-                        LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Enabling!!");
+                        LogWork.Print(LogWork.TERMINAL_USER_MODULE,LogWork.LOG_INFO,"Wifi Network is Enabling!!");
                         break;
                 }
             }
@@ -601,17 +562,17 @@ public class    MainActivity extends AppCompatActivity {
                 NetworkInfo networkInfo = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
                 NetworkInfo.State state = networkInfo.getState();
                 if(state ==NetworkInfo.State.CONNECTING){
-                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Connecting!!");
+                    LogWork.Print(LogWork.TERMINAL_USER_MODULE,LogWork.LOG_INFO,"Wifi Network is Connecting!!");
                 }else if(state == NetworkInfo.State.CONNECTED){
-                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Connected!!");
+                    LogWork.Print(LogWork.TERMINAL_USER_MODULE,LogWork.LOG_INFO,"Wifi Network is Connected!!");
                 }else if(state == NetworkInfo.State.DISCONNECTING){
-                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Disconnecting!!");
+                    LogWork.Print(LogWork.TERMINAL_USER_MODULE,LogWork.LOG_INFO,"Wifi Network is Disconnecting!!");
                 }else if(state == NetworkInfo.State.DISCONNECTED){
-                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Disconnected!!");
+                    LogWork.Print(LogWork.TERMINAL_USER_MODULE,LogWork.LOG_INFO,"Wifi Network is Disconnected!!");
                 }else if(state == NetworkInfo.State.SUSPENDED){
-                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Suspended!!");
+                    LogWork.Print(LogWork.TERMINAL_USER_MODULE,LogWork.LOG_INFO,"Wifi Network is Suspended!!");
                 }else if(state == NetworkInfo.State.UNKNOWN){
-                    LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Wifi Network is Unknow!!");
+                    LogWork.Print(LogWork.TERMINAL_USER_MODULE,LogWork.LOG_INFO,"Wifi Network is Unknow!!");
                 }
             }
         }
@@ -622,39 +583,41 @@ public class    MainActivity extends AppCompatActivity {
             @Override
             public void run() {
 
-                while(true){
-                    System.out.println("qkq test Do UDP socket Test ");
-                    try {
-                        testsocket = new  DatagramSocket(19900);
-                        testsocket.setSoTimeout(1000);
-                        new Thread(){
-                            @Override
-                            public void run() {
-                                testsocket.close();
+            while(true){
+                System.out.println("qkq test Do UDP socket Test ");
+                try {
+                    testsocket = new  DatagramSocket(19900);
+                    testsocket.setSoTimeout(1000);
+                    new Thread(){
+                        @Override
+                        public void run() {
+                            testsocket.close();
+                        }
+                    }.start();
+                    new Thread(){
+                        @Override
+                        public void run() {
+                            byte[] recvBuf=new byte[1024];
+                            DatagramPacket pack = new DatagramPacket(recvBuf,recvBuf.length);
+                            try {
+                                testsocket.receive(pack);
+                            } catch (IOException e) {
+                                e.printStackTrace();
                             }
-                        }.start();
-                        new Thread(){
-                            @Override
-                            public void run() {
-                                byte[] recvBuf=new byte[1024];
-                                DatagramPacket pack = new DatagramPacket(recvBuf,recvBuf.length);
-                                try {
-                                    testsocket.receive(pack);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }.start();
-                    } catch (SocketException e) {
-                        e.printStackTrace();
-                    }
-
-                    try {
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                        }
+                    }.start();
+                } catch (SocketException e) {
+                    e.printStackTrace();
+                }catch(Exception ee){
+                    UserInterface.PrintLog("Socket of MMI Snap err with %s",ee.getMessage());
                 }
+
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
             }
         }.start();
     }

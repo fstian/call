@@ -8,7 +8,7 @@ import java.net.InetAddress;
 
 public class UdpNetDevice extends NetDevice {
 
-    protected InetAddress peerAddress=null ;
+    protected InetAddress peerAddress;
     protected int peerPort = 0;
     protected DatagramSocket localSocket=null;
 

@@ -9,7 +9,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 
-import androidx.annotation.NonNull;
 
 import com.android.webrtc.audio.MobileAEC;
 import com.example.nettytest.pub.LogWork;
@@ -164,7 +163,7 @@ public class AudioDevice {
     public boolean AudioSuspend(String id){
         if(this.id.compareToIgnoreCase(id)==0){
             if(audioOpenCount<=0){
-                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_ERROR, String.format("Audio %s had Closed , Could't suspend"));
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_ERROR, String.format("Audio %s had Closed , Couldn't suspend",id));
             }else{
                 CloseAudio();
                 LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, String.format("Audio %s is Suspend", id));
@@ -238,7 +237,7 @@ public class AudioDevice {
                 try {
                     Thread.sleep(100);
                     count++;
-                    if(count>200){
+                    if(count>20){
                         LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Audio Socket Thread is Still Runing");
                         count = 0;
                     }
@@ -246,11 +245,12 @@ public class AudioDevice {
                     e.printStackTrace();
                 }
             }
+            socketReadThread = null;
+            socketOpenCount--;
+
             if(!audioSocket.isClosed()){
                 audioSocket.close();
             }
-            socketReadThread = null;
-            socketOpenCount--;
 
             jb.closeJb(jbIndex);
             jb.deInitJb();
@@ -398,7 +398,7 @@ public class AudioDevice {
             try {
                 Thread.sleep(100);
                 waitCount++;
-                if(waitCount>200){
+                if(waitCount>20){
                     LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"recorder and player is not NULL after Close");
                     waitCount = 0;
                 }
@@ -431,8 +431,8 @@ public class AudioDevice {
             isSockReadRuning = true;
             while(!isInterrupted()){
                 if(!audioSocket.isClosed()){
+                    recvPack = new DatagramPacket(recvBuf, recvBuf.length);
                     try {
-                        recvPack = new DatagramPacket(recvBuf, recvBuf.length);
                         audioSocket.receive(recvPack);
                         if(recvPack.getLength()>0){
 //                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv %d byte from %s:%d",recvPack.getLength(),recvPack.getAddress().getHostName(),recvPack.getPort());
@@ -448,10 +448,12 @@ public class AudioDevice {
                     } catch (IOException e) {
 //                        e.printStackTrace();
 //                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Socket of Audio %s of Dev %s err with %s",id,devId,e.getMessage());
-                    } catch (NullPointerException e){
-                        e.printStackTrace();
-                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Socket of Audio %s of Dev %s err with %s",id,devId,e.getMessage());
-                        break;
+//                    } catch (NullPointerException e){
+//                        e.printStackTrace();
+//                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Socket of Audio %s of Dev %s err with %s",id,devId,e.getMessage());
+//                        break;
+                    }catch(Exception ee){
+                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Socket of Audio %s of Dev %s err with %s",id,devId,ee.getMessage());
                     }
                 }else{
                     break;
@@ -477,7 +479,7 @@ public class AudioDevice {
             byte[] rtpData;
             short[] audioReadData = new short[packSize];
             short[] aecData ;
-            int readNum;
+
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Audio AudioReadThread");
 
 
@@ -504,7 +506,7 @@ public class AudioDevice {
                     }
 
                     //read ;
-                    readNum = recorder.read(audioReadData, 0, packSize);
+                    int readNum = recorder.read(audioReadData, 0, packSize);
 //                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Read %d sample from Audio device, Return =%d",packSize,readNum);
 
                     //aec process
@@ -531,8 +533,8 @@ public class AudioDevice {
                         } catch (UnknownHostException e) {
                             e.printStackTrace();
                         } catch (IOException e) {
-                            e.printStackTrace();
-                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Socket of Audio %s of Dev %s is Closed when Send",id,devId);
+//                            e.printStackTrace();
+//                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Socket of Audio %s of Dev %s is Closed when Send",id,devId);
                         }
                     }
                 } else {
@@ -567,17 +569,14 @@ public class AudioDevice {
             isAudioWriteRuning = true;
 
            Looper.prepare();
-            audioWriteHandler = new Handler(new Handler.Callback() {
-                @Override
-                public boolean handleMessage(@NonNull Message message) {
-                    if (message.arg1 == AUDIO_PLAY_MSG) {
-                        short[] rtpData = (short[]) message.obj;
-                        //LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv Play Msg with %d Byte Data",rtpData.length);
-                        if (player != null)
-                            player.write(rtpData, 0, rtpData.length);
-                    }
-                    return false;
+            audioWriteHandler = new Handler(message -> {
+                if (message.arg1 == AUDIO_PLAY_MSG) {
+                    short[] rtpData = (short[]) message.obj;
+                    //LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv Play Msg with %d Byte Data",rtpData.length);
+                    if (player != null)
+                        player.write(rtpData, 0, rtpData.length);
                 }
+                return false;
             });
             audioWriteHandlerEnabled = true;
 

@@ -64,11 +64,14 @@ public class ClientTest {
                                 int isAuto = json.getIntValue(SystemSnap.SNAP_AUTOTEST_NAME);
                                 int isRealTime = json.getIntValue(SystemSnap.SNAP_REALTIME_NAME);
                                 int timeUnit = json.getIntValue(SystemSnap.SNAP_TIMEUNIT_NAME);
+                                int testMode = json.getIntValue(SystemSnap.SNAP_TEST_MODE_NAME);
                                 info.isAutoTest = isAuto == 1;
 
                                 info.isRealTimeFlash = isRealTime == 1;
 
                                 info.timeUnit = timeUnit;
+
+                                info.testMode = testMode;
 
                                 synchronized(areaList){
                                     for(TestArea area:areaList){
@@ -97,6 +100,12 @@ public class ClientTest {
                                         }
                                     }
                                 }
+                            }else if(type == SystemSnap.SNAP_CLEAN_CALL_REQ){
+                                for(TestArea area:areaList){
+                                    for (TestDevice dev : area.devList) {
+                                        dev.CleanCall();
+                                    }
+                                }
                             }
                             json.clear();
                         }
@@ -105,6 +114,8 @@ public class ClientTest {
                     e.printStackTrace();
                 } catch (JSONException e) {
                     e.printStackTrace();
+                }catch(Exception ee){
+                    LogWork.Print(LogWork.TERMINAL_USER_MODULE,LogWork.LOG_ERROR,"Socket of ClientTest Snap err with %s",ee.getMessage());
                 }
             }
         }
@@ -129,12 +140,15 @@ public class ClientTest {
     }
 
     private void StartTestTimer(){
-        isTestFlag = true;
-        testStartTime = System.currentTimeMillis();
+        if(!isTestFlag){
+            isTestFlag = true;
+            testStartTime = System.currentTimeMillis();
+        }
     }
 
     private void StopTestTimer(){
-        isTestFlag = false;
+        if(isTestFlag)
+            isTestFlag = false;
     }
 
     public String GetOtherAreaId(String areaId){

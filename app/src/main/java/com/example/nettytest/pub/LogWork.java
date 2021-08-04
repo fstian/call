@@ -1,7 +1,5 @@
 package com.example.nettytest.pub;
 
-import android.util.Log;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -60,7 +58,7 @@ public class LogWork {
     private static long begineLogTime = System.currentTimeMillis();
     public static long logInterval = 1; //hour
     private static int logIndex = 1;
-    private static File logWriteFile = new File(String.format("/storage/self/primary/CallModuleLog%04d.txt",logIndex));
+    private static File logWriteFile=null;
 
     public static int Print(int module,int degLevel,String buf){
         return Print(module,degLevel,buf,"");
@@ -185,35 +183,69 @@ public class LogWork {
                 }
 
                 if(bLogToFiles){
-                    if(curTime>begineLogTime+logInterval*3600*1000){
-                        begineLogTime = curTime;
-                        logIndex++;
-                        int osType = HandlerMgr.GetOSType();
-                        if(osType==HandlerMgr.WINDOWS_OS||osType==HandlerMgr.LINUX_OS)
-                            logWriteFile = new File(String.format("./CallModuleLog%04d.txt",logIndex));
-                        else
-                            logWriteFile = new File(String.format("/sdcard/CallModuleLog%04d.txt",logIndex));
-                    }
-                    String writeString = dateFormat.format(date)+ levelString+tag+":  "+dbgString+"\r\n";
-                    BufferedWriter bw = null;
-                    try {
-                        bw = new BufferedWriter(new FileWriter(logWriteFile, true));
-                        bw.write(writeString);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } finally {
+                    synchronized (LogWork.class) {
+                        if (logWriteFile == null) {
+                            logWriteFile = new File(GetLogFileName(logIndex));
+                        } else if (curTime > begineLogTime + logInterval * 3600 * 1000) {
+                            begineLogTime = curTime;
+                            if (logIndex > 100)
+                                return 0;
+                            logIndex++;
+                            logWriteFile = new File(GetLogFileName(logIndex));
+                        }
+                        String writeString = dateFormat.format(date) + levelString + tag + ":  " + dbgString + "\r\n";
+                        BufferedWriter bw = null;
                         try {
-                            if (bw != null) {
-                                bw.close();
-                            }
+                            bw = new BufferedWriter(new FileWriter(logWriteFile, true));
+                            bw.write(writeString);
                         } catch (IOException e) {
                             e.printStackTrace();
+                        } finally {
+                            try {
+                                if (bw != null) {
+                                    bw.close();
+                                }
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
                         }
                     }
                 }
             }
         }
         return 0;
+    }
+
+    public static String GetLogFileName(int index){
+        int osType;
+        String fileName;
+        
+        osType = HandlerMgr.GetOSType();
+        if(osType==HandlerMgr.WINDOWS_OS||osType==HandlerMgr.LINUX_OS)
+            fileName = String.format("./CallModuleLog%04d.txt",index);
+        else
+            fileName = String.format("/sdcard/CallModuleLog%04d.txt",index);
+        return fileName;
+    }
+
+    public static void ResetLogIndex(){
+        synchronized (LogWork.class) {
+            String logFileName;
+            int iTmp = 1;
+            File logFile;
+            while (iTmp<=100) {
+                logFileName = LogWork.GetLogFileName(iTmp);
+                logFile = new File(logFileName);
+                if (logFile.exists() && logFile.isFile()) {
+                    logFile.delete();
+                }
+                iTmp++;
+            }
+
+            logIndex = 1;
+            begineLogTime = System.currentTimeMillis();
+            logWriteFile = null;
+        }
     }
 
 }

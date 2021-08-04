@@ -138,24 +138,19 @@ public class TerminalPhone extends PhoneDevice {
         ProtocolPacket resPack = null;
         switch(packet.type){
             case ProtocolPacket.REG_REQ:
-                RegResPack regResP= new RegResPack(ProtocolPacket.STATUS_NOTSUPPORT,(RegReqPack)packet);
-                resPack = regResP;
+                resPack = new RegResPack(ProtocolPacket.STATUS_NOTSUPPORT,(RegReqPack)packet);
                 break;
             case ProtocolPacket.DEV_QUERY_REQ:
-                DevQueryResPack devResP= new DevQueryResPack(ProtocolPacket.STATUS_NOTSUPPORT,(DevQueryReqPack)packet);
-                resPack = devResP;
+                resPack = new DevQueryResPack(ProtocolPacket.STATUS_NOTSUPPORT,(DevQueryReqPack)packet);
                 break;
             case ProtocolPacket.CALL_UPDATE_REQ:
-                UpdateResPack updateResP = new UpdateResPack(ProtocolPacket.STATUS_NOTSUPPORT,(UpdateReqPack) packet);
-                resPack = updateResP;
+                resPack = new UpdateResPack(ProtocolPacket.STATUS_NOTSUPPORT,(UpdateReqPack) packet);
                 break;
             case ProtocolPacket.DEV_CONFIG_REQ:
-                ConfigResPack configResP = new ConfigResPack(ProtocolPacket.STATUS_NOTSUPPORT,(ConfigReqPack) packet);
-                resPack = configResP;
+                resPack = new ConfigResPack(ProtocolPacket.STATUS_NOTSUPPORT,(ConfigReqPack) packet);
                 break;
             case ProtocolPacket.SYSTEM_CONFIG_REQ:
-                SystemConfigResPack sysConfigResP = new SystemConfigResPack(ProtocolPacket.STATUS_NOTSUPPORT,(SystemConfigReqPack)packet);
-                resPack = sysConfigResP;
+                resPack = new SystemConfigResPack(ProtocolPacket.STATUS_NOTSUPPORT,(SystemConfigReqPack)packet);
                 break;
         }
         if(resPack!=null){

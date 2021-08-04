@@ -29,4 +29,9 @@ public class BackEndTransactionMgr extends TransManager{
         HandlerMgr.BackEndDevSendBuf(ID,buf);
     }
 
+    @Override
+    public void SendTransactionBuf(String ID,String data){
+        HandlerMgr.BackEndDevSendBuf(ID,data);
+    }
+
 }
