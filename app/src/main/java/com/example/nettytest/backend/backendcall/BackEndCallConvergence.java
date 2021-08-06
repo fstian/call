@@ -568,7 +568,7 @@ public class BackEndCallConvergence {
             }
         }
 
-        if(listenCallList.size()<=0){
+        if(listenCallList.size()<=0&&calleeNum.compareToIgnoreCase(PhoneParam.CALL_SERVER_ID)==0){
             if(inviteCall.state==CommonCall.CALL_STATE_INCOMING){
                 LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"BackEnd End Call %s for no Listener in This Call ",inviteCall.callID);
                 StopCall();

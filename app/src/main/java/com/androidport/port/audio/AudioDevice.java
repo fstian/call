@@ -44,10 +44,14 @@ public class AudioDevice {
     AudioReadThread audioReadThread = null;
     AudioWriteThread audioWriteThread = null;
 
+    AudioReadSimpleThread audioReadSimpleThread = null;
+    AudioWriteSimpleThread audioWriteSimpleThread = null;
+
+
     AudioRecord recorder = null;
     AudioTrack player = null;
 
-    JitterBuffer jb;
+    JitterBuffer jb=null;
     int jbIndex;
 
     int socketOpenCount = 0;
@@ -60,7 +64,7 @@ public class AudioDevice {
     public String id;
     public String devId;
 
-    MobileAEC aec;
+    MobileAEC aec = null;
 
     boolean isSockReadRuning = false;
     boolean isAudioReadRuning = false;
@@ -83,13 +87,13 @@ public class AudioDevice {
         this.devId = devId;
         audioMode = mode;
 
-        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Create Audio, Mode = %d !!!!!!!",audioMode);
+        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Create Audio, Mode = %s !!!!!!!",GetAudioModeName(audioMode));
 
         OpenSocket();
         OpenAudio();
 
         id = UniqueIDManager.GetUniqueID(this.devId,UniqueIDManager.AUDIO_UNIQUE_ID);
-        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Open Audio %s on %d peer %s:%d, Codec=%d, Sample=%d, PTime=%d, mode=%d",id,src,address,dst,codec,sample,ptime,mode);
+        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Open Audio %s on %d peer %s:%d, Codec=%d, Sample=%d, PTime=%d, mode=%s",id,src,address,dst,codec,sample,ptime,GetAudioModeName(mode));
 
     }
 
@@ -100,16 +104,13 @@ public class AudioDevice {
         boolean isDeviceSwitch = false;
         boolean isDestSwitch = false;
 
-        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Switch From Audio %s mode %d!!!!!!!",id,audioMode);
+        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Switch From Audio %s mode %s!!!!!!!",id,GetAudioModeName(audioMode));
 
-       if(srcPort!=src||audioMode!=mode){
-            // do something to reopen socket;
+
+        if(srcPort!=src||sample!=this.sample||ptime!=this.ptime||codec!=this.codec||audioMode!=mode){
             CloseSocket();
             isSocketSwitch = true;
-        }
 
-        if(sample!=this.sample||ptime!=this.ptime||codec!=this.codec||audioMode!=mode){
-            // do something to reset audio thread
             CloseAudio();
             isAudioSwitch = true;
         }
@@ -141,9 +142,9 @@ public class AudioDevice {
         if(isDestSwitch||isSocketSwitch||isAudioSwitch||isDeviceSwitch){
             String oldId = id;
             id = UniqueIDManager.GetUniqueID(this.devId,UniqueIDManager.AUDIO_UNIQUE_ID);
-            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Switch Audio %s to %s on %d peer %s:%d, Codec=%d, Sample=%d, PTime=%d, mode=%d",oldId,id,src,address,dst,codec,sample,ptime,audioMode);
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Switch Audio %s to %s on %d peer %s:%d, Codec=%d, Sample=%d, PTime=%d, mode=%s",oldId,id,src,address,dst,codec,sample,ptime,GetAudioModeName(audioMode));
         }else{
-            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Switch Audio %s on %d peer %s:%d, Codec=%d, Sample=%d, PTime=%d, mode=%d, but not Change",id,src,address,dst,codec,sample,ptime,audioMode);
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Switch Audio %s on %d peer %s:%d, Codec=%d, Sample=%d, PTime=%d, mode=%s, but not Change",id,src,address,dst,codec,sample,ptime,GetAudioModeName(audioMode));
         }
     }
 
@@ -165,6 +166,7 @@ public class AudioDevice {
             if(audioOpenCount<=0){
                 LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_ERROR, String.format("Audio %s had Closed , Couldn't suspend",id));
             }else{
+                CloseSocket();
                 CloseAudio();
                 LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, String.format("Audio %s is Suspend", id));
             }
@@ -180,7 +182,7 @@ public class AudioDevice {
             if(audioOpenCount>=1){
                 LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_ERROR, String.format("Audio %s had Open , Could't Open Again", id));
             }else{
-                jb.resetJb(jbIndex);
+                OpenSocket();
                 OpenAudio();
                 LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, String.format("Audio %s is Resume", id));
             }
@@ -195,14 +197,29 @@ public class AudioDevice {
     private void OpenSocket(){
         int count = 0;
 
-        jb = new JitterBuffer();
-        jb.initJb();
-        jbIndex = jb.openJb(codec,ptime,sample);
 
         try {
-            if(audioMode== AudioMode.RECV_ONLY_MODE||audioMode==AudioMode.SEND_RECV_MODE){
+            if(audioMode== AudioMode.RECV_ONLY_MODE||audioMode==AudioMode.SEND_RECV_MODE||audioMode==AudioMode.SEND_ONLY_MODE){
                 audioSocket = new DatagramSocket(srcPort);
                 audioSocket.setSoTimeout(300);
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Open AudioSocket when AudioMode = %s",GetAudioModeName(audioMode));
+
+                socketOpenCount++;
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"After OpenSocket Count =%d",socketOpenCount);
+            }
+
+            if(audioMode== AudioMode.RECV_ONLY_MODE||audioMode==AudioMode.SEND_RECV_MODE){
+                if(jb==null) {
+                    jb = new JitterBuffer();
+                    jb.initJb();
+                    jbIndex = jb.openJb(codec,ptime,sample);
+                }else{
+                    jb.resetJb(jbIndex);
+                }
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Open JB when AudioMode = %s",GetAudioModeName(audioMode));
+
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Start AudioSocketRead Thread when AudioMode = %s",GetAudioModeName(audioMode));
+
                 socketReadThread = new SocketReadThread();
                 socketReadThread.start();
                 while(!isSockReadRuning){
@@ -221,8 +238,6 @@ public class AudioDevice {
             }else{
                 socketReadThread = null;
             }
-            socketOpenCount++;
-            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"After OpenSocket Count =%d",socketOpenCount);
         } catch (SocketException e) {
             e.printStackTrace();
         }
@@ -231,29 +246,31 @@ public class AudioDevice {
     private void CloseSocket(){
         int count = 0;
         if(audioSocket!=null) {
-            if(socketReadThread!=null)
-                socketReadThread.interrupt();
-            while(isSockReadRuning){
-                try {
-                    Thread.sleep(100);
-                    count++;
-                    if(count>20){
-                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Audio Socket Thread is Still Runing");
-                        count = 0;
-                    }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            socketReadThread = null;
-            socketOpenCount--;
+            if(socketReadThread!=null) {
 
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Stop AudioSocketRead Thread ");
+                socketReadThread.interrupt();
+                while (isSockReadRuning) {
+                    try {
+                        Thread.sleep(100);
+                        count++;
+                        if (count > 20) {
+                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_ERROR, "Audio Socket Thread is Still Runing");
+                            count = 0;
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                socketReadThread = null;
+            }
+
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Close AudioSocket");
             if(!audioSocket.isClosed()){
                 audioSocket.close();
             }
 
-            jb.closeJb(jbIndex);
-            jb.deInitJb();
+            socketOpenCount--;
 
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"After CloseSocket Count =%d",socketOpenCount);
         }
@@ -262,14 +279,15 @@ public class AudioDevice {
     private void OpenAudio(){
         int count = 0;
         int state;
+        packSize = sample*ptime/1000;
+
         if(audioMode==AudioMode.SEND_RECV_MODE){
 //            aec =new MobileAEC(new SamplingFrequency(sample));
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Create AEC when AudioMode =%s ",GetAudioModeName(audioMode));
+
             aec =new MobileAEC(null);
             aec.setAecmMode(MobileAEC.AggressiveMode.MOST_AGGRESSIVE).prepare();
         }
-
-
-        packSize = sample*ptime/1000;
 
         // create audio read device and write device int synchronized
 
@@ -287,6 +305,8 @@ public class AudioDevice {
 //                    audioOutBufSize,
                     AudioTrack.MODE_STREAM);
 
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Create Player when AudioMode =%s ",GetAudioModeName(audioMode));
+
             state =  player.getState();
             if(state!=AudioTrack.STATE_INITIALIZED){
                 LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"AudioTrack Init Fail State=%d, sample=%d,PTime=%d,packSize=%d,audioOutBufSize=%d",state,sample,ptime,packSize,audioOutBufSize);
@@ -296,8 +316,15 @@ public class AudioDevice {
 
             player.play();
 
-            audioWriteThread = new AudioWriteThread();
-            audioWriteThread.start();
+            if(audioMode==AudioMode.SEND_RECV_MODE) {
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Create AudioWrite Thread when AudioMode =%s ",GetAudioModeName(audioMode));
+                audioWriteThread = new AudioWriteThread();
+                audioWriteThread.start();
+            }else if(audioMode==AudioMode.RECV_ONLY_MODE){
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Create AudioWriteSimple Thread when AudioMode =%s ",GetAudioModeName(audioMode));
+                audioWriteSimpleThread = new AudioWriteSimpleThread();
+                audioWriteSimpleThread.start();
+            }
 
             while(!isAudioWriteRuning){
                 try {
@@ -313,38 +340,49 @@ public class AudioDevice {
             }
         }
 
+        if(audioMode==AudioMode.SEND_ONLY_MODE||audioMode==AudioMode.SEND_RECV_MODE) {
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Create Recorder when AudioMode =%s ",GetAudioModeName(audioMode));
 
-        int audioInBufSize = AudioRecord.getMinBufferSize(sample,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT);
+            int audioInBufSize = AudioRecord.getMinBufferSize(sample,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT);
 
-        recorder = new AudioRecord(MediaRecorder.AudioSource.MIC,sample,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
+            recorder = new AudioRecord(MediaRecorder.AudioSource.MIC, sample,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT,
 //                audioInBufSize);
-                packSize);
+                    packSize);
 
-        state = recorder.getState();
-        if(state!=AudioRecord.STATE_INITIALIZED){
-            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"AudioRecord Init Fail state=%d, sample=%d,PTime=%d,packSize=%d,audioInBufSize=%d",state,sample,ptime,packSize,audioInBufSize);
-        }else{
-            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"AudioRecord Init Success, sample=%d,PTime=%d,packSize=%d,audioInBufSize=%d",sample,ptime,packSize,audioInBufSize);
-        }
+            state = recorder.getState();
+            if (state != AudioRecord.STATE_INITIALIZED) {
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_ERROR, "AudioRecord Init Fail state=%d, sample=%d,PTime=%d,packSize=%d,audioInBufSize=%d", state, sample, ptime, packSize, audioInBufSize);
+            } else {
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, "AudioRecord Init Success, sample=%d,PTime=%d,packSize=%d,audioInBufSize=%d", sample, ptime, packSize, audioInBufSize);
+            }
 
-        recorder.startRecording();
+            recorder.startRecording();
 
-        audioReadThread = new AudioReadThread();
-        audioReadThread.start();
-        while(!isAudioReadRuning){
-            try {
-                Thread.sleep(100);
-                count++;
-                if(count>20){
-                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Audio Read Thread is Still not Runing");
-                    count = 0;
+            if(audioMode==AudioMode.SEND_RECV_MODE) {
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Create AudioRead Thread when AudioMode =%s ",GetAudioModeName(audioMode));
+                audioReadThread = new AudioReadThread();
+                audioReadThread.start();
+            }else if(audioMode==AudioMode.SEND_ONLY_MODE){
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Create AudioReadSimple Thread when AudioMode =%s ",GetAudioModeName(audioMode));
+                audioReadSimpleThread = new AudioReadSimpleThread();
+                audioReadSimpleThread.start();
+            }
+
+            while (!isAudioReadRuning) {
+                try {
+                    Thread.sleep(100);
+                    count++;
+                    if (count > 20) {
+                        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_ERROR, "Audio Read Thread is Still not Runing");
+                        count = 0;
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
             }
         }
         
@@ -359,8 +397,15 @@ public class AudioDevice {
         LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Close Audio !!!!!!!");
 
         if(audioReadThread!=null) {
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Close AudioRead Thread");
             audioReadThread.interrupt();
             audioReadThread = null;
+        }
+
+        if(audioReadSimpleThread!=null){
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Close AudioReadSimple Thread");
+            audioReadSimpleThread.interrupt();
+            audioReadSimpleThread = null;
         }
 
         while(isAudioReadRuning){
@@ -379,8 +424,15 @@ public class AudioDevice {
 
         audioWriteHandlerEnabled = false;
         if(audioWriteHandler !=null) {
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Close AudioWrite Thread");
             audioWriteHandler.getLooper().quit();
         }
+        if(audioWriteSimpleThread!=null){
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Close AudioWriteSimple Thread");
+            audioWriteSimpleThread.interrupt();
+            audioWriteSimpleThread = null;
+        }
+
         while(isAudioWriteRuning){
             try {
                 Thread.sleep(100);
@@ -408,8 +460,17 @@ public class AudioDevice {
         }
 
 
-        if(audioMode==AudioMode.SEND_RECV_MODE){
+        if(aec!=null){
             aec.close();
+            aec = null;
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Close AEC");
+        }
+
+        if(jb!=null) {
+            jb.closeJb(jbIndex);
+            jb.deInitJb();
+            jb = null;
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Close JB");
         }
 
         audioOpenCount--;
@@ -465,10 +526,50 @@ public class AudioDevice {
         }
     }
 
+    class AudioReadSimpleThread extends Thread{
+        public AudioReadSimpleThread(){
+            super("AudioSimpleRead");
+        }
+
+        @Override
+        public void run() {
+            short[] audioReadData = new short[packSize];
+            byte[] rtpData;
+            isAudioReadRuning = true;
+            while (!isInterrupted()) {
+                int readNum = recorder.read(audioReadData, 0, packSize);
+                rtpData = Rtp.EncloureRtp(audioReadData, codec);
+                DatagramPacket dp = new DatagramPacket(rtpData, rtpData.length);
+                try {
+                    dp.setAddress(InetAddress.getByName(dstAddress));
+                    dp.setPort(dstPort);
+                    if (!audioSocket.isClosed()) {
+                        audioSocket.send(dp);
+                        //LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Send %d byte to %s:%d",rtpData.length,dstAddress,dstPort);
+                    }
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+//                            e.printStackTrace();
+//                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_ERROR,"Socket of Audio %s of Dev %s is Closed when Send",id,devId);
+                }
+
+            }
+
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Release Audio Recorder");
+            recorder.stop();
+            recorder.release();
+            recorder = null;
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Exit AudioReadSimple Thread");
+            isAudioReadRuning = false;
+        }
+    }
+
+
     // get data from JB and notify play thread; read date from audio , AEC and send .
     class AudioReadThread extends Thread{
         public AudioReadThread(){
-            super("AudioDeviceRead");
+            super("AudioRead");
         }
     
         @Override
@@ -481,7 +582,6 @@ public class AudioDevice {
             short[] aecData ;
 
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Audio AudioReadThread");
-
 
             isAudioReadRuning = true;
             
@@ -520,7 +620,7 @@ public class AudioDevice {
 //                        aecData = audioReadData;
                     }
                     // rtp packet and send
-                    if(audioMode==AudioMode.SEND_ONLY_MODE||audioMode==AudioMode.SEND_RECV_MODE&&audioSocket!=null){
+                    if((audioMode==AudioMode.SEND_ONLY_MODE||audioMode==AudioMode.SEND_RECV_MODE)&&audioSocket!=null){
                         rtpData = Rtp.EncloureRtp(aecData, codec);
                         DatagramPacket dp = new DatagramPacket(rtpData, rtpData.length);
                         try {
@@ -547,19 +647,19 @@ public class AudioDevice {
                     }
                 }
             }
-            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Exit Audio AudioReadThread");
-
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Release Audio Recorder");
             recorder.stop();
             recorder.release();
             recorder = null;
             isAudioReadRuning = false;
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Exit Audio AudioReadThread");
         }
     }
 
     // audio play
     class AudioWriteThread extends Thread{
         public AudioWriteThread(){
-            super("AudioDeviceWrite");
+            super("AudioWrite");
         }
         
         @Override
@@ -582,12 +682,71 @@ public class AudioDevice {
 
             Looper.loop();
 
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Release Audio Player");
             player.stop();
             player.release();
             player = null;
 
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Exit Audio AudioWriteThread");
+            audioWriteHandler = null;
             isAudioWriteRuning = false;
         }
+    }
+
+    class AudioWriteSimpleThread extends Thread{
+        public AudioWriteSimpleThread(){
+            super("AudioSimpleWrite");
+        }
+
+        @Override
+        public void run() {
+            byte[] jbData = new byte[packSize];
+            int jbDataLen;
+            short[] pcmData;
+            isAudioWriteRuning = true;
+            while (!isInterrupted()) {
+                jbDataLen = jb.getPackage(jbIndex, jbData, packSize);
+                if (jbDataLen > 0) {
+                    pcmData = Rtp.UnenclosureRtp(jbData, jbDataLen, codec);
+                    if (player != null)
+                        player.write(pcmData, 0, pcmData.length);
+                }else{
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        // interrupted exception maybe catch here , and should break while
+                        break;
+                    }
+                }
+            }
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Release Audio Player");
+            player.stop();
+            player.release();
+            player = null;
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Exit AudioWriteSimple Thread");
+            isAudioWriteRuning = false;
+        }
+    }
+
+    private String GetAudioModeName(int mode){
+        String audioModeName = "Unknow Mode";
+
+        switch(mode){
+            case AudioMode.RECV_ONLY_MODE:
+                audioModeName = "RECV_ONLY";
+            break;
+            case AudioMode.SEND_ONLY_MODE:
+                audioModeName = "SEND_ONLY";
+            break;
+            case AudioMode.SEND_RECV_MODE:
+                audioModeName = "SEND_RECV";
+                break;
+            case AudioMode.NO_SEND_RECV_MODE:
+                audioModeName = "NO_SEND_RECV";
+                break;
+        }
+
+        return audioModeName;
     }
 }
