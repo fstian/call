@@ -188,6 +188,23 @@ public class BackEndCallConvergenceManager {
 //        }
 //        return result;
 //    }
+    public boolean CheckBroadCastEnabled(BackEndPhone phone){
+        boolean result = true;
+        if(phone==null)
+            return  false;
+        if(!phone.isReg)
+            return false;
+
+        for(BackEndCallConvergence callConvergence:callConvergenceList.values()){
+            if(!callConvergence.CheckBroadCastEnabled(phone)) {
+                result = false;
+                break;
+            }
+        }
+
+        return result;
+    }
+
 
     private boolean CheckInvitedEnable(BackEndPhone phone){
         boolean result = true;
