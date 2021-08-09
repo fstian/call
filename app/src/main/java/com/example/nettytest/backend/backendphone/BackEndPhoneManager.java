@@ -13,6 +13,7 @@ import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.MsgReceiver;
 import com.example.nettytest.pub.SystemSnap;
 import com.example.nettytest.pub.commondevice.PhoneDevice;
+import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.pub.protocol.ConfigItem;
 import com.example.nettytest.pub.protocol.ConfigReqPack;
 import com.example.nettytest.pub.protocol.ConfigResPack;
@@ -183,8 +184,18 @@ public class BackEndPhoneManager {
         if(area!=null){
             area.GetListenDevices(devices,callType);
         }
+
+        if(callType== CommonCall.CALL_TYPE_BROADCAST){
+            //remove inviting, incoming, talking device
+            for(int iTmp=devices.size()-1;iTmp>=0;iTmp--){
+                BackEndPhone phone = devices.get(iTmp);
+                if(!backEndCallConvergencyMgr.CheckBroadCastEnabled(phone)){
+                    devices.remove(iTmp);
+                }
+            }
+        }
         
-         return devices;
+        return devices;
     }
 
     private String GetTransferAreaIdLocal(String phoneId){

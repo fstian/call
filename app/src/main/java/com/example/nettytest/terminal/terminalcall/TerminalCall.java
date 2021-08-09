@@ -64,6 +64,10 @@ public class TerminalCall extends CommonCall {
         updateTick =CommonCall.UPDATE_INTERVAL;
         autoAnswerTime = pack.autoAnswerTime;
         autoAnswerTick = 0;
+        if(pack.callType == CommonCall.CALL_TYPE_BROADCAST){
+            localRtpPort = pack.callerRtpPort;
+            remoteRtpPort = pack.callerRtpPort;
+        }
 
         InviteResPack resPack = new InviteResPack();
         resPack.ExchangeCopyData(pack);
@@ -101,6 +105,7 @@ public class TerminalCall extends CommonCall {
         callMsg.areaId = pack.areaId;
         callMsg.areaName = pack.areaName;
         callMsg.isTransfer = pack.isTransfer;
+        
 
         Transaction inviteResTransaction = new Transaction(devID,pack,resPack,Transaction.TRANSCATION_DIRECTION_C2S);
         LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Invite From %s to %s, CallID = %s",devID,caller,callee,callID);
@@ -111,6 +116,7 @@ public class TerminalCall extends CommonCall {
 
     public int Answer(){
         AnswerReqPack answerPack = BuildAnswerPacket();
+        
 
         Transaction answerTrans = new Transaction(devID,answerPack,Transaction.TRANSCATION_DIRECTION_C2S);
         HandlerMgr.AddPhoneTrans(answerPack.msgID,answerTrans);
@@ -370,6 +376,7 @@ public class TerminalCall extends CommonCall {
         AnswerResPack answerResPack = new AnswerResPack(ProtocolPacket.STATUS_OK,pack);
         UserCallMessage callMsg = new UserCallMessage();
         int audioMode;
+        
         callMsg.type = UserCallMessage.CALL_MESSAGE_ANSWERED;
         callMsg.devId = devID;
         callMsg.callId = pack.callID;
@@ -383,13 +390,15 @@ public class TerminalCall extends CommonCall {
         remoteRtpAddress = pack.answererRtpIP;
         if(type==CALL_TYPE_BROADCAST){
             audioMode = AudioMode.SEND_ONLY_MODE;
+            callMsg.localRtpPort = pack.answererRtpPort;
         }else if(type == CALL_TYPE_EMERGENCY){
             audioMode = AudioMode.NO_SEND_RECV_MODE;
+            callMsg.localRtpPort = localRtpPort;
         }else{
             audioMode = AudioMode.SEND_RECV_MODE;
+            callMsg.localRtpPort = localRtpPort;
         }
-        
-        callMsg.localRtpPort = localRtpPort;
+
         callMsg.remoteRtpPort = remoteRtpPort;
         callMsg.remoteRtpAddress = remoteRtpAddress;
         callMsg.rtpSample = pack.sample;

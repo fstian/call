@@ -202,7 +202,7 @@ public class AudioDevice {
             if(audioMode== AudioMode.RECV_ONLY_MODE||audioMode==AudioMode.SEND_RECV_MODE||audioMode==AudioMode.SEND_ONLY_MODE){
                 audioSocket = new DatagramSocket(srcPort);
                 audioSocket.setSoTimeout(300);
-                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Open AudioSocket when AudioMode = %s",GetAudioModeName(audioMode));
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Open AudioSocket On Port %d when AudioMode = %s",srcPort,GetAudioModeName(audioMode));
 
                 socketOpenCount++;
                 LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"After OpenSocket Count =%d",socketOpenCount);

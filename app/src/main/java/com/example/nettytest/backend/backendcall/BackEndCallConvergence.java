@@ -49,6 +49,13 @@ public class BackEndCallConvergence {
 
     ArrayList<BackEndCall> listenCallList;
 
+    final static int BROAD_CAST_PORT_START = 19094;
+    final static int BROAD_CAST_PORT_NUM = 10000;
+
+    static int broadCastPort = BROAD_CAST_PORT_START;
+    int curBroadCastPort =BROAD_CAST_PORT_START ;
+
+
     public String GetCallerId(){
         return callerNum;
     }
@@ -62,9 +69,20 @@ public class BackEndCallConvergence {
         String listenAreaId;
         boolean isTransfer = false;
 
-        listenAreaId = HandlerMgr.GetListenAreaId(caller.id);   
         inviteAreaId = caller.devInfo.areaId;
+        
+        if(pack.callType==CommonCall.CALL_TYPE_BROADCAST){
+            listenAreaId = inviteAreaId;
+            broadCastPort++;
+            if(broadCastPort>=BROAD_CAST_PORT_START+BROAD_CAST_PORT_NUM){
+                broadCastPort = BROAD_CAST_PORT_START;
+            }
+            curBroadCastPort = broadCastPort;
+        }else{
+            listenAreaId = HandlerMgr.GetListenAreaId(caller.id);   
+        }
 
+        
         if(caller.devInfo.areaId.compareToIgnoreCase(listenAreaId)!=0){
             isTransfer = true;
         }
@@ -100,8 +118,10 @@ public class BackEndCallConvergence {
                 invitePacket.areaName = caller.devInfo.areaName;
                 invitePacket.isTransfer = isTransfer;
                 
-                if(invitePacket.callType==CommonCall.CALL_TYPE_BROADCAST)
+                if(invitePacket.callType==CommonCall.CALL_TYPE_BROADCAST){
                     invitePacket.autoAnswerTime = invitePacket.autoAnswerTime/2;
+                    invitePacket.callerRtpPort = curBroadCastPort;
+                }
                 invitePacket.receiver = phone.id;
                 invitePacket.msgID = UniqueIDManager.GetUniqueID(phone.id, UniqueIDManager.MSG_UNIQUE_ID);
 
@@ -524,6 +544,7 @@ public class BackEndCallConvergence {
                 answerReqPack.answererRtpIP = PhoneParam.BROAD_ADDRESS;
             else
                 answerReqPack.answererRtpIP = PhoneParam.GetLocalAddress();
+            answerReqPack.answererRtpPort = curBroadCastPort;
         }else{
             answerReqPack.answererRtpPort = PhoneParam.ANSWER_CALL_RTP_PORT;
             answerReqPack.answererRtpIP = PhoneParam.GetLocalAddress();
@@ -753,6 +774,31 @@ public class BackEndCallConvergence {
                             break;
                     }
                     break;
+            }
+        }
+
+        return result;
+    }
+
+    public boolean CheckBroadCastEnabled(BackEndPhone phone){
+        boolean result = true;
+
+        if(!phone.isReg)
+            result = false;
+        else {
+            if (inviteCall.caller.compareToIgnoreCase(phone.id) == 0)
+                result = false;
+            else if (inviteCall.callee.compareToIgnoreCase(phone.id) == 0)
+                result = false;
+            else if (inviteCall.answer.compareToIgnoreCase(phone.id) == 0)
+                result = false;
+            else {
+                for (CommonCall listenCall : listenCallList) {
+                    if (listenCall.devID.compareToIgnoreCase(phone.id) == 0) {
+                        result = false;
+                        break;
+                    }
+                }
             }
         }
 
