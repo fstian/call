@@ -105,7 +105,6 @@ public class TerminalCall extends CommonCall {
         callMsg.areaId = pack.areaId;
         callMsg.areaName = pack.areaName;
         callMsg.isTransfer = pack.isTransfer;
-        
 
         Transaction inviteResTransaction = new Transaction(devID,pack,resPack,Transaction.TRANSCATION_DIRECTION_C2S);
         LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Invite From %s to %s, CallID = %s",devID,caller,callee,callID);
@@ -116,7 +115,6 @@ public class TerminalCall extends CommonCall {
 
     public int Answer(){
         AnswerReqPack answerPack = BuildAnswerPacket();
-        
 
         Transaction answerTrans = new Transaction(devID,answerPack,Transaction.TRANSCATION_DIRECTION_C2S);
         HandlerMgr.AddPhoneTrans(answerPack.msgID,answerTrans);
@@ -376,7 +374,6 @@ public class TerminalCall extends CommonCall {
         AnswerResPack answerResPack = new AnswerResPack(ProtocolPacket.STATUS_OK,pack);
         UserCallMessage callMsg = new UserCallMessage();
         int audioMode;
-        
         callMsg.type = UserCallMessage.CALL_MESSAGE_ANSWERED;
         callMsg.devId = devID;
         callMsg.callId = pack.callID;

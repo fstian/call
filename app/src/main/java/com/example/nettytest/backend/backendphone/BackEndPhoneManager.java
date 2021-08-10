@@ -193,6 +193,14 @@ public class BackEndPhoneManager {
                     devices.remove(iTmp);
                 }
             }
+        }else{
+            //remove inviting device
+            for(int iTmp=devices.size()-1;iTmp>=0;iTmp--){
+                BackEndPhone phone = devices.get(iTmp);
+                if(!backEndCallConvergencyMgr.CheckListenEnabled(phone)){
+                    devices.remove(iTmp);
+                }
+            }
         }
         
         return devices;

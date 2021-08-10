@@ -188,6 +188,24 @@ public class BackEndCallConvergenceManager {
 //        }
 //        return result;
 //    }
+
+    public boolean CheckListenEnabled(BackEndPhone phone){
+        boolean result = true;
+        if(phone==null)
+            return  false;
+        if(!phone.isReg)
+            return false;
+
+        for(BackEndCallConvergence callConvergence:callConvergenceList.values()){
+            if(!callConvergence.CheckListenEnabled(phone)) {
+                result = false;
+                break;
+            }
+        }
+
+        return result;
+    }
+    
     public boolean CheckBroadCastEnabled(BackEndPhone phone){
         boolean result = true;
         if(phone==null)

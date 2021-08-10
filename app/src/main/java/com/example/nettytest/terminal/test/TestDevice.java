@@ -182,7 +182,9 @@ public class TestDevice extends UserDevice{
         OperationResult result;
         result = UserInterface.AnswerCall(devid,callid);
         if(result.result == OperationResult.OP_RESULT_OK) {
-            isCallOut = false;
+// in listen mode, phone will answer when call out
+//            isCallOut = false;
+
 // call status is not connected. answer maybe fail           
 // but status is not connected, phone will maybe answer other call.
 //            talkPeer = GetIncomingCaller(callid);

@@ -81,7 +81,6 @@ public class BackEndCallConvergence {
         }else{
             listenAreaId = HandlerMgr.GetListenAreaId(caller.id);   
         }
-
         
         if(caller.devInfo.areaId.compareToIgnoreCase(listenAreaId)!=0){
             isTransfer = true;
@@ -544,7 +543,7 @@ public class BackEndCallConvergence {
                 answerReqPack.answererRtpIP = PhoneParam.BROAD_ADDRESS;
             else
                 answerReqPack.answererRtpIP = PhoneParam.GetLocalAddress();
-            answerReqPack.answererRtpPort = curBroadCastPort;
+                answerReqPack.answererRtpPort = curBroadCastPort;
         }else{
             answerReqPack.answererRtpPort = PhoneParam.ANSWER_CALL_RTP_PORT;
             answerReqPack.answererRtpIP = PhoneParam.GetLocalAddress();
@@ -800,6 +799,21 @@ public class BackEndCallConvergence {
                     }
                 }
             }
+        }
+
+        return result;
+    }
+
+
+    public boolean CheckListenEnabled(BackEndPhone phone){
+        boolean result = true;
+
+        if(!phone.isReg)
+            result = false;
+        else {
+            if (inviteCall.state==CommonCall.CALL_STATE_INCOMING||inviteCall.state==CommonCall.CALL_STATE_DIALING||inviteCall.state==CommonCall.CALL_STATE_RINGING)
+                if(inviteCall.caller.compareToIgnoreCase(phone.id) == 0)
+                    result = false;
         }
 
         return result;
