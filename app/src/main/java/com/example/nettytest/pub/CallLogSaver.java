@@ -163,8 +163,18 @@ public class CallLogSaver {
             break;
         case CALL_LOG_SAVE_FINISH:
             retryCount = 0;
-            state = CALL_LOG_SAVER_IDLE;
-            curCallLog = null;
+            synchronized(callLogList) {
+                if(callLogList.size()<=0){
+                    state = CALL_LOG_SAVER_IDLE;
+                    curCallLog = null;
+                }else{
+                    curCallLog = callLogList.remove(0);
+                }
+                if(curCallLog!=null) {
+                    state = CALL_LOG_SAVER_WRITTING;
+                    WriteCallLog(curCallLog);
+                }
+            }
             break;            
         }
     }

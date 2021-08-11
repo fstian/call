@@ -106,7 +106,7 @@ public class PhoneParam {
 
     public static int DEFAULT_SNAP_PORT = 11004;
 
-    public final static String VER_STR = "1.1.3";
+    public final static String VER_STR = "1.2.3";
 
     public static String localAddress = "";
 

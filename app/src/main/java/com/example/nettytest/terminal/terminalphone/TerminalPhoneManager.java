@@ -22,6 +22,7 @@ import com.example.nettytest.pub.protocol.EndResPack;
 import com.example.nettytest.pub.protocol.InviteReqPack;
 import com.example.nettytest.pub.protocol.InviteResPack;
 import com.example.nettytest.pub.protocol.ListenCallResPack;
+import com.example.nettytest.pub.protocol.ListenClearReqPack;
 import com.example.nettytest.pub.protocol.ProtocolPacket;
 import com.example.nettytest.pub.protocol.RegResPack;
 import com.example.nettytest.pub.protocol.StartVideoReqPack;
@@ -556,6 +557,11 @@ public class TerminalPhoneManager {
                     ListenCallResPack listenResP = (ListenCallResPack)packet;
                     LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Call Listen Res",listenResP.receiver);
                     phone.UpdateListenCall(listenResP);
+                    break;
+                case ProtocolPacket.CALL_LISTEN_CLEAR_REQ:
+                    ListenClearReqPack listenClearP = (ListenClearReqPack)packet;
+                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Call Listen Clear Req",listenClearP.receiver);
+                    phone.UpdateListenCall(listenClearP);
                     break;
                 case ProtocolPacket.CALL_VIDEO_INVITE_REQ:
                     StartVideoReqPack startVideoReqP = (StartVideoReqPack)packet;
