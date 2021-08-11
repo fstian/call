@@ -5,7 +5,7 @@ public class TerminalDeviceInfo {
     public String patientAge;
 
     public TerminalDeviceInfo(){
-        patientAge = "18";
+        patientAge = "";
         patientName = "";
     }
 

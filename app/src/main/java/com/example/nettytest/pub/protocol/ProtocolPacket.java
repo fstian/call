@@ -85,6 +85,9 @@ public class ProtocolPacket {
     public final static int CALL_VIDEO_END_REQ = 14;
     public final static int CALL_VIDEO_END_RES = 114;
 
+    public final static int CALL_LISTEN_CLEAR_REQ = 15;
+    public final static int CALL_LISTEN_CLEAR_RES = 115;
+
     public final static int MAX_REQ_TYPE = 100;
     public final static int UNKNOW_CMD_RES = 200;
 
@@ -259,6 +262,12 @@ public class ProtocolPacket {
                 break;
             case CALL_VIDEO_ANSWER_RES:
                 packetTypeName = "Video_Answer_res";
+                break;
+            case CALL_LISTEN_CLEAR_REQ:
+                packetTypeName = "Listen_Clear_req";
+                break;
+            case CALL_LISTEN_CLEAR_RES:
+                packetTypeName = "Listen_Clear_res";
                 break;
         }
         return packetTypeName;

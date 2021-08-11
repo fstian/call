@@ -314,6 +314,16 @@ public class ProtocolFactory {
                         p = listeReqP;
                     }
                     break;
+                case ProtocolPacket.CALL_LISTEN_CLEAR_REQ:
+                    ListenClearReqPack listenClearReqP = new ListenClearReqPack();
+                    PutDefaultData(listenClearReqP,json);
+                    context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
+                    if(context!=null){
+                        listenClearReqP.devID = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
+                        listenClearReqP.status = context.getBooleanValue(ProtocolPacket.PACKET_LISTEN_STATE_NAME);
+                        p = listenClearReqP;
+                    }
+                    break;
                 case ProtocolPacket.CALL_LISTEN_RES:
                     ListenCallResPack listenResP = new ListenCallResPack();
                     PutDefaultData(listenResP,json);
@@ -324,6 +334,18 @@ public class ProtocolFactory {
                         listenResP.status = context.getIntValue(ProtocolPacket.PACKET_STATUS_NAME);
                         listenResP.result = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_RESULT_NAME);
                         p = listenResP;
+                    }
+                    break;
+                case ProtocolPacket.CALL_LISTEN_CLEAR_RES:
+                    ListenClearResPack listenClearResP = new ListenClearResPack();
+                    PutDefaultData(listenClearResP,json);
+                    context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
+                    if(context!=null){
+                        listenClearResP.devId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
+                        listenClearResP.state = context.getBooleanValue(ProtocolPacket.PACKET_LISTEN_STATE_NAME);
+                        listenClearResP.status = context.getIntValue(ProtocolPacket.PACKET_STATUS_NAME);
+                        listenClearResP.result = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_RESULT_NAME);
+                        p = listenClearResP;
                     }
                     break;
                 case ProtocolPacket.CALL_VIDEO_INVITE_REQ:
@@ -620,6 +642,20 @@ public class ProtocolFactory {
                     context.put(ProtocolPacket.PACKET_LISTEN_STATE_NAME,listenResP.state);
                     context.put(ProtocolPacket.PACKET_RESULT_NAME,listenResP.result);
                     context.put(ProtocolPacket.PACKET_STATUS_NAME,listenResP.status);
+                    json.put(ProtocolPacket.PACKET_CONTEXT_NAME,context);
+                    break;
+                case ProtocolPacket.CALL_LISTEN_CLEAR_REQ:
+                    ListenClearReqPack listenClearReqP = (ListenClearReqPack)p;
+                    context.put(ProtocolPacket.PACKET_DEVID_NAME,listenClearReqP.devID);
+                    context.put(ProtocolPacket.PACKET_LISTEN_STATE_NAME,listenClearReqP.status);
+                    json.put(ProtocolPacket.PACKET_CONTEXT_NAME,context);
+                    break;
+                case ProtocolPacket.CALL_LISTEN_CLEAR_RES:
+                    ListenClearResPack listenClearResP = (ListenClearResPack)p;
+                    context.put(ProtocolPacket.PACKET_DEVID_NAME,listenClearResP.devId);
+                    context.put(ProtocolPacket.PACKET_LISTEN_STATE_NAME,listenClearResP.state);
+                    context.put(ProtocolPacket.PACKET_RESULT_NAME,listenClearResP.result);
+                    context.put(ProtocolPacket.PACKET_STATUS_NAME,listenClearResP.status);
                     json.put(ProtocolPacket.PACKET_CONTEXT_NAME,context);
                     break;
                 case ProtocolPacket.CALL_VIDEO_INVITE_REQ:

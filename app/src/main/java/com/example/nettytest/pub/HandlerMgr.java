@@ -452,8 +452,8 @@ public class HandlerMgr {
 
 // get listen phone
 
-    static public String GetListenAreaId(String phoneId){
-        return backEndPhoneMgr.GetListenAreaId(phoneId);
+    static public String GetForwardAreaId(String phoneId){
+        return backEndPhoneMgr.GetForwardAreaId(phoneId);
     }
 
     static public ArrayList<BackEndPhone> GetBackEndListenDevices(String areaId,int callType){

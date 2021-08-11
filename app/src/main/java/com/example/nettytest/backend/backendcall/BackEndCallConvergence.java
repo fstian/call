@@ -79,7 +79,7 @@ public class BackEndCallConvergence {
             }
             curBroadCastPort = broadCastPort;
         }else{
-            listenAreaId = HandlerMgr.GetListenAreaId(caller.id);   
+            listenAreaId = HandlerMgr.GetForwardAreaId(caller.id);   
         }
         
         if(caller.devInfo.areaId.compareToIgnoreCase(listenAreaId)!=0){

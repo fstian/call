@@ -10,6 +10,8 @@ import com.example.nettytest.pub.protocol.ConfigResPack;
 import com.example.nettytest.pub.protocol.EndReqPack;
 import com.example.nettytest.pub.protocol.ListenCallReqPack;
 import com.example.nettytest.pub.protocol.ListenCallResPack;
+import com.example.nettytest.pub.protocol.ListenClearReqPack;
+import com.example.nettytest.pub.protocol.ListenClearResPack;
 import com.example.nettytest.pub.protocol.RegResPack;
 import com.example.nettytest.pub.protocol.StartVideoReqPack;
 import com.example.nettytest.pub.protocol.StartVideoResPack;
@@ -267,6 +269,25 @@ public class TerminalPhone extends PhoneDevice {
 
         HandlerMgr.SendMessageToUser(UserMessage.MESSAGE_LISTEN_CALL_INFO,listenMsg);
         
+    }
+
+    public void UpdateListenCall(ListenClearReqPack p){
+        ListenCallMessage listenMsg = new ListenCallMessage();
+        ListenClearResPack resP = new ListenClearResPack(ProtocolPacket.STATUS_OK,p);
+
+        listenMsg.type = UserMessage.CALL_LISTEN_CHANGE;
+        listenMsg.devId = id;
+        listenMsg.reason = OperationResult.GetUserFailReason(ProtocolPacket.STATUS_OK);
+        listenMsg.state = p.status;
+
+        isListenCall = p.status;
+
+        Transaction trans = new Transaction(id,p,resP,Transaction.TRANSCATION_DIRECTION_C2S);
+        HandlerMgr.AddPhoneTrans(resP.msgID,trans);
+
+        HandlerMgr.SendMessageToUser(UserMessage.MESSAGE_LISTEN_CALL_INFO,listenMsg);
+        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Type %d Recv Listen Change to %b",id,type,p.status);
+
     }
 
     public void UpdateConfig(ConfigResPack res){

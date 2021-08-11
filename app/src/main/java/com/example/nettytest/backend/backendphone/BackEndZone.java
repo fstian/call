@@ -1,9 +1,16 @@
 package com.example.nettytest.backend.backendphone;
 
 import com.example.nettytest.pub.CallParams;
+import com.example.nettytest.pub.HandlerMgr;
+import com.example.nettytest.pub.LogWork;
+import com.example.nettytest.pub.UniqueIDManager;
 import com.example.nettytest.pub.commondevice.PhoneDevice;
 import com.example.nettytest.pub.phonecall.CommonCall;
+import com.example.nettytest.pub.protocol.ListenCallReqPack;
+import com.example.nettytest.pub.protocol.ListenClearReqPack;
 import com.example.nettytest.pub.result.FailReason;
+import com.example.nettytest.pub.transaction.Transaction;
+import com.example.nettytest.userinterface.PhoneParam;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -81,9 +88,17 @@ public class BackEndZone {
         return 0;
     }
 
-    public int ClearAllListen(){
+    public int ClearAllListenExcept(String id){
         for(BackEndPhone phone:phoneList.values()) {
-            phone.enableListen  =  false;
+            if(phone.type == PhoneDevice.BED_CALL_DEVICE) {
+                if (phone.enableListen&&id.compareToIgnoreCase(phone.id)!=0) {
+                    ListenClearReqPack clearReqP = BuildListenClearPacket(phone.id);
+                    Transaction clearTrans = new Transaction(phone.id,clearReqP,Transaction.TRANSCATION_DIRECTION_S2C);
+                    HandlerMgr.AddBackEndTrans(clearReqP.msgID,clearTrans);
+                    phone.enableListen = false;
+                    LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_DEBUG,"BackEnd Send Cmd to Clear Listen Flag on Dev %s",phone.id);
+                }
+            }
         }
         return 0;
     }
@@ -178,6 +193,15 @@ public class BackEndZone {
                     devices.add(phone);
                 }
             }
+    }
+
+    private ListenClearReqPack BuildListenClearPacket(String devid){
+        ListenClearReqPack listenClearReqP = new ListenClearReqPack(devid);
+
+        listenClearReqP.sender = PhoneParam.CALL_SERVER_ID;
+        listenClearReqP.receiver = devid;
+        listenClearReqP.msgID = UniqueIDManager.GetUniqueID(devid,UniqueIDManager.MSG_UNIQUE_ID);
+        return listenClearReqP;
     }
 }
 

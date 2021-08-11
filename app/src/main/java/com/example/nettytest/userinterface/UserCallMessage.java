@@ -52,7 +52,7 @@ public class UserCallMessage extends UserMessage {
 
         deviceName = "";
         patientName = "";
-        patientAge = "18";
+        patientAge = "";
         bedName = "";
         roomId = "";
 

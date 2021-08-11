@@ -232,7 +232,7 @@ public class BackEndPhoneManager {
         return areaId;
     }
 
-    public String GetListenAreaId(String phoneId){
+    public String GetForwardAreaId(String phoneId){
         String areaId;
 
         areaId = GetTransferAreaIdLocal(phoneId);
@@ -600,17 +600,21 @@ public class BackEndPhoneManager {
         return systemConfigList;
     }
 
-    private void ClearAllListen(){
+    private void ClearListenInZoneExcept(String zoneId,String id){
         for(BackEndZone area:serverAreaLists.values()){
-            area.ClearAllListen();
+            if(zoneId.compareToIgnoreCase(area.areaId)==0) {
+                area.ClearAllListenExcept(id);
+            }
         }
     }
 
     private int  SetListenDevice(String id,boolean status){
         BackEndPhone phone;
+        String zoneId;
         int resStatus = ProtocolPacket.STATUS_OK;
         
         phone = GetLocalDevice(id);
+        zoneId = GetWorkAreaIdLocal(id);
         if(phone==null){
             resStatus = ProtocolPacket.STATUS_NOTFOUND;
         }else{
@@ -618,10 +622,11 @@ public class BackEndPhoneManager {
                 resStatus = ProtocolPacket.STATUS_NOTSUPPORT;
             }else{
                 if(status){
-                    ClearAllListen();
+                    ClearListenInZoneExcept(zoneId,id);
                 }            
                 phone.enableListen = status;
                 resStatus = ProtocolPacket.STATUS_OK;
+                LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_DEBUG,"BackEnd Set Dev %s Listen State %b",phone.id,status);
             }
         }
         return resStatus;

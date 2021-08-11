@@ -1,6 +1,7 @@
 package com.example.nettytest.terminal.test;
 
 import com.alibaba.fastjson.*;
+import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.SystemSnap;
 import com.example.nettytest.pub.result.FailReason;
 import com.example.nettytest.userinterface.ListenCallMessage;
@@ -516,8 +517,9 @@ public class TestDevice extends UserDevice{
     }
 
     public void UpdateListenInfo(ListenCallMessage msg){
-        if(msg.type==UserMessage.CALL_LISTEN_SUCC){
+        if(msg.type==UserMessage.CALL_LISTEN_SUCC||msg.type==UserMessage.CALL_LISTEN_CHANGE){
             bedlistenCalls = msg.state;
+            UserInterface.PrintLog("TestDevice %s Update Listen State to %b",devid,bedlistenCalls);
         }
     }
 
