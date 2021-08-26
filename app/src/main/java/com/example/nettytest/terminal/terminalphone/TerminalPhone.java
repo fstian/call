@@ -19,6 +19,8 @@ import com.example.nettytest.pub.protocol.StopVideoReqPack;
 import com.example.nettytest.pub.protocol.StopVideoResPack;
 import com.example.nettytest.pub.protocol.SystemConfigReqPack;
 import com.example.nettytest.pub.protocol.SystemConfigResPack;
+import com.example.nettytest.pub.protocol.TransferChangeReqPack;
+import com.example.nettytest.pub.protocol.TransferChangeResPack;
 import com.example.nettytest.pub.protocol.TransferReqPack;
 import com.example.nettytest.pub.protocol.TransferResPack;
 import com.example.nettytest.pub.protocol.UpdateReqPack;
@@ -245,6 +247,27 @@ public class TerminalPhone extends PhoneDevice {
             transferMsg.reason = OperationResult.GetUserFailReason(p.status);
             LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Set Call Transfer Fail, result is %s ",id,p.result);
         }
+        HandlerMgr.SendMessageToUser(UserMessage.MESSAGE_TRANSFER_INFO,transferMsg);
+    }
+
+    public void UpdateCallTransfer(TransferChangeReqPack p){
+        TransferMessage transferMsg = new TransferMessage();
+        TransferChangeResPack resP = new TransferChangeResPack(ProtocolPacket.STATUS_OK,p);
+
+
+        transferMsg.type = UserMessage.CALL_TRANSFER_CHANGE;
+        transferMsg.devId = id;
+        transferMsg.state = p.state;
+        transferMsg.transferAreaId = p.transferAreaId;
+
+        Transaction trans = new Transaction(id,p,resP,Transaction.TRANSCATION_DIRECTION_C2S);
+        HandlerMgr.AddPhoneTrans(resP.msgID,trans);
+
+        if(transferMsg.state)
+            LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Call Transfer to %s ",id,transferMsg.transferAreaId);
+        else
+            LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Clear Call Transfer ",id);
+
         HandlerMgr.SendMessageToUser(UserMessage.MESSAGE_TRANSFER_INFO,transferMsg);
     }
 

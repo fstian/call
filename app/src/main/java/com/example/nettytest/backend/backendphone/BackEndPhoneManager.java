@@ -520,12 +520,36 @@ public class BackEndPhoneManager {
 
     private int SetAreaTransfer(String devid,String areaid){
         int result = ProtocolPacket.STATUS_NOTFOUND;
+        String configAreaId = "";
+        BackEndZone oldArea;
 
+        // clear transfer in dest area
+        oldArea = serverAreaLists.get(areaid);
+        if(oldArea!=null){
+            if(!oldArea.transferAreaId.isEmpty()) {
+                oldArea.transferAreaId = "";
+                oldArea.NotifyTransferChangExcept("");
+            }
+        }
+
+        // set transfer
         for(BackEndZone area:serverAreaLists.values()){
             if(area.GetDevice(devid)!=null){
                 area.transferAreaId = areaid;
+                configAreaId = area.areaId;
                 result = ProtocolPacket.STATUS_OK;
+                area.NotifyTransferChangExcept(devid);
                 break;
+            }
+        }
+
+        // clear transfer to config area
+        if(!configAreaId.isEmpty()){
+            for(BackEndZone area:serverAreaLists.values()){
+                if(area.transferAreaId.compareToIgnoreCase(configAreaId)==0){
+                    area.transferAreaId = "";
+                    area.NotifyTransferChangExcept("");
+                }
             }
         }
 

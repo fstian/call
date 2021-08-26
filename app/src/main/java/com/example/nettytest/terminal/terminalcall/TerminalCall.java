@@ -115,6 +115,7 @@ public class TerminalCall extends CommonCall {
 
     public int Answer(){
         AnswerReqPack answerPack = BuildAnswerPacket();
+        answer = devID;
 
         Transaction answerTrans = new Transaction(devID,answerPack,Transaction.TRANSCATION_DIRECTION_C2S);
         HandlerMgr.AddPhoneTrans(answerPack.msgID,answerTrans);
@@ -173,7 +174,17 @@ public class TerminalCall extends CommonCall {
 
 
     public int EndCall(){
-        EndReqPack endPack = BuildEndPacket();
+        int reason;
+        if(devID.compareToIgnoreCase(caller)==0)
+            reason = EndReqPack.END_BY_CALLER;
+        else if(devID.compareToIgnoreCase(answer)==0)
+            reason = EndReqPack.END_BY_ANSWER;
+        else if(devID.compareToIgnoreCase(callee)==0)
+            reason = EndReqPack.END_BY_CALLEE;
+        else
+            reason = EndReqPack.END_BY_LISTENER;
+
+        EndReqPack endPack = BuildEndPacket(reason);
 
         LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s End Call %s! ",devID,callID);
 
@@ -182,6 +193,7 @@ public class TerminalCall extends CommonCall {
         callMsg.devId = devID;
         callMsg.callId = callID;
         callMsg.callType = type;
+        callMsg.endReason = UserCallMessage.CALL_END_BY_SELF;
 //        if(!audioId.isEmpty())
 //            AudioMgr.CloseAudio(audioId);
 
@@ -311,13 +323,14 @@ public class TerminalCall extends CommonCall {
         callMsg.callId = pack.callID;
         callMsg.callType = type;
         callMsg.type = UserMessage.CALL_MESSAGE_DISCONNECT;
+        callMsg.endReason = pack.endReason;
 
 //        if(!audioId.isEmpty())
 //            AudioMgr.CloseAudio(audioId);
 
         EndResPack endResPack = new EndResPack(ProtocolPacket.STATUS_OK,pack);
         Transaction endResTrans = new Transaction(devID,pack,endResPack,Transaction.TRANSCATION_DIRECTION_C2S);
-        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Call End Req for CallID = %s from Dev %s, and Send End Res to Server! ",devID,callID,pack.endDevID);
+        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Call End Req for CallID = %s from Dev %s, Reason is %s, and Send End Res to Server! ",devID,callID,pack.endDevID,EndReqPack.GetEndReasonName(pack.endReason));
         HandlerMgr.AddPhoneTrans(endResPack.msgID,endResTrans);
         HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
         
@@ -524,7 +537,7 @@ public class TerminalCall extends CommonCall {
         return invitePack;
     }
 
-    private EndReqPack BuildEndPacket(){
+    private EndReqPack BuildEndPacket(int reason){
         EndReqPack endPacket = new EndReqPack();
 
         endPacket.sender = devID;
@@ -534,6 +547,7 @@ public class TerminalCall extends CommonCall {
 
         endPacket.callID = callID;
         endPacket.endDevID = devID;
+        endPacket.endReason = reason;
 
         return endPacket;
     }

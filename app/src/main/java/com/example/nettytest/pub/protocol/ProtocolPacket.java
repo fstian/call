@@ -45,6 +45,7 @@ public class ProtocolPacket {
     public final static String PACKET_CALLID_NAME = "callID";
     public final static String PACKET_DETAIL_NAME = "detail";
     public final static String PACKET_AUTOANSWER_TIME_NAME = "autoAnswerTime";
+    public final static String PACKET_END_REASON_NAME = "endReason";
 
     public final static String PACKET_PARAMS_NAME = "params";
     public final static String PACKET_PARAM_ID_NAME = "paramId";
@@ -87,6 +88,9 @@ public class ProtocolPacket {
 
     public final static int CALL_LISTEN_CLEAR_REQ = 15;
     public final static int CALL_LISTEN_CLEAR_RES = 115;
+
+    public final static int CALL_TRANSFER_CHANGE_REQ = 16;
+    public final static int CALL_TRANSFER_CHANGE_RES = 116;
 
     public final static int MAX_REQ_TYPE = 100;
     public final static int UNKNOW_CMD_RES = 200;
@@ -268,6 +272,12 @@ public class ProtocolPacket {
                 break;
             case CALL_LISTEN_CLEAR_RES:
                 packetTypeName = "Listen_Clear_res";
+                break;
+            case CALL_TRANSFER_CHANGE_REQ:
+                packetTypeName = "Transfer_Change_req";
+                break;
+            case CALL_TRANSFER_CHANGE_RES:
+                packetTypeName = "Transfer_Change_res";
                 break;
         }
         return packetTypeName;
