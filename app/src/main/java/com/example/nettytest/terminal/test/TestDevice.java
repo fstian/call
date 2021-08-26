@@ -507,12 +507,13 @@ public class TestDevice extends UserDevice{
     }
 
     public void UpdateTransferInfo(TransferMessage msg){
-        if(msg.type == UserMessage.CALL_TRANSFER_SUCC){
+        if(msg.type == UserMessage.CALL_TRANSFER_SUCC||msg.type==UserMessage.CALL_TRANSFER_CHANGE){
             if(msg.state==true){
                 transferAreaId = msg.transferAreaId;
             }else{
                 transferAreaId = "";
             }
+            UserInterface.PrintLog("TestDevice %s Update Transfer area to %s",devid,transferAreaId);
         }
     }
 
@@ -545,6 +546,9 @@ public class TestDevice extends UserDevice{
                 case UserCallMessage.CALL_MESSAGE_END_FAIL:    
                 case UserCallMessage.CALL_MESSAGE_INVITE_FAIL:
                 case UserCallMessage.CALL_MESSAGE_UNKNOWFAIL:
+                    if(msg.type==UserCallMessage.CALL_MESSAGE_DISCONNECT){
+                        UserInterface.PrintLog("DEV %s Recv End Msg for Call %s, reason is %s",devid,msg.callId,UserCallMessage.GetEndReasonName(msg.endReason));
+                    }
                     if (outGoingCall.status!= LocalCallInfo.LOCAL_CALL_STATUS_DISCONNECT&&msg.callId.compareToIgnoreCase(outGoingCall.callID) == 0) {
                         if (outGoingCall.status == LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED) {
                             talkPeer = "";

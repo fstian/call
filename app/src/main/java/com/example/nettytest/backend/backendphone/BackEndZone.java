@@ -8,6 +8,7 @@ import com.example.nettytest.pub.commondevice.PhoneDevice;
 import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.pub.protocol.ListenCallReqPack;
 import com.example.nettytest.pub.protocol.ListenClearReqPack;
+import com.example.nettytest.pub.protocol.TransferChangeReqPack;
 import com.example.nettytest.pub.result.FailReason;
 import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.userinterface.PhoneParam;
@@ -71,6 +72,26 @@ public class BackEndZone {
             phone.paramList.clear();
         }
         return result;
+    }
+
+    public int NotifyTransferChangExcept(String devId){
+        for(BackEndPhone phone:phoneList.values()){
+            if(phone.type==PhoneDevice.NURSE_CALL_DEVICE){
+                if(devId.compareToIgnoreCase(phone.id)!=0){
+                    TransferChangeReqPack req = new TransferChangeReqPack(phone.id);
+                    req.sender = PhoneParam.CALL_SERVER_ID;
+                    req.receiver = phone.id;
+                    if(!transferAreaId.isEmpty()){
+                        req.transferAreaId = transferAreaId;
+                        req.state = true;
+                    }
+                    req.msgID = UniqueIDManager.GetUniqueID(phone.id,UniqueIDManager.MSG_UNIQUE_ID);
+                    Transaction trans = new Transaction(phone.id,req,Transaction.TRANSCATION_DIRECTION_S2C);
+                    HandlerMgr.AddBackEndTrans(req.msgID, trans);
+                }
+            }
+        }
+        return 0;
     }
 
     public String GetTransferAreaId(){

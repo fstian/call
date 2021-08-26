@@ -6,7 +6,7 @@ public class ListenClearReqPack extends ProtocolPacket{
 
     public ListenClearReqPack(){
         super();
-        type = ProtocolPacket.CALL_LISTEN_REQ;
+        type = ProtocolPacket.CALL_LISTEN_CLEAR_REQ;
         devID = "";
         status = false;
     }

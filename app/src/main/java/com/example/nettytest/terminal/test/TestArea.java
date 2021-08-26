@@ -5,10 +5,12 @@ import java.util.ArrayList;
 public class TestArea {
     public ArrayList<TestDevice> devList;
     public String areaId;
+    public String waitTransferAreaId;
 
     public TestArea(String id){
         areaId = id;
         devList = new ArrayList<>();
+        waitTransferAreaId = "";
     }
 
     public int AddTestDevice(TestDevice dev){

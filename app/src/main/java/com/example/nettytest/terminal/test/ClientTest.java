@@ -154,11 +154,18 @@ public class ClientTest {
     public String GetOtherAreaId(String areaId){
         String otherAreaId = "";
 
+
         synchronized(areaList){
-            for(TestArea area:areaList){
-                if(area.areaId.compareToIgnoreCase(areaId)!=0){
-                    otherAreaId = area.areaId;
-                    break;
+            TestArea curArea = areaList.get(selectArea);
+            if(curArea!=null){
+                otherAreaId = curArea.waitTransferAreaId;
+            }
+            if(otherAreaId.isEmpty()) {
+                for (TestArea area : areaList) {
+                    if (area.areaId.compareToIgnoreCase(areaId) != 0) {
+                        otherAreaId = area.areaId;
+                        break;
+                    }
                 }
             }
         }
@@ -235,6 +242,7 @@ public class ClientTest {
         UserDevice dev;
         TestDevice device;
         int num = 0;
+        String transferAreaId = "";
 
         deviceNum = PhoneParam.deviceList.size();
         if(PhoneParam.clientActive){
@@ -250,9 +258,12 @@ public class ClientTest {
                                 matchedArea = area;
                                 break;
                             }
+                            if(transferAreaId.isEmpty())
+                                transferAreaId = area.areaId;
                         }
                         if (matchedArea == null) {
                             matchedArea = new TestArea(dev.areaId);
+                            matchedArea.waitTransferAreaId = transferAreaId;
                             areaList.add(matchedArea);
                         }
                         matchedArea.AddTestDevice(device);

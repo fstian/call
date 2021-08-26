@@ -31,6 +31,7 @@ public class UserMessage {
     public final static int CALL_VIDEO_REQ_ANSWER = 13;
     public final static int CALL_MESSAGE_UPDATE_SUCC = 14;
     public final static int CALL_LISTEN_CHANGE = 15;
+    public final static int CALL_TRANSFER_CHANGE = 16;
 
     public final static int CALL_MESSAGE_SUCC_MAX = 100;
     public final static int CALL_MESSAGE_INVITE_FAIL = 101;
@@ -141,6 +142,9 @@ public class UserMessage {
                 break;
             case CALL_LISTEN_CHANGE:
                 msgName = "Listen_Change";
+                break;
+            case CALL_TRANSFER_CHANGE:
+                msgName = "Transfer_Change";
                 break;
 
             default:

@@ -410,6 +410,7 @@ public class BackEndCallConvergence {
 
                 endP.endDevID = packet.answerer;
                 endP.callID = inviteCall.callID;
+                endP.endReason = EndReqPack.END_FOR_OTHER_ANSWER;
 
                 trans = new Transaction(inviteCall.callee, endP, Transaction.TRANSCATION_DIRECTION_S2C);
                 HandlerMgr.AddBackEndTrans(endP.msgID, trans);
@@ -428,6 +429,7 @@ public class BackEndCallConvergence {
 
                 endP.endDevID = packet.answerer;
                 endP.callID = listenCall.callID;
+                endP.endReason = EndReqPack.END_FOR_OTHER_ANSWER;
 
                 trans = new Transaction(listenCall.devID, endP, Transaction.TRANSCATION_DIRECTION_S2C);
                 HandlerMgr.AddBackEndTrans(endP.msgID, trans);
@@ -517,8 +519,10 @@ public class BackEndCallConvergence {
         HandlerMgr.AddBackEndTrans(forwardReq.msgID,trans);
     }
 
-    private void StopCall(){
-        HandlerMgr.PostBackEndPhoneMsg(BackEndPhoneManager.MSG_NEW_PACKET,new EndReqPack(inviteCall.callID));
+    private void StopCall(int reason){
+        EndReqPack endPack = new EndReqPack(inviteCall.callID);
+        endPack.endReason = reason;
+        HandlerMgr.PostBackEndPhoneMsg(BackEndPhoneManager.MSG_NEW_PACKET,endPack);
     }
 
     private void AutoAnswerCall(){
@@ -567,16 +571,20 @@ public class BackEndCallConvergence {
             inviteCall.answerWaitUpdateCount++;
         }
 
-        if(inviteCall.callerWaitUpdateCount>CommonCall.UPDATE_INTERVAL*2+5
-                ||inviteCall.calleeWaitUpdateCount>CommonCall.UPDATE_INTERVAL*2+5
-                ||inviteCall.answerWaitUpdateCount>CommonCall.UPDATE_INTERVAL*2+5){
-            if(inviteCall.callerWaitUpdateCount>CommonCall.UPDATE_INTERVAL*2+5)
-                LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"BackEnd End Call %s for Miss Update of Caller DEV %s ",inviteCall.callID,inviteCall.caller);
-            if(inviteCall.calleeWaitUpdateCount>CommonCall.UPDATE_INTERVAL*2+5)
-                LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"BackEnd End Call %s for Miss Update of Callee DEV %s ",inviteCall.callID,inviteCall.callee);
-            if(inviteCall.answerWaitUpdateCount>CommonCall.UPDATE_INTERVAL*2+5)
-                LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"BackEnd End Call %s for Miss Update of Answer DEV %s ",inviteCall.callID,inviteCall.answer);
-            StopCall();
+        if(inviteCall.callerWaitUpdateCount>CommonCall.UPDATE_INTERVAL*2+5){
+            LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"BackEnd End Call %s for Miss Update of Caller DEV %s ",inviteCall.callID,inviteCall.caller);
+            StopCall(EndReqPack.END_FOR_CALLER_UPDATE_FAIL);
+            return;
+        }
+        if(inviteCall.calleeWaitUpdateCount>CommonCall.UPDATE_INTERVAL*2+5){
+            LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"BackEnd End Call %s for Miss Update of Callee DEV %s ",inviteCall.callID,inviteCall.callee);
+            StopCall(EndReqPack.END_FOR_CALLEE_UPDATE_FAIL);
+            return;
+        }
+        if(inviteCall.answerWaitUpdateCount>CommonCall.UPDATE_INTERVAL*2+5){
+            LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"BackEnd End Call %s for Miss Update of Answer DEV %s ",inviteCall.callID,inviteCall.answer);
+            StopCall(EndReqPack.END_FOR_ANSWER_UPDATE_FAIL);
+            return;
         }
 
         for(int iTmp=listenCallList.size()-1;iTmp>=0;iTmp--){
@@ -591,7 +599,8 @@ public class BackEndCallConvergence {
         if(listenCallList.size()<=0&&calleeNum.compareToIgnoreCase(PhoneParam.CALL_SERVER_ID)==0){
             if(inviteCall.state==CommonCall.CALL_STATE_INCOMING){
                 LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"BackEnd End Call %s for no Listener in This Call ",inviteCall.callID);
-                StopCall();
+                StopCall(EndReqPack.END_FOR_NO_LISTEN);
+                return;
             }
         }
 
@@ -611,8 +620,8 @@ public class BackEndCallConvergence {
     public void InviteTimeOver(String devid){
 
         if(devid.compareToIgnoreCase(inviteCall.callee)==0){
-            LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Send Call Req to Callee Dev %s TimeOver for Call %s, End This Call",devid,inviteCall.callID);
-            StopCall();
+            LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"BackEnd Send Call End  When Invite Callee %s TimeOver for Call %s",devid,inviteCall.callID);
+            StopCall(EndReqPack.END_FOR_INVITE_TIMEOVER);
         }
     }
 
@@ -630,7 +639,7 @@ public class BackEndCallConvergence {
                 if(inviteCall.type==CommonCall.CALL_TYPE_NORMAL||inviteCall.type == CommonCall.CALL_TYPE_ASSIST) {
                     if (packet.sender.compareToIgnoreCase(inviteCall.callee) == 0) {
                         LogWork.Print(LogWork.BACKEND_CALL_MODULE, LogWork.LOG_ERROR, "BackEnd End Call %s when Recv Call Res with %s from %s", inviteCall.callID, ProtocolPacket.GetResString(packet.status), inviteCall.callee);
-                        HandlerMgr.PostBackEndPhoneMsg(BackEndPhoneManager.MSG_NEW_PACKET,new EndReqPack(inviteCall.callID));
+                        StopCall(EndReqPack.END_FOR_CALLEE_REJECT);
                     }else{
                         for(BackEndCall listenCall:listenCallList){
                             if(listenCall.devID.compareToIgnoreCase(packet.sender)==0){

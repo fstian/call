@@ -124,6 +124,7 @@ public class ProtocolFactory {
                     if(context!=null){
                         endReqPack.endDevID = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
                         endReqPack.callID = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_CALLID_NAME);
+                        endReqPack.endReason= context.getIntValue(ProtocolPacket.PACKET_END_REASON_NAME);
                         p = endReqPack;
                     }
                     break;
@@ -314,16 +315,6 @@ public class ProtocolFactory {
                         p = listeReqP;
                     }
                     break;
-                case ProtocolPacket.CALL_LISTEN_CLEAR_REQ:
-                    ListenClearReqPack listenClearReqP = new ListenClearReqPack();
-                    PutDefaultData(listenClearReqP,json);
-                    context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
-                    if(context!=null){
-                        listenClearReqP.devID = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
-                        listenClearReqP.status = context.getBooleanValue(ProtocolPacket.PACKET_LISTEN_STATE_NAME);
-                        p = listenClearReqP;
-                    }
-                    break;
                 case ProtocolPacket.CALL_LISTEN_RES:
                     ListenCallResPack listenResP = new ListenCallResPack();
                     PutDefaultData(listenResP,json);
@@ -336,6 +327,16 @@ public class ProtocolFactory {
                         p = listenResP;
                     }
                     break;
+                case ProtocolPacket.CALL_LISTEN_CLEAR_REQ:
+                    ListenClearReqPack listenClearReqP = new ListenClearReqPack();
+                    PutDefaultData(listenClearReqP,json);
+                    context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
+                    if(context!=null){
+                        listenClearReqP.devID = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
+                        listenClearReqP.status = context.getBooleanValue(ProtocolPacket.PACKET_LISTEN_STATE_NAME);
+                        p = listenClearReqP;
+                    }
+                    break;
                 case ProtocolPacket.CALL_LISTEN_CLEAR_RES:
                     ListenClearResPack listenClearResP = new ListenClearResPack();
                     PutDefaultData(listenClearResP,json);
@@ -346,6 +347,29 @@ public class ProtocolFactory {
                         listenClearResP.status = context.getIntValue(ProtocolPacket.PACKET_STATUS_NAME);
                         listenClearResP.result = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_RESULT_NAME);
                         p = listenClearResP;
+                    }
+                    break;
+                case ProtocolPacket.CALL_TRANSFER_CHANGE_REQ:
+                    TransferChangeReqPack transferChangeReqP = new TransferChangeReqPack();
+                    PutDefaultData(transferChangeReqP,json);
+                    context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
+                    if(context!=null){
+                        transferChangeReqP.devID = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
+                        transferChangeReqP.transferAreaId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_TRANSFER_AREAID_NAME);
+                        transferChangeReqP.state= context.getBooleanValue(ProtocolPacket.PACKET_TRANSFER_STATE_NAME);
+                        p = transferChangeReqP;
+                    }
+                    break;
+                case ProtocolPacket.CALL_TRANSFER_CHANGE_RES:
+                    TransferChangeResPack transferChangeResP = new TransferChangeResPack();
+                    PutDefaultData(transferChangeResP,json);
+                    context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
+                    if(context!=null){
+                        transferChangeResP.devId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
+                        transferChangeResP.transferAreaId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_TRANSFER_AREAID_NAME);
+                        transferChangeResP.status = context.getIntValue(ProtocolPacket.PACKET_STATUS_NAME);
+                        transferChangeResP.result = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_RESULT_NAME);
+                        p = transferChangeResP;
                     }
                     break;
                 case ProtocolPacket.CALL_VIDEO_INVITE_REQ:
@@ -530,6 +554,7 @@ public class ProtocolFactory {
                     EndReqPack endReqP = (EndReqPack)p;
                     context.put(ProtocolPacket.PACKET_CALLID_NAME,endReqP.callID);
                     context.put(ProtocolPacket.PACKET_DEVID_NAME,endReqP.endDevID);
+                    context.put(ProtocolPacket.PACKET_END_REASON_NAME,endReqP.endReason);
                     json.put(ProtocolPacket.PACKET_CONTEXT_NAME,context);
                     break;
                 case ProtocolPacket.END_RES:
@@ -656,6 +681,21 @@ public class ProtocolFactory {
                     context.put(ProtocolPacket.PACKET_LISTEN_STATE_NAME,listenClearResP.state);
                     context.put(ProtocolPacket.PACKET_RESULT_NAME,listenClearResP.result);
                     context.put(ProtocolPacket.PACKET_STATUS_NAME,listenClearResP.status);
+                    json.put(ProtocolPacket.PACKET_CONTEXT_NAME,context);
+                    break;
+                case ProtocolPacket.CALL_TRANSFER_CHANGE_REQ:
+                    TransferChangeReqPack transferChangeReqP = (TransferChangeReqPack)p;
+                    context.put(ProtocolPacket.PACKET_DEVID_NAME,transferChangeReqP.devID);
+                    context.put(ProtocolPacket.PACKET_TRANSFER_AREAID_NAME,transferChangeReqP.transferAreaId);
+                    context.put(ProtocolPacket.PACKET_TRANSFER_STATE_NAME,transferChangeReqP.state);
+                    json.put(ProtocolPacket.PACKET_CONTEXT_NAME,context);
+                    break;
+                case ProtocolPacket.CALL_TRANSFER_CHANGE_RES:
+                    TransferChangeResPack transferChangeResP = (TransferChangeResPack)p;
+                    context.put(ProtocolPacket.PACKET_DEVID_NAME,transferChangeResP.devId);
+                    context.put(ProtocolPacket.PACKET_TRANSFER_AREAID_NAME,transferChangeResP.transferAreaId);
+                    context.put(ProtocolPacket.PACKET_RESULT_NAME,transferChangeResP.result);
+                    context.put(ProtocolPacket.PACKET_STATUS_NAME,transferChangeResP.status);
                     json.put(ProtocolPacket.PACKET_CONTEXT_NAME,context);
                     break;
                 case ProtocolPacket.CALL_VIDEO_INVITE_REQ:
