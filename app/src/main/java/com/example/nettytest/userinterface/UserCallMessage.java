@@ -9,12 +9,13 @@ public class UserCallMessage extends UserMessage {
     public static final int EMERGENCY_CALL_TYPE = 2;
     public static final int BROADCAST_CALL_TYPE = 3;
 
-    public static final int CALL_END_BY_SELF = 1;
     // same with EndReqPack
+    public static final int CALL_END_BY_SELF = 1;
     public static final int CALL_END_BY_CALLER = 2;
     public static final int CALL_END_BY_CALLEE = 3;
     public static final int CALL_END_BY_LISTEN = 4;
     public static final int CALL_END_BY_ANSWER = 5;
+    public static final int CALL_CANCEL_BY_USER  = 6;
 
     public static final int CALL_END_FOR_CALLER_UPDATE_FAIL = 10;
     public static final int CALL_END_FOR_CALLEE_UPDATE_FAIL = 11;
@@ -23,6 +24,7 @@ public class UserCallMessage extends UserMessage {
     public static final int CALL_END_FOR_OTHER_ANSWER = 14;
     public static final int CALL_END_FOR_CALLEE_REJECT = 15;
     public static final int CALL_END_FOR_INVITE_TIMEOVER = 16;
+    public static final int CALL_CANCEL_FOR_SERVER = 17;
     
 
     public int callType;
@@ -108,6 +110,9 @@ public class UserCallMessage extends UserMessage {
             case CALL_END_BY_ANSWER:
                 reasonName = "End_By_Answer";
                 break;
+            case CALL_CANCEL_BY_USER:
+                reasonName = "Cancel_By_User";
+                break;
             case CALL_END_FOR_CALLEE_UPDATE_FAIL:
                 reasonName = "End_For_Callee_Update_Fail";
                 break;
@@ -128,6 +133,9 @@ public class UserCallMessage extends UserMessage {
                 break;
             case CALL_END_FOR_INVITE_TIMEOVER:
                 reasonName = "End_For_Invite_Time_Over";
+                break;
+            case CALL_CANCEL_FOR_SERVER:
+                reasonName = "Cancel_For_Server";
                 break;
         }
 

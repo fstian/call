@@ -15,6 +15,8 @@ import com.example.nettytest.pub.protocol.AnswerReqPack;
 import com.example.nettytest.pub.protocol.AnswerResPack;
 import com.example.nettytest.pub.protocol.AnswerVideoReqPack;
 import com.example.nettytest.pub.protocol.AnswerVideoResPack;
+import com.example.nettytest.pub.protocol.CancelReqPack;
+import com.example.nettytest.pub.protocol.CancelResPack;
 import com.example.nettytest.pub.protocol.ConfigResPack;
 import com.example.nettytest.pub.protocol.DevQueryResPack;
 import com.example.nettytest.pub.protocol.EndReqPack;
@@ -509,6 +511,11 @@ public class TerminalPhoneManager {
                     LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv End Req, call id is %s",endReqPack.receiver,endReqPack.callID);
                     phone.RecvEndCall(endReqPack);
                     break;
+                case ProtocolPacket.CALL_CANCEL_REQ:
+                    CancelReqPack cancelReqPack = (CancelReqPack)packet;
+                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Cancel Req, call id is %s",cancelReqPack.receiver,cancelReqPack.callID);
+                    phone.RecvCancelCall(cancelReqPack);
+                    break;
                 case ProtocolPacket.CALL_RES:
                     InviteResPack inviteResP = (InviteResPack)packet;
                     LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Invite Res, call id is %s",inviteResP.receiver,inviteResP.callID);
@@ -523,6 +530,11 @@ public class TerminalPhoneManager {
                     EndResPack endResPack = (EndResPack)packet;
                     LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv End Res, call id is %s",endResPack.receiver,endResPack.callId);
                     phone.UpdateCallStatus(endResPack);
+                    break;
+                case ProtocolPacket.CALL_CANCEL_RES:
+                    CancelResPack cancelResPack = (CancelResPack)packet;
+                    LogWork.Print(LogWork.TERMINAL_PHONE_MODULE,LogWork.LOG_DEBUG,"DEV %s Recv Cancel Res, call id is %s",cancelResPack.receiver,cancelResPack.callId);
+                    phone.UpdateCallStatus(cancelResPack);
                     break;
                 case ProtocolPacket.ANSWER_RES:
                     AnswerResPack answerResPack = (AnswerResPack)packet;

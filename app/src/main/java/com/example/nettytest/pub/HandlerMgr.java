@@ -473,6 +473,10 @@ public class HandlerMgr {
         backEndPhoneMgr.PostBackEndUserMsg(type,obj);
     }
 
+    public static void BackEndCancelListenCall(String id){
+        backEndPhoneMgr.CancelListenCall(id);
+    }
+
 // get audio Owner
 
 }

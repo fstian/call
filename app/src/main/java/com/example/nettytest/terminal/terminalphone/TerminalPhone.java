@@ -4,6 +4,7 @@ import com.example.nettytest.pub.protocol.AnswerReqPack;
 import com.example.nettytest.pub.protocol.AnswerResPack;
 import com.example.nettytest.pub.protocol.AnswerVideoReqPack;
 import com.example.nettytest.pub.protocol.AnswerVideoResPack;
+import com.example.nettytest.pub.protocol.CancelReqPack;
 import com.example.nettytest.pub.protocol.ConfigItem;
 import com.example.nettytest.pub.protocol.ConfigReqPack;
 import com.example.nettytest.pub.protocol.ConfigResPack;
@@ -309,8 +310,11 @@ public class TerminalPhone extends PhoneDevice {
         HandlerMgr.AddPhoneTrans(resP.msgID,trans);
 
         HandlerMgr.SendMessageToUser(UserMessage.MESSAGE_LISTEN_CALL_INFO,listenMsg);
-        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Type %d Recv Listen Change to %b",id,type,p.status);
+        LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Type %s Recv Listen Change to %b",id,PhoneDevice.GetTypeName(type),p.status);
 
+        if(!p.status){
+            callManager.CancelListenCall(id);
+        }
     }
 
     public void UpdateConfig(ConfigResPack res){
@@ -361,7 +365,7 @@ public class TerminalPhone extends PhoneDevice {
         if(CheckAnsweredEnable()){
             callManager.RecvAnswerCall(id,packet);
         }else{
-            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone %s Type %d Recv %s Answer For Call %s , but %s",id,type,packet.answerer,packet.callID,ProtocolPacket.GetResString(ProtocolPacket.STATUS_NOTSUPPORT));
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone %s Type %s Recv %s Answer For Call %s , but %s",id,PhoneDevice.GetTypeName(type),packet.answerer,packet.callID,ProtocolPacket.GetResString(ProtocolPacket.STATUS_NOTSUPPORT));
             AnswerResPack answerResP = new AnswerResPack(ProtocolPacket.STATUS_NOTSUPPORT,packet);
             Transaction trans = new Transaction(id,packet,answerResP,Transaction.TRANSCATION_DIRECTION_C2S);
             HandlerMgr.AddPhoneTrans(answerResP.msgID,trans);
@@ -370,6 +374,10 @@ public class TerminalPhone extends PhoneDevice {
 
     public void RecvEndCall(EndReqPack packet){
         callManager.RecvEndCall(id,packet);
+    }
+
+    public void RecvCancelCall(CancelReqPack packet){
+        callManager.RecvCancelCall(id,packet);
     }
 
     public void RecvStartVideoReq(StartVideoReqPack packet){

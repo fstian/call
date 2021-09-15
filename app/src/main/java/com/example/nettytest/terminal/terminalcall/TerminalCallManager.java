@@ -4,11 +4,14 @@ import com.alibaba.fastjson.*;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
 import com.example.nettytest.pub.SystemSnap;
+import com.example.nettytest.pub.UniqueIDManager;
 import com.example.nettytest.pub.phonecall.CommonCall;
 import com.example.nettytest.pub.protocol.AnswerReqPack;
 import com.example.nettytest.pub.protocol.AnswerResPack;
 import com.example.nettytest.pub.protocol.AnswerVideoReqPack;
 import com.example.nettytest.pub.protocol.AnswerVideoResPack;
+import com.example.nettytest.pub.protocol.CancelReqPack;
+import com.example.nettytest.pub.protocol.CancelResPack;
 import com.example.nettytest.pub.protocol.EndReqPack;
 import com.example.nettytest.pub.protocol.EndResPack;
 import com.example.nettytest.pub.protocol.InviteReqPack;
@@ -24,6 +27,7 @@ import com.example.nettytest.pub.transaction.Transaction;
 import com.example.nettytest.terminal.terminalphone.TerminalPhone;
 import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
+import com.example.nettytest.userinterface.UserCallMessage;
 
 
 import java.util.HashMap;
@@ -191,6 +195,17 @@ public class TerminalCallManager {
             if(callLists.size()>0){
                 if(!isListen)
                     result = ProtocolPacket.STATUS_BUSY;
+                else{
+                    // reject broadcall when device is call out
+                    if(packet.callType == CommonCall.CALL_TYPE_BROADCAST) {
+                        for (TerminalCall localCall : callLists.values()) {
+                            if (localCall.caller.compareToIgnoreCase(devId) == 0) {
+                                result = ProtocolPacket.STATUS_BUSY;
+                                break;
+                            }
+                        }
+                    }
+                }
             }
         }else if(devType==TerminalPhone.EMER_CALL_DEVICE){
             result = ProtocolPacket.STATUS_NOTSUPPORT;
@@ -252,6 +267,21 @@ public class TerminalCallManager {
             EndResPack endResP = new EndResPack(ProtocolPacket.STATUS_NOTFOUND,endReqP);
             Transaction trans = new Transaction(devid,endReqP,endResP,Transaction.TRANSCATION_DIRECTION_C2S);
             HandlerMgr.AddPhoneTrans(endResP.msgID,trans);
+        }
+    }
+
+    public void RecvCancelCall(String devId, CancelReqPack cancelReqP){
+        String callid = cancelReqP.callID;
+        TerminalCall call = callLists.get(callid);
+        
+        if(call!=null){
+            if(call.RecvCancel(devId,cancelReqP))
+                callLists.remove(callid);
+        }else{
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone %s Recv Cancel For Call %s , but Could not Find it",devId,callid);
+            CancelResPack cancelResP = new CancelResPack(ProtocolPacket.STATUS_NOTFOUND,cancelReqP);
+            Transaction trans = new Transaction(devId,cancelReqP,cancelResP,Transaction.TRANSCATION_DIRECTION_C2S);
+            HandlerMgr.AddPhoneTrans(cancelResP.msgID,trans);
         }
     }
 
@@ -352,6 +382,17 @@ public class TerminalCallManager {
                     LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Could not Find Call %s for DEV %s when Recv End Res",endResP.callId,devid);
                 }
                 break;
+            case ProtocolPacket.CALL_CANCEL_RES:
+                CancelResPack cancelResP = (CancelResPack)packet;
+                callid = cancelResP.callId;
+                call = callLists.get(callid);
+                if(call!=null){
+                    call.UpdateByCancelRes(cancelResP);
+                    callLists.remove(callid);
+                }else{
+                    LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Could not Find Call %s for DEV %s when Recv Cancel Res",cancelResP.callId,devid);
+                }
+                break;
             case ProtocolPacket.CALL_UPDATE_RES:
                 UpdateResPack updateResP = (UpdateResPack)packet;
                 callid = updateResP.callid;
@@ -413,6 +454,46 @@ public class TerminalCallManager {
                 break;
         }
 
+    }
+
+    public void CancelListenCall(String devId){
+        boolean needRemove;
+        CancelReqPack cancelReqP;
+        Transaction trans;
+        UserCallMessage callMsg;
+        TerminalCall call;
+
+        for(Iterator<Map.Entry<String, TerminalCall>> it = callLists.entrySet().iterator(); it.hasNext();) {
+            Map.Entry<String, TerminalCall> item = it.next();
+            call = item.getValue();
+            needRemove = true;
+            if(call.caller.compareToIgnoreCase(devId)==0){
+                needRemove = false;
+            }
+            if(call.callee.compareToIgnoreCase(devId)==0){
+                needRemove = false;
+            }
+
+            if(call.type==CommonCall.CALL_TYPE_BROADCAST){
+                needRemove = false;
+            }
+
+            if(needRemove){
+                cancelReqP = new CancelReqPack(call.callID,devId,PhoneParam.CALL_SERVER_ID);
+                cancelReqP.msgID = UniqueIDManager.GetUniqueID(devId,UniqueIDManager.MSG_UNIQUE_ID);
+                trans = new Transaction(devId,cancelReqP,Transaction.TRANSCATION_DIRECTION_C2S);
+                LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Dev %s Cancel Call %s",devId,call.callID);
+                HandlerMgr.AddPhoneTrans(cancelReqP.msgID,trans);
+                it.remove();
+                callMsg = new UserCallMessage();
+                callMsg.type = UserCallMessage.CALL_MESSAGE_DISCONNECT;
+                callMsg.devId = devId;
+                callMsg.callId = call.callID;
+                callMsg.callType = call.type;
+                callMsg.endReason = UserCallMessage.CALL_CANCEL_BY_USER;
+                HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
+            }
+        }
     }
 
 }
