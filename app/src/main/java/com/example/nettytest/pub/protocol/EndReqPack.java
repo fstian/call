@@ -8,8 +8,9 @@ public class EndReqPack extends ProtocolPacket{
     final static public int END_BY_CALLER = 2;
     final static public int END_BY_CALLEE = 3;
     final static public int END_BY_LISTENER = 4;
-    final static public int END_BY_ANSWER = 5
-        ;
+    final static public int END_BY_ANSWER = 5;
+    final static public int END_BY_USER_CANCEL = 6;
+    
     final static public int END_FOR_CALLEE_UPDATE_FAIL = 10;
     final static public int END_FOR_CALLER_UPDATE_FAIL = 11;
     final static public int END_FOR_ANSWER_UPDATE_FAIL = 12;
@@ -17,6 +18,8 @@ public class EndReqPack extends ProtocolPacket{
     final static public int END_FOR_OTHER_ANSWER = 14;
     final static public int END_FOR_CALLEE_REJECT = 15;
     final static public int END_FOR_INVITE_TIMEOVER = 16;
+
+    final static public int END_FOR_SERVER_CANCEL = 17;
 
     final static public int END_FOR_UNKNOW = 100;
     
@@ -89,6 +92,12 @@ public class EndReqPack extends ProtocolPacket{
                 break;
             case END_FOR_INVITE_TIMEOVER:
                 reasonName = "End_For_Invite_Time_Over";
+                break;
+            case END_FOR_SERVER_CANCEL:
+                reasonName = "End_For_Server_Cancel";
+                break;
+            case END_BY_USER_CANCEL:
+                reasonName = "End_BY_User_Cancel";
                 break;
         }
 

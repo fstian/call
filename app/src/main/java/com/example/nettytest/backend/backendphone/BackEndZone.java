@@ -113,6 +113,7 @@ public class BackEndZone {
         for(BackEndPhone phone:phoneList.values()) {
             if(phone.type == PhoneDevice.BED_CALL_DEVICE) {
                 if (phone.enableListen&&id.compareToIgnoreCase(phone.id)!=0) {
+                    HandlerMgr.BackEndCancelListenCall(phone.id);
                     ListenClearReqPack clearReqP = BuildListenClearPacket(phone.id);
                     Transaction clearTrans = new Transaction(phone.id,clearReqP,Transaction.TRANSCATION_DIRECTION_S2C);
                     HandlerMgr.AddBackEndTrans(clearReqP.msgID,clearTrans);

@@ -92,6 +92,9 @@ public class ProtocolPacket {
     public final static int CALL_TRANSFER_CHANGE_REQ = 16;
     public final static int CALL_TRANSFER_CHANGE_RES = 116;
 
+    public final static int CALL_CANCEL_REQ = 17;
+    public final static int CALL_CANCEL_RES = 117;
+
     public final static int MAX_REQ_TYPE = 100;
     public final static int UNKNOW_CMD_RES = 200;
 
@@ -278,6 +281,12 @@ public class ProtocolPacket {
                 break;
             case CALL_TRANSFER_CHANGE_RES:
                 packetTypeName = "Transfer_Change_res";
+                break;
+            case CALL_CANCEL_REQ:
+                packetTypeName = "Cancel_Req";
+                break;
+            case CALL_CANCEL_RES:
+                packetTypeName = "Cancel_Res";
                 break;
         }
         return packetTypeName;

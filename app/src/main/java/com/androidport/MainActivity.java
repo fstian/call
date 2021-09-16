@@ -1,13 +1,16 @@
 package com.androidport;
 
 import android.annotation.SuppressLint;
+import android.app.admin.DevicePolicyManager;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -83,7 +86,6 @@ public class    MainActivity extends AppCompatActivity {
                     serverTest = new ServerTest();
 
                     new CallMessageProcess().start();
-
 
                     InitClientDevice();
 
@@ -210,13 +212,26 @@ public class    MainActivity extends AppCompatActivity {
                 float y = motionEvent.getY();
                 if(clientTest!=null) {
                     TestDevice dev = clientTest.GetCurTestDevice();
+//                    TestDevice otherDev = clientTest.GetOtherDevice();
+
                     if (dev != null) {
+
                         synchronized (MainActivity.class) {
                             result = dev.Operation(0,  (int) y/SELECT_ITEM_HEIGHT);
                         }
                         if (result)
                             UpdateHMI();
+
+//                        if(dev.type==UserInterface.CALL_NURSER_DEVICE) {
+//                            if(otherDev!=null){
+//                                synchronized (MainActivity.class) {
+//                                    result = otherDev.Operation(0,  (int) y/SELECT_ITEM_HEIGHT);
+//                                }
+//                            }
+//                        }
                     }
+
+
                 }
             }
             return true;
@@ -322,6 +337,11 @@ public class    MainActivity extends AppCompatActivity {
                 }
 
             }
+//            ComponentName compName= new ComponentName(this,Admin);
+//            DevicePolicyManager devicePolicy = (DevicePolicyManager)getSystemService(Context.DEVICE_POLICY_SERVICE);
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                devicePolicy.lockNow(0);
+//            }
         });
 
         IntentFilter filter = new IntentFilter();

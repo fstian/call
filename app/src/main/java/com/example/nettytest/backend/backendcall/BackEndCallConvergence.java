@@ -14,6 +14,8 @@ import com.example.nettytest.pub.protocol.AnswerReqPack;
 import com.example.nettytest.pub.protocol.AnswerResPack;
 import com.example.nettytest.pub.protocol.AnswerVideoReqPack;
 import com.example.nettytest.pub.protocol.AnswerVideoResPack;
+import com.example.nettytest.pub.protocol.CancelReqPack;
+import com.example.nettytest.pub.protocol.CancelResPack;
 import com.example.nettytest.pub.protocol.EndReqPack;
 import com.example.nettytest.pub.protocol.EndResPack;
 import com.example.nettytest.pub.protocol.InviteReqPack;
@@ -709,7 +711,7 @@ public class BackEndCallConvergence {
                         result = false;
                     }else {
                         for (CommonCall listenCall : listenCallList) {
-                            if (listenCall.callee.compareToIgnoreCase(phone.id) == 0) {
+                            if (listenCall.devID.compareToIgnoreCase(phone.id) == 0) {
                                 LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"Dev %s is Listener In Call %s",phone.id,inviteCall.callID);
                                 result = false;
                                 break;
@@ -862,6 +864,52 @@ public class BackEndCallConvergence {
 
         return result;
     }
+
+    public boolean CancelListen(String devId){
+        boolean result = false;
+        if(inviteCall.callType==CommonCall.CALL_TYPE_BROADCAST)
+            return result;
+        for(BackEndCall call:listenCallList){
+            if(devId.compareToIgnoreCase(call.devID)==0){
+                listenCallList.remove(call);
+
+                CancelReqPack cancelReqP = new CancelReqPack(inviteCall.callID,PhoneParam.CALL_SERVER_ID,devId);
+                cancelReqP.msgID = UniqueIDManager.GetUniqueID(devId,UniqueIDManager.MSG_UNIQUE_ID);
+
+                Transaction transaction = new Transaction(devId,cancelReqP, Transaction.TRANSCATION_DIRECTION_S2C);
+                HandlerMgr.AddBackEndTrans(cancelReqP.msgID,transaction);
+                result = true;
+                LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Cancel Dev %s in Call %s",devId,inviteCall.callID);
+                break;
+            }
+        }
+        return result;
+    }
+
+    public void RecvCancel(CancelReqPack cancelReqP){
+        Transaction trans=null;
+        
+        for(BackEndCall call:listenCallList){
+            if(cancelReqP.cancelDevID.compareToIgnoreCase(call.devID)==0){
+                LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Recv Cancel From Dev %s in Call %s, and Remove it from Call",cancelReqP.cancelDevID,cancelReqP.callID);
+
+                listenCallList.remove(call);
+                CancelResPack cancelResP = new CancelResPack(ProtocolPacket.STATUS_OK,cancelReqP);
+                trans = new Transaction(cancelReqP.sender,cancelReqP,cancelResP,Transaction.TRANSCATION_DIRECTION_S2C);
+                HandlerMgr.AddBackEndTrans(cancelReqP.msgID,trans);
+                break;
+            }
+        }
+
+        if(trans==null){
+            LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Recv Cancel From Dev %s in Call %s, But couldn't find this device",cancelReqP.cancelDevID,cancelReqP.callID);
+            CancelResPack cancelResP = new CancelResPack(ProtocolPacket.STATUS_NOTFOUND,cancelReqP);
+            trans = new Transaction(cancelReqP.sender,cancelReqP,cancelResP,Transaction.TRANSCATION_DIRECTION_S2C);
+            HandlerMgr.AddBackEndTrans(cancelReqP.msgID,trans);
+        }
+        
+    }
+        
 
     public void Release(){
         if(listenCallList!=null)

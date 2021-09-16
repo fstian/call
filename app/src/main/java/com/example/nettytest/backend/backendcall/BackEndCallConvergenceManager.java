@@ -14,6 +14,8 @@ import com.example.nettytest.pub.protocol.AnswerReqPack;
 import com.example.nettytest.pub.protocol.AnswerResPack;
 import com.example.nettytest.pub.protocol.AnswerVideoReqPack;
 import com.example.nettytest.pub.protocol.AnswerVideoResPack;
+import com.example.nettytest.pub.protocol.CancelReqPack;
+import com.example.nettytest.pub.protocol.CancelResPack;
 import com.example.nettytest.pub.protocol.EndReqPack;
 import com.example.nettytest.pub.protocol.EndResPack;
 import com.example.nettytest.pub.protocol.InviteReqPack;
@@ -223,6 +225,12 @@ public class BackEndCallConvergenceManager {
         return result;
     }
 
+    public void CancelListenCall(String devId){
+        for(BackEndCallConvergence callConvergence:callConvergenceList.values()){
+            callConvergence.CancelListen(devId);
+        }
+    }
+
 
     private boolean CheckInvitedEnable(BackEndPhone phone){
         boolean result = true;
@@ -332,6 +340,20 @@ public class BackEndCallConvergenceManager {
                     HandlerMgr.AddBackEndTrans(endReqPack.msgID,trans);
                 }
                 break;
+            case ProtocolPacket.CALL_CANCEL_REQ:
+                CancelReqPack cancelReqPack = (CancelReqPack)packet;
+                LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv Call Cancel From %s for Call %s",cancelReqPack.cancelDevID,cancelReqPack.callID);
+                callConvergence = callConvergenceList.get(cancelReqPack.callID);
+
+                if(callConvergence!=null){
+                    callConvergence.RecvCancel(cancelReqPack);
+                }else{
+                    LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_ERROR,"Server Recv Call Cancel From %s for CallID %s, But Could not Find this Call",cancelReqPack.cancelDevID,cancelReqPack.callID);
+                    CancelResPack cancelResP = new CancelResPack(ProtocolPacket.STATUS_NOTFOUND,cancelReqPack);
+                    trans = new Transaction(cancelReqPack.sender,cancelReqPack,cancelResP,Transaction.TRANSCATION_DIRECTION_S2C);
+                    HandlerMgr.AddBackEndTrans(cancelReqPack.msgID,trans);
+                }
+                break;
             case ProtocolPacket.ANSWER_REQ:
                 AnswerReqPack answerReqPack  = (AnswerReqPack)packet;
                 BackEndPhone answerPhone = HandlerMgr.GetBackEndPhone(answerReqPack.answerer);
@@ -399,6 +421,10 @@ public class BackEndCallConvergenceManager {
             case ProtocolPacket.END_RES:
                 EndResPack endResPack = (EndResPack)packet;
                 LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv End Res From %s for call %s",endResPack.sender, endResPack.callId);
+                break;
+            case ProtocolPacket.CALL_CANCEL_RES:
+                CancelResPack cancelResPack = (CancelResPack)packet;
+                LogWork.Print(LogWork.BACKEND_CALL_MODULE,LogWork.LOG_DEBUG,"Server Recv Cancel Res From %s for call %s",cancelResPack.sender, cancelResPack.callId);
                 break;
             case ProtocolPacket.CALL_VIDEO_INVITE_REQ:
                 StartVideoReqPack startReqPack = (StartVideoReqPack)packet;

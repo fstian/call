@@ -369,6 +369,7 @@ public class PhoneParam {
         int iMatchNum = 0;
         String[] serverIp;
         String prioName="wlan";
+        byte[] macAddress;
 
         serverIp = callServerAddress.split("\\.");
         int len = serverIp.length;
@@ -387,6 +388,7 @@ public class PhoneParam {
                             int curMatched = 0;
                             if(intf.getName().contains(prioName)){
                                 curMatched = 1;
+                                macAddress = intf.getHardwareAddress();
                             }
                             if(serverIp[0].compareToIgnoreCase(localAddress[0])==0){
                                 curMatched = 1;

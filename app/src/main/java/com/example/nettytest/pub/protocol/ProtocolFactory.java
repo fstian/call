@@ -139,6 +139,27 @@ public class ProtocolFactory {
                         p = endResPack;
                     }
                     break;
+                case ProtocolPacket.CALL_CANCEL_REQ:
+                    CancelReqPack cancelReqP = new CancelReqPack();
+                    PutDefaultData(cancelReqP,json);
+                    context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
+                    if(context!=null) {
+                        cancelReqP.cancelDevID = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVID_NAME);
+                        cancelReqP.callID = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_CALLID_NAME);
+                        p = cancelReqP;
+                    }
+                    break;
+                case ProtocolPacket.CALL_CANCEL_RES:
+                    CancelResPack cancelResP = new CancelResPack();
+                    PutDefaultData(cancelResP,json);
+                    context = json.getJSONObject(ProtocolPacket.PACKET_CONTEXT_NAME);
+                    if(context!=null){
+                        cancelResP.status = context.getIntValue(ProtocolPacket.PACKET_STATUS_NAME);
+                        cancelResP.result = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_RESULT_NAME);
+                        cancelResP.callId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_CALLID_NAME);
+                        p = cancelResP;
+                    }
+                    break;
                 case ProtocolPacket.ANSWER_REQ:
                     AnswerReqPack answerReqP = new AnswerReqPack();
                     PutDefaultData(answerReqP,json);
@@ -562,6 +583,19 @@ public class ProtocolFactory {
                     context.put(ProtocolPacket.PACKET_STATUS_NAME,endResP.status);
                     context.put(ProtocolPacket.PACKET_RESULT_NAME,endResP.result);
                     context.put(ProtocolPacket.PACKET_CALLID_NAME,endResP.callId);
+                    json.put(ProtocolPacket.PACKET_CONTEXT_NAME,context);
+                    break;
+                case ProtocolPacket.CALL_CANCEL_REQ:
+                    CancelReqPack cancelReqP = (CancelReqPack)p;
+                    context.put(ProtocolPacket.PACKET_CALLID_NAME,cancelReqP.callID);
+                    context.put(ProtocolPacket.PACKET_DEVID_NAME,cancelReqP.cancelDevID);
+                    json.put(ProtocolPacket.PACKET_CONTEXT_NAME,context);
+                    break;
+                case ProtocolPacket.CALL_CANCEL_RES:
+                    CancelResPack cancelResP = (CancelResPack)p;
+                    context.put(ProtocolPacket.PACKET_STATUS_NAME,cancelResP.status);
+                    context.put(ProtocolPacket.PACKET_RESULT_NAME,cancelResP.result);
+                    context.put(ProtocolPacket.PACKET_CALLID_NAME,cancelResP.callId);
                     json.put(ProtocolPacket.PACKET_CONTEXT_NAME,context);
                     break;
                 case ProtocolPacket.DEV_QUERY_REQ:

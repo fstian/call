@@ -556,6 +556,10 @@ public class BackEndPhoneManager {
         return result;
     }
 
+    public void CancelListenCall(String id){
+        backEndCallConvergencyMgr.CancelListenCall(id);
+    }
+    
     public void RemovePhone(String id){
          LogWork.Print(LogWork.BACKEND_PHONE_MODULE,LogWork.LOG_INFO,"Remove Phone %s On Server",id);
         synchronized (BackEndPhoneManager.class){
@@ -780,6 +784,8 @@ public class BackEndPhoneManager {
             case ProtocolPacket.CALL_VIDEO_ANSWER_RES:
             case ProtocolPacket.CALL_VIDEO_END_REQ:
             case ProtocolPacket.CALL_VIDEO_END_RES:
+            case ProtocolPacket.CALL_CANCEL_REQ:
+            case ProtocolPacket.CALL_CANCEL_RES:
                 CallConvergencyProcessPacket(packet);
                 break;
         }

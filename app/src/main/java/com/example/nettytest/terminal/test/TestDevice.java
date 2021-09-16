@@ -277,6 +277,7 @@ public class TestDevice extends UserDevice{
                 }
             }else if(type == UserInterface.CALL_NURSER_DEVICE){
                 if(selected==0){
+
                     if(isCallOut){
                         opResult = EndCall(outGoingCall.callID);
                         if(opResult.result!=OperationResult.OP_RESULT_OK){
@@ -291,6 +292,7 @@ public class TestDevice extends UserDevice{
                         }else{
                             result = true;
                         }
+
                     }
                 }else {
                     if (devLists == null) {

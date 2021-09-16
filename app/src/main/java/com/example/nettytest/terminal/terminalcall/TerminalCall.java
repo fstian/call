@@ -3,6 +3,8 @@ package com.example.nettytest.terminal.terminalcall;
 import com.example.nettytest.pub.AudioMode;
 import com.example.nettytest.pub.protocol.AnswerVideoReqPack;
 import com.example.nettytest.pub.protocol.AnswerVideoResPack;
+import com.example.nettytest.pub.protocol.CancelReqPack;
+import com.example.nettytest.pub.protocol.CancelResPack;
 import com.example.nettytest.pub.protocol.StartVideoReqPack;
 import com.example.nettytest.pub.protocol.StartVideoResPack;
 import com.example.nettytest.pub.protocol.StopVideoReqPack;
@@ -315,6 +317,49 @@ public class TerminalCall extends CommonCall {
             LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv OK for End in Call %s! ",devID,callID);
         }
 
+    }
+
+    public void UpdateByCancelRes(CancelResPack pack){
+
+        if(pack.status!=ProtocolPacket.STATUS_OK){
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_WARN,"Phone %s Recv %d(%s) for Cancel Call %s!",devID,pack.status,ProtocolPacket.GetResString(pack.status),callID);
+            state = CommonCall.CALL_STATE_DISCONNECTED;
+
+        }else{
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv OK for Cancel in Call %s! ",devID,callID);
+        }
+    }
+
+    public boolean RecvCancel(String devId,CancelReqPack cancelReqP){
+        boolean result = true;
+        CancelResPack cancelResP;
+
+        if(caller.compareToIgnoreCase(devId)==0){
+            result = false;
+        }
+
+        if(callee.compareToIgnoreCase(devId)==0){
+            result = false;
+        }
+
+        if(result){
+            cancelResP = new CancelResPack(ProtocolPacket.STATUS_OK,cancelReqP);
+            UserCallMessage callMsg = new UserCallMessage();
+            callMsg.devId = devID;
+            callMsg.callId = cancelReqP.callID;
+            callMsg.callType = type;
+            callMsg.type = UserMessage.CALL_MESSAGE_DISCONNECT;
+            callMsg.endReason = UserCallMessage.CALL_CANCEL_FOR_SERVER;
+            HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_CALL_INFO,callMsg);
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Call Cancel Req for CallID  %s from Server,  and Send Call Cancel Res to Server! ",devID,callID);
+        }else{
+            cancelResP = new CancelResPack(ProtocolPacket.STATUS_NOTSUPPORT,cancelReqP);
+            LogWork.Print(LogWork.TERMINAL_CALL_MODULE,LogWork.LOG_DEBUG,"Phone %s Recv Call Cancel Req for CallID  %s from Server,  But not support, Caller is %s, Callee is %s",devID,callID,caller,callee);
+        }
+        Transaction endResTrans = new Transaction(devID,cancelReqP,cancelResP,Transaction.TRANSCATION_DIRECTION_C2S);
+        HandlerMgr.AddPhoneTrans(cancelResP.msgID,endResTrans);
+
+        return result;
     }
     
     public void RecvEnd(EndReqPack pack){

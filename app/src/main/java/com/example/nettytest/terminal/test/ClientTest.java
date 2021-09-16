@@ -303,6 +303,25 @@ public class ClientTest {
         return  dev;
     }
 
+    public TestDevice GetOtherDevice(){
+        TestDevice dev = null;
+        TestArea area = null;
+        synchronized(areaList){
+            if(selectArea<areaList.size()) {
+                area = areaList.get(selectArea);
+                if (area != null){
+                    if(area.devList.size()>1){
+                        if(selectDevice==0)
+                            dev = area.devList.get(1);
+                        else
+                            dev = area.devList.get(0);
+                    }
+                }
+            }
+        }
+        return  dev;
+    }
+
 
     public boolean ProcessMessage(int type , UserMessage msg){
         boolean matchedCurDev = false;

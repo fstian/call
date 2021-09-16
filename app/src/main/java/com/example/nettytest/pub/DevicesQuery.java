@@ -47,6 +47,11 @@ public class DevicesQuery {
     final static String JSON_PARAM_EMERCALLTOTV = "emerCallToTV";
     final static String JSON_PARAM_EMERCALLTOCORRIDOR = "emerCallToCorridor";
 
+    final static String JSON_PARAM_BROADCALLTOBED = "broadCallToBed";
+    final static String JSON_PARAM_BROADCALLTOROOM = "broadCallToRoom";
+    final static String JSON_PARAM_BROADCALLTOTV = "broadCallToTV";
+    final static String JSON_PARAM_BROADCALLTOCORRIDOR = "broadCallToCorridor";
+
     final static String JSON_PARAM_PARAM_VALUE = "param_val";
     final static String JSON_PARAM_PARAM_ID = "param_id";
 
@@ -459,7 +464,7 @@ public class DevicesQuery {
         paramVal = jsonObj.getIntValue(JSON_PARAM_PARAM_VALUE);
 
         if(paramId.compareToIgnoreCase(JSON_PARAM_NORMALCALLTOBED)==0) {
-            param.normalCallToBed = paramVal != 1;
+            param.normalCallToBed = paramVal != 0;
         }else if(paramId.compareToIgnoreCase(JSON_PARAM_NORMALCALLTOROOM)==0) {
             param.normalCallToRoom = paramVal != 0;
         }else if(paramId.compareToIgnoreCase(JSON_PARAM_NORMALCALLTOTV)==0) {
@@ -467,13 +472,21 @@ public class DevicesQuery {
         }else if(paramId.compareToIgnoreCase(JSON_PARAM_NORMALCALLTOCORRIDOR)==0) {
             param.normalCallToCorridor= paramVal != 0;
         }else if(paramId.compareToIgnoreCase(JSON_PARAM_EMERCALLTOBED)==0) {
-            param.emerCallToBed = paramVal == 1;
+            param.emerCallToBed = paramVal != 0;
         }else if(paramId.compareToIgnoreCase(JSON_PARAM_EMERCALLTOROOM)==0) {
-            param.emerCallToRoom= paramVal != 1;
+            param.emerCallToRoom= paramVal != 0;
         }else if(paramId.compareToIgnoreCase(JSON_PARAM_EMERCALLTOTV)==0) {
-            param.emerCallToTV= paramVal != 1;
+            param.emerCallToTV= paramVal != 0;
         }else if(paramId.compareToIgnoreCase(JSON_PARAM_EMERCALLTOCORRIDOR)==0) {
-            param.emerCallToCorridor= paramVal != 1;
+            param.emerCallToCorridor= paramVal != 0;
+        }else if(paramId.compareToIgnoreCase(JSON_PARAM_BROADCALLTOBED)==0) {
+            param.boardCallToBed = paramVal != 0;
+        }else if(paramId.compareToIgnoreCase(JSON_PARAM_BROADCALLTOROOM)==0) {
+            param.boardCallToRoom= paramVal != 0;
+        }else if(paramId.compareToIgnoreCase(JSON_PARAM_BROADCALLTOTV)==0) {
+            param.boardCallToTV= paramVal != 0;
+        }else if(paramId.compareToIgnoreCase(JSON_PARAM_BROADCALLTOCORRIDOR)==0) {
+            param.boardCallToCorridor= paramVal != 0;
         }
 
         return true;
@@ -565,10 +578,6 @@ public class DevicesQuery {
                     deviceInfo.deviceName = JsonPort.GetJsonString(jsonDevice,JSON_DEVICE_NAME_NAME);
                     deviceInfo.roomId = JsonPort.GetJsonString(jsonDevice,JSON_ROOM_ID_NAME);
                     deviceInfoList.add(deviceInfo);
-                    if(device.devid.compareToIgnoreCase("20105143")==0) {
-                        deviceInfo.roomId = JsonPort.GetJsonString(jsonDevice,JSON_ROOM_ID_NAME);
-                        System.out.println(String.format("Qkq Test Dev name=%s,room=%s,area=%s(%s) len=%d", deviceInfo.deviceName,deviceInfo.roomId,deviceInfo.areaId,deviceInfo.areaName,deviceInfo.areaName.getBytes().length));
-                    }
 
                 }
                 UserInterface.UpdateAreaDevices(areaId,userDeviceList,deviceInfoList);
