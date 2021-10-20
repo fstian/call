@@ -41,6 +41,7 @@ public class PhoneParam {
     final static String JSON_DOOR_NUM_NAME = "doorNum";
     final static String JSON_NURSER_NUM_NAME = "nurserNum";
     final static String JSON_EMER_USE_UDP_NAME = "emerUseUdp";
+    final static String JSON_BED_SUPPORT_NONAME_NAME = "bedSupportNoName";
     
 
     final static String JSON_CLIENT_NAME = "client";
@@ -98,6 +99,8 @@ public class PhoneParam {
 
     public static int snapStartPort = 11005;
     public static int transferMaxNum = 2;
+
+    public static boolean bedSupportNoName = true;
 
     public final static int SNAP_MMI_GROUP = 1;
     public final static int SNAP_TERMINAL_GROUP = 2;
@@ -244,6 +247,7 @@ public class PhoneParam {
                 servicePort = serviceJson.getIntValue(JSON_PORT_NAME);
                 serviceActive = serviceJson.getBooleanValue(JSON_ACTIVE_NAME);
                 serviceUpdateTime = serviceJson.getIntValue(JSON_UPDATE_TIME_NAME);
+                bedSupportNoName = clientJson.getBooleanValue(JSON_BED_SUPPORT_NONAME_NAME);
                 if(serviceUpdateTime==0)
                     serviceUpdateTime = 120;
             }
@@ -368,7 +372,8 @@ public class PhoneParam {
         String curAddress;
         int iMatchNum = 0;
         String[] serverIp;
-        String prioName="wlan";
+        String prio1Name="wlan";
+        String prio2Name="eth0";
         byte[] macAddress;
 
         serverIp = callServerAddress.split("\\.");
@@ -386,7 +391,10 @@ public class PhoneParam {
                         String[] localAddress = curAddress.split("\\.");
                         if(serverIp.length==4&&localAddress.length==4) {
                             int curMatched = 0;
-                            if(intf.getName().contains(prioName)){
+                            if(intf.getName().contains(prio1Name)){
+                                curMatched = 1;
+                                macAddress = intf.getHardwareAddress();
+                            }else if(intf.getName().contains(prio2Name)){
                                 curMatched = 1;
                                 macAddress = intf.getHardwareAddress();
                             }

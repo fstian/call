@@ -539,6 +539,9 @@ public class DevicesQuery {
         JSONObject json;
         JSONObject result;
         JSONArray deviceList;
+        int hasNameCount = 0;
+        int noNameCount = 0;
+        int bedNum = 0;
 
         ArrayList<UserDevice> userDeviceList = new ArrayList<>();
         ArrayList<ServerDeviceInfo> deviceInfoList = new ArrayList<>();
@@ -565,6 +568,18 @@ public class DevicesQuery {
                     device.devid = JsonPort.GetJsonString(jsonDevice,JSON_DEVICE_ID_NAME);
                     device.bedName = JsonPort.GetJsonString(jsonDevice,JSON_BED_NAME_NAME);
 
+                    if(device.type == UserInterface.CALL_BED_DEVICE){
+                        bedNum++;
+                        if(device.bedName.isEmpty()) {
+                            noNameCount++;
+                            if(!PhoneParam.bedSupportNoName){
+                                continue;
+                            }
+                        }else {
+                            hasNameCount++;
+                        }
+                    }
+
                     if(PhoneParam.emerUseUdp){
                         if(device.type==UserInterface.CALL_EMERGENCY_DEVICE){
                             netMode = UserInterface.NET_MODE_UDP;
@@ -582,7 +597,8 @@ public class DevicesQuery {
                 }
                 UserInterface.UpdateAreaDevices(areaId,userDeviceList,deviceInfoList);
                 json.clear();
-                return deviceList.size();
+                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG, String.format("Area %s Has %d bed, %d has Name, %d no Name!!!!",areaId,bedNum,hasNameCount,noNameCount));
+                return deviceInfoList.size();
             }else {
                 json.clear();
                 return -100;

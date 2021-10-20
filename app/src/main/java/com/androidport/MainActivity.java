@@ -39,6 +39,7 @@ import com.example.nettytest.terminal.test.TestDevice;
 import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.UserInterface;
 import com.example.nettytest.userinterface.UserMessage;
+import com.mysqltest.SqlAreasConf;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -73,6 +74,11 @@ public class    MainActivity extends AppCompatActivity {
             new Thread("InitDevices"){
                 @Override
                 public void run() {
+
+//                    SqlAreasConf areas = new SqlAreasConf();
+//                    areas.InitAreas("/sdcard/","areas.conf");
+
+
                     isAudioTestCreate = true;
 
                     UserInterface.PrintLog("Begin Init Audio Test");
@@ -210,6 +216,7 @@ public class    MainActivity extends AppCompatActivity {
             if (action == MotionEvent.ACTION_DOWN) {
                 boolean result;
                 float y = motionEvent.getY();
+
                 if(clientTest!=null) {
                     TestDevice dev = clientTest.GetCurTestDevice();
 //                    TestDevice otherDev = clientTest.GetOtherDevice();
