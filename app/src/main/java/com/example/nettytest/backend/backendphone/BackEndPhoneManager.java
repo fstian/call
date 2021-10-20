@@ -180,9 +180,11 @@ public class BackEndPhoneManager {
 
         ArrayList<BackEndPhone> devices = new ArrayList<>();
 
-        BackEndZone area = serverAreaLists.get(GetAreaId(areaId));
-        if(area!=null){
-            area.GetListenDevices(devices,callType);
+        synchronized(BackEndPhoneManager.class) {
+            BackEndZone area = serverAreaLists.get(GetAreaId(areaId));
+            if(area!=null){
+                area.GetListenDevices(devices,callType);
+            }
         }
 
         if(callType== CommonCall.CALL_TYPE_BROADCAST){
@@ -275,6 +277,9 @@ public class BackEndPhoneManager {
         int iTmp;
         ArrayList<UserDevice> newPhoneList = new ArrayList<>();
         ArrayList<ServerDeviceInfo> newInfoList = new ArrayList<>();
+        BackEndPhone backEndPhone;
+        UserDevice userDev;
+        ServerDeviceInfo info;
 
         boolean isMatched;
         synchronized (BackEndPhoneManager.class) {
@@ -285,8 +290,15 @@ public class BackEndPhoneManager {
 
             for(PhoneDevice dev:phoneList) {
                 isMatched = false;
-                for(UserDevice userDev:devList) {
+                for(iTmp=0;iTmp<devList.size();iTmp++) {
+                    userDev = devList.get(iTmp);
                     if(dev.id.compareToIgnoreCase(userDev.devid)==0) {
+                        backEndPhone = area.GetDevice(dev.id);
+                        info  = infoList.get(iTmp);
+                        if(backEndPhone.devInfo.CompareInfo(info)!=0) {
+                            UserInterface.ConfigDeviceInfoOnServer(userDev.devid, info);
+                            System.out.println(String.format("Update Dev %s DevInfo",dev.id));
+                        }
                         isMatched = true;
                         break;
                     }
@@ -294,9 +306,10 @@ public class BackEndPhoneManager {
                 if(!isMatched) {
                     HandlerMgr.RemoveBackEndPhone(dev.id);
                 }
-            }                        
+            }
+
             for(iTmp=0;iTmp<devList.size();iTmp++) {
-                UserDevice userDev = devList.get(iTmp);           	
+                userDev = devList.get(iTmp);
                 if(area.GetDevice(userDev.devid)==null){
                     newPhoneList.add(userDev);
                     newInfoList.add(infoList.get(iTmp));
@@ -306,8 +319,8 @@ public class BackEndPhoneManager {
         }
 
         for(iTmp=0;iTmp<newPhoneList.size();iTmp++){
-            UserDevice userDev = newPhoneList.get(iTmp);
-            ServerDeviceInfo info = newInfoList.get(iTmp);
+            userDev = newPhoneList.get(iTmp);
+            info = newInfoList.get(iTmp);
             UserInterface.AddDeviceOnServer(userDev.devid, userDev.type, userDev.netMode,areaId);
             UserInterface.ConfigDeviceInfoOnServer(userDev.devid, info);
         }

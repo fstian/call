@@ -599,6 +599,7 @@ public class TestDevice extends UserDevice{
                     info.callType = msg.callType;
                     inComingCallInfos.add(info);
                     UserInterface.PrintLog("Recv Incoming Call %s in Dev %s ",info.callID,devid);
+                    UserInterface.PrintLog("Caller name %s, area %s, room %s",msg.deviceName,msg.areaId,msg.roomId);
                     Integer count = inComingCallRecord.get(info.caller);
                     if(count==null){
                         inComingCallRecord.put(info.caller,1);
