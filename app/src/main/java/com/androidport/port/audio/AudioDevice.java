@@ -301,8 +301,8 @@ public class AudioDevice {
             player = new AudioTrack(AudioManager.STREAM_MUSIC, sample,
                     AudioFormat.CHANNEL_OUT_MONO,
                     AudioFormat.ENCODING_PCM_16BIT,
-                    packSize,
-//                    audioOutBufSize,
+//                    packSize,
+                    audioOutBufSize,
                     AudioTrack.MODE_STREAM);
 
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Create Player when AudioMode =%s ",GetAudioModeName(audioMode));
@@ -350,8 +350,8 @@ public class AudioDevice {
             recorder = new AudioRecord(MediaRecorder.AudioSource.MIC, sample,
                     AudioFormat.CHANNEL_IN_MONO,
                     AudioFormat.ENCODING_PCM_16BIT,
-//                audioInBufSize);
-                    packSize);
+                audioInBufSize);
+//                    packSize);
 
             state = recorder.getState();
             if (state != AudioRecord.STATE_INITIALIZED) {
