@@ -16,7 +16,7 @@ public class BackEndMsgReceiver extends MsgReceiver{
         super("JavaMsgReceiver");
         if(PhoneParam.serviceActive) {
             logSaver = new CallLogSaver();            
-            logSaver.StartCallLogServer(PhoneParam.serviceAddress, PhoneParam.servicePort);
+            logSaver.StartCallLogServer(PhoneParam.serviceAddress, PhoneParam.logPort);
         }
     }
     

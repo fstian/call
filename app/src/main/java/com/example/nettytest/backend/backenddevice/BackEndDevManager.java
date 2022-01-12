@@ -28,6 +28,18 @@ public class BackEndDevManager extends NetDeviceManager {
         }
     }
 
+    public String GetDeviceAddress(String id){
+        String address = "";
+        NetDevice matchedDev;
+        synchronized (NetDeviceManager.class) {
+            matchedDev = devLists.get(id);
+            if(matchedDev!=null){
+                address = matchedDev.GetNetAddress();
+            }
+        }
+        return address;
+    }
+
     public void RemoveDevice(String id){
         NetDevice matchedDev;
         synchronized (NetDeviceManager.class){

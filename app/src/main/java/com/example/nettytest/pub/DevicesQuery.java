@@ -543,6 +543,10 @@ public class DevicesQuery {
         int noNameCount = 0;
         int bedNum = 0;
 
+        int hasRoomCount = 0;
+        int noRoomCount = 0;
+        int emerNum = 0;
+
         ArrayList<UserDevice> userDeviceList = new ArrayList<>();
         ArrayList<ServerDeviceInfo> deviceInfoList = new ArrayList<>();
 
@@ -567,6 +571,7 @@ public class DevicesQuery {
                     device.type = jsonDevice.getIntValue(JSON_DEVICE_TYPE_NAME);
                     device.devid = JsonPort.GetJsonString(jsonDevice,JSON_DEVICE_ID_NAME);
                     device.bedName = JsonPort.GetJsonString(jsonDevice,JSON_BED_NAME_NAME);
+                    device.roomId =JsonPort.GetJsonString(jsonDevice,JSON_ROOM_ID_NAME);
 
                     if(device.type == UserInterface.CALL_BED_DEVICE){
                         bedNum++;
@@ -577,6 +582,18 @@ public class DevicesQuery {
                             }
                         }else {
                             hasNameCount++;
+                        }
+                    }
+
+                    if(device.type == UserInterface.CALL_EMERGENCY_DEVICE){
+                        emerNum++;
+                        if(device.roomId.isEmpty()){
+                            noRoomCount++;
+                            if(!PhoneParam.bedSupportNoName){
+                                continue;
+                            }
+                        }else{
+                            hasRoomCount++;
                         }
                     }
 
@@ -598,6 +615,7 @@ public class DevicesQuery {
                 UserInterface.UpdateAreaDevices(areaId,userDeviceList,deviceInfoList);
                 json.clear();
                 LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG, String.format("Area %s Has %d bed, %d has Name, %d no Name!!!!",areaId,bedNum,hasNameCount,noNameCount));
+//                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG, String.format("Area %s Has %d Emer, %d has Room, %d no Room!!!!",areaId,emerNum,hasRoomCount,noRoomCount));
                 return deviceInfoList.size();
             }else {
                 json.clear();

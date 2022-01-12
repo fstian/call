@@ -8,6 +8,7 @@ import android.media.MediaRecorder;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.provider.MediaStore;
 
 
 import com.android.webrtc.audio.MobileAEC;
@@ -16,6 +17,8 @@ import com.example.nettytest.pub.UniqueIDManager;
 import com.example.nettytest.pub.AudioMode;
 import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.UserInterface;
+import com.qd.gtcom.wangzhengcheng.ns.AgcUtils;
+import com.qd.gtcom.wangzhengcheng.ns.NsUtils;
 import com.witted.ptt.JitterBuffer;
 
 import java.io.IOException;
@@ -65,6 +68,10 @@ public class AudioDevice {
     public String devId;
 
     MobileAEC aec = null;
+    NsUtils nsUtils = null;
+    AgcUtils inputAgc = null;
+    AgcUtils outputAgc = null;
+    int nsHandle = -1;
 
     boolean isSockReadRuning = false;
     boolean isAudioReadRuning = false;
@@ -243,6 +250,13 @@ public class AudioDevice {
         }
     }
 
+    public int GetAudioDelay(){
+        if(aec==null)
+            return -1;
+        else
+            return aec.getdelay();
+    }
+
     private void CloseSocket(){
         int count = 0;
         if(audioSocket!=null) {
@@ -279,14 +293,66 @@ public class AudioDevice {
     private void OpenAudio(){
         int count = 0;
         int state;
+        MobileAEC.SamplingFrequency aecSample;
         packSize = sample*ptime/1000;
+        int nsMode;
 
-        if(audioMode==AudioMode.SEND_RECV_MODE){
-//            aec =new MobileAEC(new SamplingFrequency(sample));
-            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Create AEC when AudioMode =%s ",GetAudioModeName(audioMode));
+        if(sample==8000)
+            aecSample = MobileAEC.SamplingFrequency.FS_8000Hz;
+        else if(sample==16000)
+            aecSample = MobileAEC.SamplingFrequency.FS_16000Hz;
+        else
+            aecSample = MobileAEC.SamplingFrequency.FS_8000Hz;
 
-            aec =new MobileAEC(null);
-            aec.setAecmMode(MobileAEC.AggressiveMode.MOST_AGGRESSIVE).prepare();
+        if(audioMode==AudioMode.SEND_RECV_MODE) {
+            aec = new MobileAEC(aecSample);
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, "Create AEC when AudioMode =%s ", GetAudioModeName(audioMode));
+
+            switch(PhoneParam.aecMode){
+                case PhoneParam.AUDIO_PROCESS_MILD:
+                    aec.setAecmMode(MobileAEC.AggressiveMode.MILD).prepare();
+                break;
+                case PhoneParam.AUDIO_PROCESS_MEDIUM:
+                    aec.setAecmMode(MobileAEC.AggressiveMode.MEDIUM).prepare();
+                break;
+                case PhoneParam.AUDIO_PROCESS_HIGH:
+                    aec.setAecmMode(MobileAEC.AggressiveMode.HIGH).prepare();
+                break;
+                case PhoneParam.AUDIO_PROCESS_AGGRESSIVE:
+                    aec.setAecmMode(MobileAEC.AggressiveMode.AGGRESSIVE).prepare();
+                break;
+                default :
+                    aec.setAecmMode(MobileAEC.AggressiveMode.MOST_AGGRESSIVE).prepare();
+                break;
+                    
+            }
+
+            nsUtils = new NsUtils();
+            nsHandle = nsUtils.nsxCreate();
+            nsUtils.nsxInit(nsHandle,sample);
+            nsMode = PhoneParam.nsMode;
+            
+            switch(PhoneParam.nsMode){
+                case PhoneParam.AUDIO_PROCESS_MILD:
+                    nsMode = 0;
+                break;
+                case PhoneParam.AUDIO_PROCESS_MEDIUM:
+                    nsMode = 1;
+                break;
+                case PhoneParam.AUDIO_PROCESS_HIGH:
+                    nsMode = 2;
+                break;
+                default:
+                    nsMode = 3;
+                break;
+            }
+            nsUtils.nsxSetPolicy(nsHandle,nsMode);
+
+//            inputAgc = new AgcUtils();
+//            inputAgc.setAgcConfig(3,20,1).prepare();
+
+//            outputAgc = new AgcUtils();
+//            outputAgc.setAgcConfig(20,20,1).prepare();
         }
 
         // create audio read device and write device int synchronized
@@ -297,8 +363,19 @@ public class AudioDevice {
                     AudioFormat.CHANNEL_OUT_MONO,
                     AudioFormat.ENCODING_PCM_16BIT);
 
-
-            player = new AudioTrack(AudioManager.STREAM_MUSIC, sample,
+            int outMode;
+            switch(PhoneParam.outputMode){
+                case PhoneParam.AUDIO_OUTPUT_CALL:
+                    outMode = AudioManager.STREAM_VOICE_CALL;
+                    break;
+                case PhoneParam.AUDIO_OUTPUT_SYSTEM:
+                    outMode = AudioManager.STREAM_SYSTEM;
+                    break;
+                default:
+                    outMode =  AudioManager.STREAM_MUSIC;
+                    break;
+            }
+            player = new AudioTrack(outMode, sample,
                     AudioFormat.CHANNEL_OUT_MONO,
                     AudioFormat.ENCODING_PCM_16BIT,
 //                    packSize,
@@ -347,7 +424,26 @@ public class AudioDevice {
                     AudioFormat.CHANNEL_IN_MONO,
                     AudioFormat.ENCODING_PCM_16BIT);
 
-            recorder = new AudioRecord(MediaRecorder.AudioSource.MIC, sample,
+            int inMode;
+            switch(PhoneParam.inputMode){
+                case PhoneParam.AUDIO_INPUT_CALL:
+                    inMode = MediaRecorder.AudioSource.VOICE_CALL;
+                    break;
+                case PhoneParam.AUDIO_INPUT_CAMCORDER:
+                    inMode = MediaRecorder.AudioSource.CAMCORDER;
+                    break;
+                case PhoneParam.AUDIO_INPUT_COMMUNICATION:
+                    inMode = MediaRecorder.AudioSource.VOICE_COMMUNICATION;
+                    break;
+                case PhoneParam.AUDIO_INPUT_DEFAULT:
+                    inMode = MediaRecorder.AudioSource.DEFAULT;
+                    break;
+                default:
+                    inMode = MediaRecorder.AudioSource.MIC;
+                    break;
+
+            }
+            recorder = new AudioRecord(inMode, sample,
                     AudioFormat.CHANNEL_IN_MONO,
                     AudioFormat.ENCODING_PCM_16BIT,
                 audioInBufSize);
@@ -466,6 +562,11 @@ public class AudioDevice {
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Close AEC");
         }
 
+        if(nsUtils!=null){
+            nsUtils.nsxFree(nsHandle);
+            nsUtils = null;
+        }
+
         if(jb!=null) {
             jb.closeJb(jbIndex);
             jb.deInitJb();
@@ -496,7 +597,7 @@ public class AudioDevice {
                     try {
                         audioSocket.receive(recvPack);
                         if(recvPack.getLength()>0){
-//                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv %d byte from %s:%d",recvPack.getLength(),recvPack.getAddress().getHostName(),recvPack.getPort());
+//                            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv %d byte from %s:%d",recvPack.getLength(),recvPack.getAddress().getHostAddress(),recvPack.getPort());
                             if(recvPack.getPort()==dstPort&&recvPack.getAddress().getHostAddress().compareToIgnoreCase(dstAddress)==0){
                                 if(jb==null){
                                     UserInterface.PrintLog("jb is NULL!!!!!!!!!!!!!!!!!!");
@@ -576,48 +677,108 @@ public class AudioDevice {
         public void run() {
             byte[] jbData = new byte[packSize];
             int jbDataLen;
+            int iTmp;
             short[] pcmData;
             byte[] rtpData;
             short[] audioReadData = new short[packSize];
+            short[] audioInputAgcData = new short[packSize];
+            short[] audioOutputAgcData = new short[packSize];
             short[] aecData ;
 
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Audio AudioReadThread");
 
             isAudioReadRuning = true;
             
-            if(audioMode==AudioMode.SEND_RECV_MODE){
-                aecData = new short[packSize];
-            }else{
-                aecData = audioReadData;
-            }
+            aecData = new short[packSize];
 
             while (!isInterrupted()) {
                 jbDataLen = jb.getPackage(jbIndex, jbData, packSize);
                 if (jbDataLen > 0) {
                     pcmData = Rtp.UnenclosureRtp(jbData, jbDataLen, codec);
+                    for(iTmp=0;iTmp<pcmData.length;iTmp++) {
+                        switch(PhoneParam.outputGain){
+                            case 1:
+                                pcmData[iTmp] = (short)(pcmData[iTmp]/3*2);
+                                break;
+                            case 2:
+                                pcmData[iTmp] = (short)(pcmData[iTmp]/2);
+                                break;
+                            case 3:
+                                pcmData[iTmp] = (short)(pcmData[iTmp]/3);
+                                break;
+                            case 4:
+                                pcmData[iTmp] = (short)(pcmData[iTmp]/4);
+                                break;
+                            case 5:
+                                pcmData[iTmp] = (short)(pcmData[iTmp]/6);
+                                break;
+                            case 6:
+                                pcmData[iTmp] = (short)(pcmData[iTmp]/8);
+                                break;
+                            case 7:
+                                pcmData[iTmp] = (short)(pcmData[iTmp]/10);
+                                break;
+                        }
+                    }
+                    if(outputAgc!=null)
+                        outputAgc.agcProcess(pcmData,0,packSize,audioOutputAgcData,0,0,0,0);
+                    else
+                        audioOutputAgcData = pcmData;
+
                     // notify play thread;
-                    if(audioMode==AudioMode.RECV_ONLY_MODE||audioMode==AudioMode.SEND_RECV_MODE){
+                    if (audioMode == AudioMode.RECV_ONLY_MODE || audioMode == AudioMode.SEND_RECV_MODE) {
                         if (audioWriteHandlerEnabled && audioWriteHandler != null) {
                             Message playMsg = audioWriteHandler.obtainMessage();
                             playMsg.arg1 = AUDIO_PLAY_MSG;
-                            playMsg.obj = pcmData;
+                            playMsg.obj = audioOutputAgcData;
                             audioWriteHandler.sendMessage(playMsg);
                         }
                     }
 
                     //read ;
                     int readNum = recorder.read(audioReadData, 0, packSize);
-//                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Read %d sample from Audio device, Return =%d",packSize,readNum);
+                    for(iTmp=0;iTmp<packSize;iTmp++){
+                        switch (PhoneParam.inputGain){
+                            case 1:
+                                audioReadData[iTmp] = (short)(audioReadData[iTmp]/3*2);
+                                break;
+                            case 2:
+                                audioReadData[iTmp] = (short)(audioReadData[iTmp]/2);
+                                break;
+                            case 3:
+                                audioReadData[iTmp] = (short)(audioReadData[iTmp]/3);
+                                break;
+                            case 4:
+                                audioReadData[iTmp] = (short)(audioReadData[iTmp]/4);
+                                break;
+                            case 5:
+                                audioReadData[iTmp] = (short)(audioReadData[iTmp]/6);
+                                break;
+                            case 6:
+                                audioReadData[iTmp] = (short)(audioReadData[iTmp]/8);
+                                break;
+                            case 7:
+                                audioReadData[iTmp] = (short)(audioReadData[iTmp]/10);
+                                break;
+                        }
+                    }
+//                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Read %d sample from Audio device, Return =%d",packSize,readNum)
+                    if (inputAgc != null) {
+                        inputAgc.agcProcess(audioReadData, 0, packSize, audioInputAgcData, 0, 0, 0, 0);
+                    } else {
+                        audioInputAgcData = audioReadData;
+                    }
 
                     //aec process
-                    if(audioMode==AudioMode.SEND_RECV_MODE){
+                    if (aec != null){
                         try {
-                            aec.farendBuffer(pcmData,pcmData.length);
-                            aec.echoCancellation(audioReadData,null,aecData,(short)packSize,(short) PhoneParam.aecDelay);
+                            aec.farendBuffer(audioOutputAgcData, audioOutputAgcData.length);
+                            aec.echoCancellation(audioInputAgcData, null, aecData, (short) packSize, (short) PhoneParam.aecDelay);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-//                        aecData = audioReadData;
+                    }else{
+                        aecData = audioInputAgcData;
                     }
                     // rtp packet and send
                     if((audioMode==AudioMode.SEND_ONLY_MODE||audioMode==AudioMode.SEND_RECV_MODE)&&audioSocket!=null){
@@ -672,9 +833,22 @@ public class AudioDevice {
             audioWriteHandler = new Handler(message -> {
                 if (message.arg1 == AUDIO_PLAY_MSG) {
                     short[] rtpData = (short[]) message.obj;
-                    //LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv Play Msg with %d Byte Data",rtpData.length);
-                    if (player != null)
-                        player.write(rtpData, 0, rtpData.length);
+                    if(nsUtils!=null) {
+                        short[] nsData = new short[rtpData.length];
+                        short[] blockSrc = new short[80];
+                        short[] blockDst = new short[80];
+                        for(int iTmp=0;iTmp<rtpData.length;iTmp+=80){
+                            System.arraycopy(rtpData,iTmp,blockSrc,0,80);
+                            nsUtils.nsxProcess(nsHandle,blockSrc, null, blockDst, null);
+                            System.arraycopy(blockDst,0,nsData,iTmp,80);
+                        }
+                        if (player != null)
+                            player.write(nsData , 0, nsData.length);
+                    }else {
+                        //LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv Play Msg with %d Byte Data",rtpData.length);
+                        if (player != null)
+                            player.write(rtpData, 0, rtpData.length);
+                    }
                 }
                 return false;
             });

@@ -22,6 +22,7 @@ import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -29,6 +30,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.androidport.port.CallMsgReceiver;
 import com.androidport.port.TerminalUserMsgReceiver;
+import com.androidport.port.audio.AudioMgr;
 import com.example.nettytest.R;
 import com.example.nettytest.pub.HandlerMgr;
 import com.example.nettytest.pub.LogWork;
@@ -40,11 +42,15 @@ import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.UserInterface;
 import com.example.nettytest.userinterface.UserMessage;
 import com.mysqltest.SqlAreasConf;
+import com.mysqltest.SqlBedInfo;
+import com.nettime.TimeSyn;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.sql.Time;
+import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -68,6 +74,7 @@ public class    MainActivity extends AppCompatActivity {
 
     NetworkStateChangedReceiver wifiReceiver = null;
 
+
     private void CreateAudioTest(){
 
         if(!isAudioTestCreate){
@@ -75,10 +82,23 @@ public class    MainActivity extends AppCompatActivity {
                 @Override
                 public void run() {
 
-//                    SqlAreasConf areas = new SqlAreasConf();
-//                    areas.InitAreas("/sdcard/","areas.conf");
 
+                    SqlBedInfo areaBeds = new SqlBedInfo();
+                    areaBeds.InitBeds("/sdcard","bedinfo.conf");
 
+                    SqlAreasConf areas = new SqlAreasConf();
+                    areas.InitAreas("/sdcard","areasUpdate.conf");
+
+//                    areas.CreateSqlFiles("/sdcard/");
+                    areas.CreateUpdateSqlFile("/sdcard",areaBeds);
+
+                    areas.CreateSipNumberFile("/sdcard");
+
+                    areas.InitCallParams("/sdcard","callParam.conf");
+                    areas.CreateCallParamSqlFile("/sdcard");
+
+                    areas.InitCallParams("/sdcard","infusion_ifs_param.conf");
+                    areas.CreateInfusionParamSqlFile("/sdcard");
                     isAudioTestCreate = true;
 
                     UserInterface.PrintLog("Begin Init Audio Test");
@@ -168,6 +188,8 @@ public class    MainActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
 
+        TimeSyn.BuildTimeSyn("172.16.1.71",10);
+
         UserInterface.PrintLog("screen onCreate with %d",getResources().getConfiguration().orientation);
         if(getResources().getConfiguration().orientation==ActivityInfo.SCREEN_ORIENTATION_PORTRAIT) {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
@@ -204,10 +226,14 @@ public class    MainActivity extends AppCompatActivity {
                         tv = findViewById(R.id.statisticsId);
                         tv.setText(String.format("B(C=%d,T=%d),T(C=%d,T=%d)", HandlerMgr.GetBackCallCount(), HandlerMgr.GetBackTransCount(), HandlerMgr.GetTermCallCount(), HandlerMgr.GetTermTransCount()));
                     });
+//                    System.out.println("qkq add TimeSyn Cur Time from TimeSyn is "+new Date(TimeSyn.GetSynTime()).toString());
+                    System.out.println("qkq add Audio Delay is "+ AudioMgr.GetAudioDelay()+"ms");
                 }
             }, 0, 1000);
 
         }
+
+
 
         TextView tv = findViewById(R.id.deviceStatusId);
 
@@ -349,6 +375,16 @@ public class    MainActivity extends AppCompatActivity {
 //            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 //                devicePolicy.lockNow(0);
 //            }
+        });
+
+        bt = (Button )findViewById(R.id.setaecdelayid);
+        bt.setOnClickListener(view->{
+            String value;
+            int delay;
+            EditText aecDelay = (EditText)findViewById(R.id.editaecdelayid);
+            value = aecDelay.getText().toString();
+            delay = Integer.parseInt(value);
+            PhoneParam.aecDelay = delay;
         });
 
         IntentFilter filter = new IntentFilter();

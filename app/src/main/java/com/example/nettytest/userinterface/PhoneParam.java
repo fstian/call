@@ -20,6 +20,7 @@ public class PhoneParam {
     final static String JSON_SERVE_NAME = "server";
     final static String JSON_ADDRESS_NAME = "address";
     final static String JSON_PORT_NAME = "port";
+    final static String JSON_LOG_PORT_NAME = "logPort";
     final static String JSON_ACTIVE_NAME = "active";
     final static String JSON_SNAP_PORT_NAME = "snapPort";
     final static String JSON_NET_MODE_NAME = "netMode";
@@ -60,7 +61,7 @@ public class PhoneParam {
     final public static int ANSWER_CALL_RTP_PORT = 9092;
     final public static int BROADCAST_CALL_RTP_PORT = 9094;
 
-    final public static int DEFAULT_AEC_DELAY = 100;
+    final public static int DEFAULT_AEC_DELAY = 90;
 
     final public static int BROADCALL_ANSWER_WAIT = 3;
     
@@ -74,6 +75,23 @@ public class PhoneParam {
     public final static int UDP_PROTOCOL = 1;
     public final static int TCP_PROTOCOL = 2;
     public final static int RAW_TCP_PROTOCOL = 3;
+
+    public final static int AUDIO_PROCESS_MILD = 0;
+    public final static int AUDIO_PROCESS_MEDIUM = 1;
+    public final static int AUDIO_PROCESS_HIGH = 2;
+    public final static int AUDIO_PROCESS_AGGRESSIVE= 3;
+    public final static int AUDIO_PROCESS_MOST_AGGRESSIVE= 4;
+
+    public final static int AUDIO_INPUT_MIC = 0;
+    public final static int AUDIO_INPUT_COMMUNICATION = 1;
+    public final static int AUDIO_INPUT_CALL = 2;
+    public final static int AUDIO_INPUT_CAMCORDER = 3;
+    public final static int AUDIO_INPUT_DEFAULT = 4;
+
+    public final static int AUDIO_OUTPUT_MUSIC = 0;
+    public final static int AUDIO_OUTPUT_CALL = 1;
+    public final static int AUDIO_OUTPUT_SYSTEM = 2;
+    
 
     public static int callRtpCodec = AudioMode.RTP_CODEC_711A;
 
@@ -91,9 +109,18 @@ public class PhoneParam {
     public static boolean serviceActive = false;
     public static String serviceAddress = "127.0.0.1";
     public static int servicePort = 80;
+    public static int logPort=9996;
     public static int serviceUpdateTime = 120;
     
     public static int aecDelay = DEFAULT_AEC_DELAY;
+    public static int aecMode = AUDIO_PROCESS_AGGRESSIVE;
+    public static int nsMode = AUDIO_PROCESS_AGGRESSIVE;
+
+    public static int inputMode = AUDIO_INPUT_MIC;
+    public static int inputGain = 0;
+    public static int outputMode = AUDIO_OUTPUT_MUSIC;
+    public static int outputGain = 0;
+    
     public static int callRtpPTime = 20;
     public static int callRtpDataRate = 8000;
 
@@ -245,11 +272,14 @@ public class PhoneParam {
             if(serviceJson!=null){
                 serviceAddress = JsonPort.GetJsonString(serviceJson,JSON_ADDRESS_NAME);
                 servicePort = serviceJson.getIntValue(JSON_PORT_NAME);
+                logPort =serviceJson.getIntValue(JSON_LOG_PORT_NAME);
                 serviceActive = serviceJson.getBooleanValue(JSON_ACTIVE_NAME);
                 serviceUpdateTime = serviceJson.getIntValue(JSON_UPDATE_TIME_NAME);
                 bedSupportNoName = clientJson.getBooleanValue(JSON_BED_SUPPORT_NONAME_NAME);
                 if(serviceUpdateTime==0)
                     serviceUpdateTime = 120;
+                if(logPort==0)
+                    logPort = 9996;
             }
 
             if(serverJson!=null){

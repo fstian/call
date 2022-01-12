@@ -7,18 +7,24 @@ public class SqlAreaInfo {
     public int location;
     public String name;
     public String code;
+    public String oldCode;
     public int netWork;
     public int bedNum;
     public int doorNum;
+    public boolean clearOld;
+    public boolean skipFour;
 
     public SqlAreaInfo(){
         floor = 1;
         location = 1;
         name = "";
         code = "";
+        oldCode = "";
         netWork = 1;
         bedNum = 1;
         doorNum = 1;
+        clearOld = false;
+        skipFour = false;
     }
 
     public String CreateAreaCode(){
@@ -90,6 +96,11 @@ public class SqlAreaInfo {
         return CreateBedDevCode(bed);
     }
 
+    public String CreatePatient(int num){
+        String patient_id = String.format("P_ID_%04d",num);
+        return patient_id;
+    }
+
     public String GetTVCode(){
         return String.format("5%02d%1d3001",floor,location);
     }
@@ -107,13 +118,33 @@ public class SqlAreaInfo {
     }
 
 //room of bed is unknow
-    public String CreateRoomOfBed(int bed){
+    public String CreateRoomOfBed(boolean skipFour,int bed){
         String roomCode;
+        int roomIndex;
         int everyBedInRoom = bedNum/doorNum;
         if(everyBedInRoom<1)
             everyBedInRoom = 1;
+
+        roomIndex = bed/everyBedInRoom+1;
+        if(roomIndex>doorNum)
+            roomIndex = doorNum;
+
+        if(skipFour) {
+            if (roomIndex > 4)
+                roomIndex++;
+            if (roomIndex > 14)
+                roomIndex++;
+            if (roomIndex > 24)
+                roomIndex++;
+            if (roomIndex > 34)
+                roomIndex++;
+        }
+
+        if((roomIndex%10)==4)
+            roomIndex++;
+
         if(bed<everyBedInRoom*doorNum)
-            roomCode = String.format("%d",bed/everyBedInRoom+1);
+            roomCode = String.format("%d",roomIndex);
         else
             roomCode = String.format("%d",doorNum);
 

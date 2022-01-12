@@ -390,13 +390,13 @@ public class TestDevice extends UserDevice{
             if (testTickCount >= testWaitTick) {
                 testTickCount = 0;
                 randValue = Math.random();
-                testWaitTick = (int) (randValue * (double)testInfo.timeUnit) + 10;
+                testWaitTick = (int) (randValue * (double)testInfo.timeUnit) +1;
                 result = true;
                 synchronized (TestDevice.class) {
                     if(testInfo.testMode==0){ // call by bed
                         if(type==UserInterface.CALL_BED_DEVICE){
                             if(isCallOut){
-                                if(outGoingCall.status== LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
+//                                if(outGoingCall.status== LocalCallInfo.LOCAL_CALL_STATUS_CONNECTED)
                                     EndCall(outGoingCall.callID);
                             }else{
                                 BuildCall(PhoneParam.CALL_SERVER_ID, UserInterface.CALL_NORMAL_TYPE);
