@@ -301,6 +301,13 @@ public class MobileAEC {
         }
     }
 
+    public int getdelay(){
+        if(mIsInit)
+            return nativeGetDelay(mAecmHandler);
+        else
+            return -1;
+    }
+
     // ////////////////////////////////////////////////////////
     // PROTECTED METHODS
 
@@ -373,6 +380,8 @@ public class MobileAEC {
      */
     private static native int nativeFreeAecmInstance(int aecmHandler);
 
+    private static native int nativeGetDelay(int aecmHandler);
+
     /**
      * Initializes an AECM instance.
      * 
@@ -399,7 +408,7 @@ public class MobileAEC {
      *          -1: error
      */
     private static native int nativeBufferFarend(int aecmHandler,
-            short[] farend, int a);
+            short[] farend, int nrOfSamples);
 
     /**
      * Runs the AECM on an 80 or 160 sample blocks of data.

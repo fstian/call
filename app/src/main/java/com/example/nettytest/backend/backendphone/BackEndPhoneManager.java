@@ -39,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -63,6 +64,8 @@ public class BackEndPhoneManager {
     BackEndPhoneMsgReceiver msgReceiver;
     
     MsgReceiver userMsgReceiver;
+
+    boolean isSendingDevInfo = false;
     
 
     private class BackEndPhoneMsgReceiver extends MsgReceiver{
@@ -141,6 +144,26 @@ public class BackEndPhoneManager {
     	msgReceiver.AddMessage(type,obj);
     	return 0;
     }
+
+    public boolean GetPhoneRegStatus(String id){
+        boolean status = false;
+        boolean isfound = false;
+        synchronized(BackEndPhoneManager.class) {
+            for(BackEndZone zone:serverAreaLists.values()) {
+                for(BackEndPhone phone:zone.phoneList.values()) {
+                    if(phone.id.compareToIgnoreCase(id)==0) {
+                        status = phone.isReg;
+                        isfound = true;
+                        break;
+                    }
+                }
+                if(isfound)
+                    break;
+            }
+        }
+
+        return status;
+    }
     
     public DeviceStatistics GetRegStatistics() {
         DeviceStatistics statist = new DeviceStatistics();
@@ -157,6 +180,23 @@ public class BackEndPhoneManager {
         return statist;
     }
     
+    public DeviceStatistics GetRegStatistics(String areaId) {
+        DeviceStatistics statist = new DeviceStatistics();
+        synchronized(BackEndPhoneManager.class) {
+            for(BackEndZone zone:serverAreaLists.values()) {
+                if(zone.areaId.compareToIgnoreCase(areaId)==0) {
+                    for(BackEndPhone phone:zone.phoneList.values()) {
+                        if (phone.isReg)
+                            statist.regSuccNum++;
+                        else
+                            statist.regFailNum++;
+                    }
+                    break;
+                }
+            }
+        }
+        return statist;
+    }
 
     public int GetCallCount(){
         return backEndCallConvergencyMgr.GetCallCount();
@@ -417,7 +457,7 @@ public class BackEndPhoneManager {
                                                     byte[] resultInfo;
                                                     resultInfo = backEndCallConvergencyMgr.MakeCallConvergenceSnap(devid);
                                                     if(resultInfo!=null) {
-                                                        //                                                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Get BackEnd Call Snap for dev %s, total %d bytes, send to %s:%d",devid,result.length,recvPack.getAddress().getHostName(),recvPack.getPort());
+   //                                                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Get BackEnd Call Snap for dev %s, total %d bytes, send to %s:%d",devid,result.length,recvPack.getAddress().getHostAddress(),recvPack.getPort());
                                                         resPack = new DatagramPacket(resultInfo, resultInfo.length, recvPack.getAddress(), recvPack.getPort());
                                                         testSocket.send(resPack);
                                                     }
@@ -429,7 +469,10 @@ public class BackEndPhoneManager {
     //                                                }
                                                 }else if(type == SystemSnap.SNAP_SYSTEM_INFO_REQ){
                                                     byte[] systemInfo;
-                                                    systemInfo = MakeSystemInfo();
+                                                    String curAreaId;
+
+                                                    curAreaId = JsonPort.GetJsonString(json,SystemSnap.SNAP_AREAID_NAME);
+                                                    systemInfo = MakeSystemInfo(curAreaId);
                                                     if(systemInfo!=null){
                                                         resPack = new DatagramPacket(systemInfo, systemInfo.length, recvPack.getAddress(), recvPack.getPort());
                                                         testSocket.send(resPack);
@@ -472,6 +515,8 @@ public class BackEndPhoneManager {
 
                                                 }else if(type == SystemSnap.SNAP_DEL_LOG_REQ){
                                                     LogWork.ResetLogIndex();
+                                                }else if(type== SystemSnap.SNAP_DEV_REQ){
+                                                    CreateDevInfoSendTask(testSocket,recvPack.getAddress(),recvPack.getPort());
                                                 }
                                             }
                                             json.clear();
@@ -493,6 +538,58 @@ public class BackEndPhoneManager {
         }
 
         return result;
+    }
+
+    void CreateDevInfoSendTask(DatagramSocket socket, InetAddress serverAddress,int serverPort){
+        if(isSendingDevInfo==false){
+            isSendingDevInfo = true;
+            Thread sendingthread = new Thread("devInfo"){
+                @Override
+                public void run() {
+                    DatagramPacket resPack;
+                    int sentCount = 0;
+                    String ipAddress;
+                    String localAddress = PhoneParam.GetLocalAddress();
+                    for(BackEndZone zone:serverAreaLists.values()){
+                        for(BackEndPhone phone:zone.phoneList.values()){
+                            JSONObject resJson = new JSONObject();
+                            resJson.put(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_DEV_RES);
+                            resJson.put(SystemSnap.SNAP_AREAID_NAME,zone.areaId);
+                            resJson.put(SystemSnap.SNAP_DEVID_NAME, phone.id);
+                            resJson.put(SystemSnap.SNAP_DEVTYPE_NAME,phone.type);
+                            if(phone.isReg)
+                                resJson.put(SystemSnap.SNAP_REG_NAME,1);
+                            else
+                                resJson.put(SystemSnap.SNAP_REG_NAME,0);
+                            ipAddress = HandlerMgr.GetBackEndPhoneAddress(phone.id);
+                            if(ipAddress.compareToIgnoreCase("127.0.0.1")==0){
+                                ipAddress = localAddress;
+                            }
+                            resJson.put(SystemSnap.SNAP_IP_ADDRESS,ipAddress);
+                            byte[] resBuf = resJson.toString().getBytes();
+                            resPack = new DatagramPacket(resBuf, resBuf.length, serverAddress, serverPort);
+                            try {
+                                socket.send(resPack);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            sentCount++;
+                            if((sentCount%20)==19){
+                                try {
+                                    sleep(20);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    }
+
+                    isSendingDevInfo = false;
+                }
+            };
+
+            sendingthread.start();
+        }
     }
 
 // used in local
@@ -844,8 +941,9 @@ public class BackEndPhoneManager {
         return phoneList;
     }
 
-    private byte[] MakeSystemInfo(){
+    private byte[] MakeSystemInfo(String areaId){
         BackEndStatistics backEndStatist = UserInterface.GetBackEndStatistics();
+        BackEndStatistics curAreaStatist = UserInterface.GetBackEndStatistics(areaId);
         JSONObject json = new JSONObject();
         byte[] result;
 
@@ -854,6 +952,9 @@ public class BackEndPhoneManager {
         json.put(SystemSnap.SNAP_INFO_BACKEND_TRANS_NUM_NAME,backEndStatist.transNum);
         json.put(SystemSnap.SNAP_INFO_BACKEND_REGSUCC_NUM_NAME,backEndStatist.regSuccDevNum);
         json.put(SystemSnap.SNAP_INFO_BACKEND_REGFAIL_NUM_NAME,backEndStatist.regFailDevNum);
+        
+        json.put(SystemSnap.SNAP_INFO_BACKEND_CURAREA_REGSUCC_NUM_NAME,curAreaStatist.regSuccDevNum);
+        json.put(SystemSnap.SNAP_INFO_BACKEND_CURAREA_REGFAIL_NUM_NAME,curAreaStatist.regFailDevNum);
 
         result = json.toString().getBytes();
         json.clear();

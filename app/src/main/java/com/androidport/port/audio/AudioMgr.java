@@ -39,6 +39,13 @@ public class AudioMgr {
         }
     }
 
+    public static int GetAudioDelay(){
+        if(audio==null)
+            return -1;
+        else 
+            return audio.GetAudioDelay();
+    }
+
     public static void SuspendAudio(String devId,String id){
         LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Dev %s Try to suspend Audio %s ",devId,id);
         synchronized (AudioMgr.class) {

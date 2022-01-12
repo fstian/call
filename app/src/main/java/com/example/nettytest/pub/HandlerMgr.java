@@ -107,6 +107,10 @@ public class HandlerMgr {
         return terminalPhoneMgr.GetRegStatist();
     }
 
+    static public DeviceStatistics GetTerminalRegDevNum(String areaId) {
+        return terminalPhoneMgr.GetRegStatist(areaId);
+    }
+
 // for TerminalTranscation
     static public boolean AddPhoneTrans(String ID, Transaction trans){
         return terminalTransMgr.AddTransaction(ID,trans);
@@ -300,6 +304,13 @@ public class HandlerMgr {
         return backEndPhoneMgr.GetRegStatistics();
     }
 
+    static public boolean GetBackEndPhoneRegStatus(String devid){
+        return backEndPhoneMgr.GetPhoneRegStatus(devid);
+    }
+
+    static public DeviceStatistics GetBackEndRegDevNum(String areaId) {
+        return backEndPhoneMgr.GetRegStatistics(areaId);
+    }
 
 // for backend phone
     static public BackEndPhone GetBackEndPhone(String ID) {
@@ -343,6 +354,10 @@ public class HandlerMgr {
     }
     
 // create backend device
+    static public String GetBackEndPhoneAddress(String id){
+        return backEndDevMgr.GetDeviceAddress(id);
+    }
+
     static public int  AddBackEndPhone(String ID,int type,int netMode,String area){
         int result;
 

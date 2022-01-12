@@ -548,6 +548,15 @@ public class UserInterface {
         return statist;
     }
 
+    public static TerminalStatistics GetTerminalStatistics(String areaId) {
+        TerminalStatistics statist = new TerminalStatistics();
+        DeviceStatistics devStatist;
+        devStatist = HandlerMgr.GetTerminalRegDevNum(areaId);
+        statist.regSuccDevNum = devStatist.regSuccNum;
+        statist.regFailDevNum = devStatist.regFailNum;
+        return statist;
+    }
+
     public static BackEndStatistics GetBackEndStatistics() {
         BackEndStatistics statist = new BackEndStatistics();
         DeviceStatistics devStatist;
@@ -558,4 +567,14 @@ public class UserInterface {
         statist.regFailDevNum = devStatist.regFailNum;
         return statist;
     }
+
+    public static BackEndStatistics GetBackEndStatistics(String areaId) {
+        BackEndStatistics statist = new BackEndStatistics();
+        DeviceStatistics devStatist;
+        devStatist = HandlerMgr.GetBackEndRegDevNum(areaId);
+        statist.regSuccDevNum = devStatist.regSuccNum;
+        statist.regFailDevNum = devStatist.regFailNum;
+        return statist;
+    }
+
 }

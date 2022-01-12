@@ -13,6 +13,10 @@ public class NetDevice {
         netType = UNKNOW_NET_DEVICE;
     }
 
+    public String GetNetAddress(){
+        return "";
+    }
+
     public int SendBuffer(byte[] data){
         return  0;
     }

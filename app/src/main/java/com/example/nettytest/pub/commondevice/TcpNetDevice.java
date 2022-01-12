@@ -1,6 +1,8 @@
 package com.example.nettytest.pub.commondevice;
 
 
+import java.net.SocketAddress;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 
@@ -20,6 +22,22 @@ public class TcpNetDevice extends NetDevice{
                 channel.writeAndFlush(buf);
             }
         }
+    }
+
+
+    @Override
+    public String GetNetAddress() {
+        String address="";
+        if(channel!=null){
+            address = channel.remoteAddress().toString();
+            if(address.contains("/")){
+                address = address.substring(address.indexOf('/')+1);
+            }
+            if(address.contains(":")){
+                address = address.substring(0,address.indexOf(':'));
+            }
+        }
+        return address;
     }
 
     public void UpdateChannel(Channel ch){

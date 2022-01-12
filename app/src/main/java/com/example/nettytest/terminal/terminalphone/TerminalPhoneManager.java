@@ -2,6 +2,7 @@ package com.example.nettytest.terminal.terminalphone;
 
 import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
+import com.androidport.port.audio.AudioMgr;
 import com.example.nettytest.pub.CallPubMessage;
 import com.example.nettytest.pub.DeviceStatistics;
 import com.example.nettytest.pub.HandlerMgr;
@@ -153,7 +154,7 @@ public class TerminalPhoneManager {
                                             String devId = JsonPort.GetJsonString(json,SystemSnap.SNAP_DEVID_NAME);
                                             snapResult = MakeCallsSnap(devId);
                                             if (snapResult != null) {
-//                                                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Get Terminal Call Snap for dev %s, total %d bytes, send to %s:%d",devId,snapResult.length,recvPack.getAddress().getHostName(),recvPack.getPort());
+//                                                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Get Terminal Call Snap for dev %s, total %d bytes, send to %s:%d",devId,snapResult.length,recvPack.getAddress().getHostAddress(),recvPack.getPort());
                                                 resPack = new DatagramPacket(snapResult, snapResult.length, recvPack.getAddress(), recvPack.getPort());
                                                 testSocket.send(resPack);
                                             }
@@ -191,11 +192,24 @@ public class TerminalPhoneManager {
                                             LogWork.logInterval = value;
 
                                             LogWork.dbgLevel = json.getIntValue(SystemSnap.LOG_DBG_LEVEL_NAME);
-                                        } else if (type == SystemSnap.AUDIO_CONFIG_REQ_CMD) {
+                                        } else if (type == SystemSnap.AUDIO_CONFIG_WRITE_REQ_CMD) {
                                             PhoneParam.callRtpCodec = json.getIntValue(SystemSnap.AUDIO_RTP_CODEC_NAME);
                                             PhoneParam.callRtpDataRate = json.getIntValue(SystemSnap.AUDIO_RTP_DATARATE_NAME);
                                             PhoneParam.callRtpPTime = json.getIntValue(SystemSnap.AUDIO_RTP_PTIME_NAME);
-                                            PhoneParam.aecDelay = json.getIntValue(SystemSnap.AUDIO_RTP_AEC_DELAY_NAME);
+                                            PhoneParam.aecDelay = json.getIntValue(SystemSnap.AUDIO_AEC_DELAY_NAME);
+                                            PhoneParam.aecMode = json.getIntValue(SystemSnap.AUDIO_AEC_MODE_NAME);
+                                            PhoneParam.nsMode = json.getIntValue(SystemSnap.AUDIO_NS_MODE_NAME);
+                                            PhoneParam.inputMode = json.getIntValue(SystemSnap.AUDIO_INPUT_MODE_NAME);
+                                            PhoneParam.inputGain = json.getIntValue(SystemSnap.AUDIO_INPUT_GAIN_NAME);
+                                            PhoneParam.outputMode = json.getIntValue(SystemSnap.AUDIO_OUTPUT_MODE_NAME);
+                                            PhoneParam.outputGain = json.getIntValue(SystemSnap.AUDIO_OUTPUT_GAIN_NAME);
+                                        }else if(type == SystemSnap.AUDIO_CONFIG_READ_REQ_CMD){
+                                            snapResult = MakeAudioConfig();
+                                            if (snapResult != null) {
+//                                                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Get Terminal Call Snap for dev %s, total %d bytes, send to %s:%d",devId,snapResult.length,recvPack.getAddress().getHostAddress(),recvPack.getPort());
+                                                resPack = new DatagramPacket(snapResult, snapResult.length, recvPack.getAddress(), recvPack.getPort());
+                                                testSocket.send(resPack);
+                                            }
                                         } else if (type == SystemSnap.SNAP_DEV_REQ) {
                                             int sendCount = 0;
                                             for (TerminalPhone dev : clientPhoneLists.values()) {
@@ -203,6 +217,10 @@ public class TerminalPhoneManager {
                                                 resJson.put(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.SNAP_DEV_RES);
                                                 resJson.put(SystemSnap.SNAP_AREAID_NAME,dev.areaId);
                                                 resJson.put(SystemSnap.SNAP_DEVID_NAME, dev.id);
+                                                if(dev.isReg)
+                                                    resJson.put(SystemSnap.SNAP_REG_NAME, 1);
+                                                else
+                                                    resJson.put(SystemSnap.SNAP_REG_NAME, 0);
                                                 resJson.put(SystemSnap.SNAP_DEVTYPE_NAME, dev.type);
                                                 byte[] resBuf = resJson.toString().getBytes();
                                                 resPack = new DatagramPacket(resBuf, resBuf.length, recvPack.getAddress(), recvPack.getPort());
@@ -221,7 +239,8 @@ public class TerminalPhoneManager {
                                            LogWork.ResetLogIndex();
                                         }else if(type==SystemSnap.SNAP_SYSTEM_INFO_REQ){
                                             byte[] systemInfo;
-                                            systemInfo = MakeSystemInfo();
+                                            String curArea = JsonPort.GetJsonString(json,SystemSnap.SNAP_AREAID_NAME);
+                                            systemInfo = MakeSystemInfo(curArea);
                                             try {
                                                 Thread.sleep((int)(Math.random()*1000.0));
                                             } catch (InterruptedException e) {
@@ -651,6 +670,30 @@ public class TerminalPhoneManager {
         return result;
     }
 
+    private byte[] MakeAudioConfig(){
+        JSONObject json = new JSONObject();
+        String snap;
+        try {
+            json.put(SystemSnap.SNAP_CMD_TYPE_NAME, SystemSnap.AUDIO_CONFIG_READ_RES_CMD);
+            json.put(SystemSnap.AUDIO_RTP_CODEC_NAME, PhoneParam.callRtpCodec);
+            json.put(SystemSnap.AUDIO_RTP_DATARATE_NAME, PhoneParam.callRtpDataRate);
+            json.put(SystemSnap.AUDIO_RTP_PTIME_NAME, PhoneParam.callRtpPTime);
+            json.put(SystemSnap.AUDIO_AEC_DELAY_NAME, PhoneParam.aecDelay);
+            json.put(SystemSnap.AUDIO_AEC_MODE_NAME, PhoneParam.aecMode);
+            json.put(SystemSnap.AUDIO_NS_MODE_NAME, PhoneParam.nsMode);
+            json.put(SystemSnap.AUDIO_INPUT_MODE_NAME, PhoneParam.inputMode);
+            json.put(SystemSnap.AUDIO_INPUT_GAIN_NAME, PhoneParam.inputGain);
+            json.put(SystemSnap.AUDIO_OUTPUT_MODE_NAME, PhoneParam.outputMode);
+            json.put(SystemSnap.AUDIO_OUTPUT_GAIN_NAME, PhoneParam.outputGain);
+            json.put(SystemSnap.AUDIO_AEC_DELAY_ESTIMATOR_NAME, AudioMgr.GetAudioDelay());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        snap = json.toString();
+        json.clear();
+        return snap.getBytes();
+    }
+
     public DeviceStatistics GetRegStatist() {
         DeviceStatistics statics = new DeviceStatistics();
         synchronized (TerminalPhoneManager.class) {
@@ -664,8 +707,24 @@ public class TerminalPhoneManager {
         return statics;
     }
 
-    private byte[] MakeSystemInfo(){
+    public DeviceStatistics GetRegStatist(String areaId) {
+        DeviceStatistics statics = new DeviceStatistics();
+        synchronized (TerminalPhoneManager.class) {
+            for(TerminalPhone phone:clientPhoneLists.values()) {
+                if(phone.areaId.compareToIgnoreCase(areaId)==0) {
+                    if (phone.isReg)
+                        statics.regSuccNum++;
+                    else
+                        statics.regFailNum++;
+                }
+            }
+        }
+        return statics;
+    }
+
+    private byte[] MakeSystemInfo(String curAreaId){
         TerminalStatistics terminalStatist = UserInterface.GetTerminalStatistics();
+        TerminalStatistics curAreaStatist = UserInterface.GetTerminalStatistics(curAreaId);
         JSONObject json = new JSONObject();
         byte[] result = null;
 
@@ -674,6 +733,8 @@ public class TerminalPhoneManager {
         json.put(SystemSnap.SNAP_INFO_CLIENT_TRANS_NUM_NAME,terminalStatist.transNum);
         json.put(SystemSnap.SNAP_INFO_CLIENT_REGSUCC_NUM_NAME,terminalStatist.regSuccDevNum);
         json.put(SystemSnap.SNAP_INFO_CLIENT_REGFAIL_NUM_NAME,terminalStatist.regFailDevNum);
+        json.put(SystemSnap.SNAP_INFO_CLIENT_CURAREA_REGSUCC_NUM_NAME,curAreaStatist.regSuccDevNum);
+        json.put(SystemSnap.SNAP_INFO_CLIENT_CURAREA_REGFAIL_NUM_NAME,curAreaStatist.regFailDevNum);
 
         result = json.toString().getBytes();
         json.clear();

@@ -18,6 +18,14 @@ public class UdpNetDevice extends NetDevice {
         peerAddress = null;
     }
 
+    @Override
+    public String GetNetAddress() {
+        String address="";
+        if(peerAddress!=null)
+            address = peerAddress.getHostAddress();
+        return address;
+    }
+
     public int SendBuffer(byte[] data){
         if(localSocket!=null) {
             if (!localSocket.isClosed()) {

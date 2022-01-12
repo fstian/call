@@ -8,7 +8,6 @@ import java.net.SocketException;
 public class SystemSnap {
 
     public static final int SNAP_TEST_REQ = 1;
-    public static final int SNAP_TEST_RES = 101;
 
     public static final int SNAP_TERMINAL_TRANS_REQ = 2;
     public static final int SNAP_TERMINAL_TRANS_RES = 102;
@@ -28,8 +27,8 @@ public class SystemSnap {
     public static final int LOG_CONFIG_REQ_CMD = 7;
     public static final int LOG_CONFIG_REQ_RES = 107;
 
-    public static final int AUDIO_CONFIG_REQ_CMD = 8;
-    public static final int AUDIO_CONFIG_RES_CMD = 108;
+    public static final int AUDIO_CONFIG_WRITE_REQ_CMD = 8;
+    public static final int AUDIO_CONFIG_WRITE_RES_CMD = 108;
 
     public static final int SNAP_DEV_REQ = 9;
     public static final int SNAP_DEV_RES = 109;
@@ -39,6 +38,10 @@ public class SystemSnap {
 
     public static final int SNAP_CLEAN_CALL_REQ = 12;
     public static final int SNAP_CLEAN_CALL_RES = 112;
+
+
+    public static final int AUDIO_CONFIG_READ_REQ_CMD = 13;
+    public static final int AUDIO_CONFIG_READ_RES_CMD = 113;
 
     public static final int SNAP_DEL_LOG_REQ = 10;
 
@@ -59,6 +62,7 @@ public class SystemSnap {
     public static final String SNAP_REG_NAME = "reg";
     public static final String SNAP_VER_NAME = "ver";
     public static final String SNAP_RUN_TIME_NAME = "runTime";
+    public static final String SNAP_IP_ADDRESS = "address";
 
     public static final String SNAP_LISTEN_STATUS_NAME = "listenStatus";
     public static final String SNAP_TRANSFER_AREA_NAME = "transferAreaId";
@@ -94,16 +98,28 @@ public class SystemSnap {
     public static final String AUDIO_RTP_CODEC_NAME = "codec";
     public static final String AUDIO_RTP_DATARATE_NAME = "dataRate";
     public static final String AUDIO_RTP_PTIME_NAME = "PTime";
-    public static final String AUDIO_RTP_AEC_DELAY_NAME = "aecDelay";
+    public static final String AUDIO_AEC_DELAY_NAME = "aecDelay";
+    public static final String AUDIO_AEC_MODE_NAME = "aecMode";
+    public static final String AUDIO_NS_MODE_NAME = "nsMode";
+    public static final String AUDIO_AEC_DELAY_ESTIMATOR_NAME = "aecDelayEstimator";
+    public static final String AUDIO_INPUT_MODE_NAME = "inputMode";
+    public static final String AUDIO_INPUT_GAIN_NAME = "inputGain";
+    public static final String AUDIO_OUTPUT_MODE_NAME = "outputMode";
+    public static final String AUDIO_OUTPUT_GAIN_NAME = "outputGain";
 
     public static final String SNAP_INFO_CALLCONVERGENCE_NUM_NAME = "callConvergenceNum";
     public static final String SNAP_INFO_CALL_NUM_NAME = "callNum";
     public static final String SNAP_INFO_CLIENT_TRANS_NUM_NAME = "clientTransNum";
     public static final String SNAP_INFO_CLIENT_REGSUCC_NUM_NAME = "clientRegSuccNum";
     public static final String SNAP_INFO_CLIENT_REGFAIL_NUM_NAME = "clientRegFailNum";
+    public static final String SNAP_INFO_CLIENT_CURAREA_REGSUCC_NUM_NAME = "clientCurAreaRegSuccNum";
+    public static final String SNAP_INFO_CLIENT_CURAREA_REGFAIL_NUM_NAME = "clientCurAreaRegFailNum";
+    
     public static final String SNAP_INFO_BACKEND_TRANS_NUM_NAME = "backEndTransNum";
     public static final String SNAP_INFO_BACKEND_REGSUCC_NUM_NAME = "backEndRegSuccNum";
     public static final String SNAP_INFO_BACKEND_REGFAIL_NUM_NAME = "backEndRegFailNum";
+    public static final String SNAP_INFO_BACKEND_CURAREA_REGSUCC_NUM_NAME = "backEndCurAreaRegSuccNum";
+    public static final String SNAP_INFO_BACKEND_CURAREA_REGFAIL_NUM_NAME = "backEndCurAreaRegFailNum";
 
     public static DatagramSocket OpenSnapSocket(int startPort,int group){
         DatagramSocket socket=null;

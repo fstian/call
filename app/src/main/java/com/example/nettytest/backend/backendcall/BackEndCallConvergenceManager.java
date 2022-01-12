@@ -63,6 +63,10 @@ public class BackEndCallConvergenceManager {
             json.put(SystemSnap.SNAP_VER_NAME,PhoneParam.VER_STR);
             json.put(SystemSnap.SNAP_RUN_TIME_NAME,HandlerMgr.GetBackEndRunSecond());
             json.put(SystemSnap.SNAP_LISTEN_STATUS_NAME,phone.enableListen);
+            if(HandlerMgr.GetBackEndPhoneRegStatus(devid))
+                json.put(SystemSnap.SNAP_REG_NAME,1);
+            else
+                json.put(SystemSnap.SNAP_REG_NAME,0);
             
             JSONArray outCalls = new JSONArray();
             JSONArray incomingCalls = new JSONArray();
