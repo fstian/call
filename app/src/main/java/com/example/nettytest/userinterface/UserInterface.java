@@ -274,12 +274,14 @@ public class UserInterface {
                 break;
 
         }
+        PrintLog("Build Device %s , type %s",ID,GetDeviceTypeName(type));
         return result;
     }
 
     public static OperationResult RemoveDevice(String id){
         OperationResult result = new OperationResult();
         HandlerMgr.RemoveTerminalPhone(id);
+        PrintLog("Remove Device %s ",id);
         return result;
     }
 

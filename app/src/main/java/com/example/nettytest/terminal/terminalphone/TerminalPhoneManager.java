@@ -199,6 +199,7 @@ public class TerminalPhoneManager {
                                             PhoneParam.aecDelay = json.getIntValue(SystemSnap.AUDIO_AEC_DELAY_NAME);
                                             PhoneParam.aecMode = json.getIntValue(SystemSnap.AUDIO_AEC_MODE_NAME);
                                             PhoneParam.nsMode = json.getIntValue(SystemSnap.AUDIO_NS_MODE_NAME);
+                                            PhoneParam.agcMode = json.getIntValue(SystemSnap.AUDIO_AGC_MODE_NAME);
                                             PhoneParam.inputMode = json.getIntValue(SystemSnap.AUDIO_INPUT_MODE_NAME);
                                             PhoneParam.inputGain = json.getIntValue(SystemSnap.AUDIO_INPUT_GAIN_NAME);
                                             PhoneParam.outputMode = json.getIntValue(SystemSnap.AUDIO_OUTPUT_MODE_NAME);
@@ -681,6 +682,7 @@ public class TerminalPhoneManager {
             json.put(SystemSnap.AUDIO_AEC_DELAY_NAME, PhoneParam.aecDelay);
             json.put(SystemSnap.AUDIO_AEC_MODE_NAME, PhoneParam.aecMode);
             json.put(SystemSnap.AUDIO_NS_MODE_NAME, PhoneParam.nsMode);
+            json.put(SystemSnap.AUDIO_AGC_MODE_NAME, PhoneParam.agcMode);
             json.put(SystemSnap.AUDIO_INPUT_MODE_NAME, PhoneParam.inputMode);
             json.put(SystemSnap.AUDIO_INPUT_GAIN_NAME, PhoneParam.inputGain);
             json.put(SystemSnap.AUDIO_OUTPUT_MODE_NAME, PhoneParam.outputMode);

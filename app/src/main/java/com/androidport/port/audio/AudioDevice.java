@@ -305,51 +305,58 @@ public class AudioDevice {
             aecSample = MobileAEC.SamplingFrequency.FS_8000Hz;
 
         if(audioMode==AudioMode.SEND_RECV_MODE) {
-            aec = new MobileAEC(aecSample);
-            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, "Create AEC when AudioMode =%s ", GetAudioModeName(audioMode));
+            if(PhoneParam.aecMode!=PhoneParam.AUDIO_PROCESS_DISABLE){
+                aec = new MobileAEC(aecSample);
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, "Create AEC when AudioMode =%s ", GetAudioModeName(audioMode));
 
-            switch(PhoneParam.aecMode){
-                case PhoneParam.AUDIO_PROCESS_MILD:
-                    aec.setAecmMode(MobileAEC.AggressiveMode.MILD).prepare();
-                break;
-                case PhoneParam.AUDIO_PROCESS_MEDIUM:
-                    aec.setAecmMode(MobileAEC.AggressiveMode.MEDIUM).prepare();
-                break;
-                case PhoneParam.AUDIO_PROCESS_HIGH:
-                    aec.setAecmMode(MobileAEC.AggressiveMode.HIGH).prepare();
-                break;
-                case PhoneParam.AUDIO_PROCESS_AGGRESSIVE:
-                    aec.setAecmMode(MobileAEC.AggressiveMode.AGGRESSIVE).prepare();
-                break;
-                default :
-                    aec.setAecmMode(MobileAEC.AggressiveMode.MOST_AGGRESSIVE).prepare();
-                break;
-                    
+                switch(PhoneParam.aecMode){
+                    case PhoneParam.AUDIO_PROCESS_MILD:
+                        aec.setAecmMode(MobileAEC.AggressiveMode.MILD).prepare();
+                    break;
+                    case PhoneParam.AUDIO_PROCESS_MEDIUM:
+                        aec.setAecmMode(MobileAEC.AggressiveMode.MEDIUM).prepare();
+                    break;
+                    case PhoneParam.AUDIO_PROCESS_HIGH:
+                        aec.setAecmMode(MobileAEC.AggressiveMode.HIGH).prepare();
+                    break;
+                    case PhoneParam.AUDIO_PROCESS_AGGRESSIVE:
+                        aec.setAecmMode(MobileAEC.AggressiveMode.AGGRESSIVE).prepare();
+                    break;
+                    default :
+                        aec.setAecmMode(MobileAEC.AggressiveMode.MOST_AGGRESSIVE).prepare();
+                    break;
+                        
+                }
             }
 
-            nsUtils = new NsUtils();
-            nsHandle = nsUtils.nsxCreate();
-            nsUtils.nsxInit(nsHandle,sample);
-            nsMode = PhoneParam.nsMode;
-            
-            switch(PhoneParam.nsMode){
-                case PhoneParam.AUDIO_PROCESS_MILD:
-                    nsMode = 0;
-                break;
-                case PhoneParam.AUDIO_PROCESS_MEDIUM:
-                    nsMode = 1;
-                break;
-                case PhoneParam.AUDIO_PROCESS_HIGH:
-                    nsMode = 2;
-                break;
-                default:
-                    nsMode = 3;
-                break;
-            }
-            nsUtils.nsxSetPolicy(nsHandle,nsMode);
 
-//            inputAgc = new AgcUtils();
-//            inputAgc.setAgcConfig(3,20,1).prepare();
+            if(PhoneParam.nsMode!=PhoneParam.AUDIO_PROCESS_DISABLE){
+                nsUtils = new NsUtils();
+                nsHandle = nsUtils.nsxCreate();
+                nsUtils.nsxInit(nsHandle,sample);
+                nsMode = PhoneParam.nsMode;
+                
+                switch(PhoneParam.nsMode){
+                    case PhoneParam.AUDIO_PROCESS_MILD:
+                        nsMode = 0;
+                    break;
+                    case PhoneParam.AUDIO_PROCESS_MEDIUM:
+                        nsMode = 1;
+                    break;
+                    case PhoneParam.AUDIO_PROCESS_HIGH:
+                        nsMode = 2;
+                    break;
+                    default:
+                        nsMode = 3;
+                    break;
+                }
+                nsUtils.nsxSetPolicy(nsHandle,nsMode);
+            }
+
+            if(PhoneParam.agcMode ==PhoneParam.AUDIO_PROCESS_ENABLE){
+                inputAgc = new AgcUtils();
+                inputAgc.setAgcConfig(3,20,1).prepare();
+            }
 
 //            outputAgc = new AgcUtils();
 //            outputAgc.setAgcConfig(20,20,1).prepare();
@@ -683,6 +690,7 @@ public class AudioDevice {
             short[] audioReadData = new short[packSize];
             short[] audioInputAgcData = new short[packSize];
             short[] audioOutputAgcData = new short[packSize];
+            short[] nsData = new short[packSize];
             short[] aecData ;
 
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Audio AudioReadThread");
@@ -763,10 +771,21 @@ public class AudioDevice {
                         }
                     }
 //                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Read %d sample from Audio device, Return =%d",packSize,readNum)
+                    if(nsUtils!=null) {
+                        short[] blockSrc = new short[80];
+                        short[] blockDst = new short[80];
+                        for(iTmp=0;iTmp<packSize;iTmp+=80){
+                            System.arraycopy(audioReadData,iTmp,blockSrc,0,80);
+                            nsUtils.nsxProcess(nsHandle,blockSrc, null, blockDst, null);
+                            System.arraycopy(blockDst,0,nsData,iTmp,80);
+                        }
+                    }else{
+                        nsData = audioReadData;
+                    }
                     if (inputAgc != null) {
-                        inputAgc.agcProcess(audioReadData, 0, packSize, audioInputAgcData, 0, 0, 0, 0);
+                        inputAgc.agcProcess(nsData, 0, packSize, audioInputAgcData, 0, 0, 0, 0);
                     } else {
-                        audioInputAgcData = audioReadData;
+                        audioInputAgcData = nsData;
                     }
 
                     //aec process
@@ -834,16 +853,18 @@ public class AudioDevice {
                 if (message.arg1 == AUDIO_PLAY_MSG) {
                     short[] rtpData = (short[]) message.obj;
                     if(nsUtils!=null) {
-                        short[] nsData = new short[rtpData.length];
-                        short[] blockSrc = new short[80];
-                        short[] blockDst = new short[80];
-                        for(int iTmp=0;iTmp<rtpData.length;iTmp+=80){
-                            System.arraycopy(rtpData,iTmp,blockSrc,0,80);
-                            nsUtils.nsxProcess(nsHandle,blockSrc, null, blockDst, null);
-                            System.arraycopy(blockDst,0,nsData,iTmp,80);
-                        }
+//                        short[] nsData = new short[rtpData.length];
+//                        short[] blockSrc = new short[80];
+//                        short[] blockDst = new short[80];
+//                        for(int iTmp=0;iTmp<rtpData.length;iTmp+=80){
+//                            System.arraycopy(rtpData,iTmp,blockSrc,0,80);
+//                            nsUtils.nsxProcess(nsHandle,blockSrc, null, blockDst, null);
+//                            System.arraycopy(blockDst,0,nsData,iTmp,80);
+//                        }
+//                        if (player != null)
+//                            player.write(nsData , 0, nsData.length);
                         if (player != null)
-                            player.write(nsData , 0, nsData.length);
+                            player.write(rtpData, 0, rtpData.length);
                     }else {
                         //LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv Play Msg with %d Byte Data",rtpData.length);
                         if (player != null)

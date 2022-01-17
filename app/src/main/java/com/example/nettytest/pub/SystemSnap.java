@@ -101,6 +101,7 @@ public class SystemSnap {
     public static final String AUDIO_AEC_DELAY_NAME = "aecDelay";
     public static final String AUDIO_AEC_MODE_NAME = "aecMode";
     public static final String AUDIO_NS_MODE_NAME = "nsMode";
+    public static final String AUDIO_AGC_MODE_NAME = "agcMode";
     public static final String AUDIO_AEC_DELAY_ESTIMATOR_NAME = "aecDelayEstimator";
     public static final String AUDIO_INPUT_MODE_NAME = "inputMode";
     public static final String AUDIO_INPUT_GAIN_NAME = "inputGain";

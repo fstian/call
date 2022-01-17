@@ -8,6 +8,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
+import android.media.AudioManager;
+import android.media.MediaRecorder;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
@@ -28,6 +30,8 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.aecmdelaytest.AecmDelayTest;
+import com.aecmdelaytest.MusicData;
 import com.androidport.port.CallMsgReceiver;
 import com.androidport.port.TerminalUserMsgReceiver;
 import com.androidport.port.audio.AudioMgr;
@@ -379,12 +383,13 @@ public class    MainActivity extends AppCompatActivity {
 
         bt = (Button )findViewById(R.id.setaecdelayid);
         bt.setOnClickListener(view->{
-            String value;
-            int delay;
-            EditText aecDelay = (EditText)findViewById(R.id.editaecdelayid);
-            value = aecDelay.getText().toString();
-            delay = Integer.parseInt(value);
-            PhoneParam.aecDelay = delay;
+//            String value;
+//            int delay;
+//            EditText aecDelay = (EditText)findViewById(R.id.editaecdelayid);
+//            value = aecDelay.getText().toString();
+//            delay = Integer.parseInt(value);
+//            PhoneParam.aecDelay = delay;
+            AecmDelayTest.StartTest(8000, MediaRecorder.AudioSource.MIC, AudioManager.STREAM_MUSIC,160);
         });
 
         IntentFilter filter = new IntentFilter();
