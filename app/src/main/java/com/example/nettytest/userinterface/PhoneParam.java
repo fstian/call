@@ -61,7 +61,7 @@ public class PhoneParam {
     final public static int ANSWER_CALL_RTP_PORT = 9092;
     final public static int BROADCAST_CALL_RTP_PORT = 9094;
 
-    final public static int DEFAULT_AEC_DELAY = 90;
+    final public static int DEFAULT_AEC_DELAY = 205;
 
     final public static int BROADCALL_ANSWER_WAIT = 3;
     
@@ -76,11 +76,13 @@ public class PhoneParam {
     public final static int TCP_PROTOCOL = 2;
     public final static int RAW_TCP_PROTOCOL = 3;
 
-    public final static int AUDIO_PROCESS_MILD = 0;
-    public final static int AUDIO_PROCESS_MEDIUM = 1;
-    public final static int AUDIO_PROCESS_HIGH = 2;
-    public final static int AUDIO_PROCESS_AGGRESSIVE= 3;
-    public final static int AUDIO_PROCESS_MOST_AGGRESSIVE= 4;
+    public final static int AUDIO_PROCESS_DISABLE = 0;
+    public final static int AUDIO_PROCESS_ENABLE = 1;
+    public final static int AUDIO_PROCESS_MILD = 1;
+    public final static int AUDIO_PROCESS_MEDIUM = 2;
+    public final static int AUDIO_PROCESS_HIGH = 3;
+    public final static int AUDIO_PROCESS_AGGRESSIVE= 4;
+    public final static int AUDIO_PROCESS_MOST_AGGRESSIVE= 5;
 
     public final static int AUDIO_INPUT_MIC = 0;
     public final static int AUDIO_INPUT_COMMUNICATION = 1;
@@ -113,10 +115,11 @@ public class PhoneParam {
     public static int serviceUpdateTime = 120;
     
     public static int aecDelay = DEFAULT_AEC_DELAY;
-    public static int aecMode = AUDIO_PROCESS_AGGRESSIVE;
-    public static int nsMode = AUDIO_PROCESS_AGGRESSIVE;
+    public static int aecMode = AUDIO_PROCESS_MEDIUM;
+    public static int nsMode = AUDIO_PROCESS_MEDIUM;
+    public static int agcMode = AUDIO_PROCESS_DISABLE;
 
-    public static int inputMode = AUDIO_INPUT_MIC;
+    public static int inputMode = AUDIO_INPUT_COMMUNICATION;
     public static int inputGain = 0;
     public static int outputMode = AUDIO_OUTPUT_MUSIC;
     public static int outputGain = 0;
