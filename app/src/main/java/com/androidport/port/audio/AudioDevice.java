@@ -307,7 +307,6 @@ public class AudioDevice {
         if(audioMode==AudioMode.SEND_RECV_MODE) {
             if(PhoneParam.aecMode!=PhoneParam.AUDIO_PROCESS_DISABLE){
                 aec = new MobileAEC(aecSample);
-                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, "Create AEC when AudioMode =%s ", GetAudioModeName(audioMode));
 
                 switch(PhoneParam.aecMode){
                     case PhoneParam.AUDIO_PROCESS_MILD:
@@ -327,6 +326,7 @@ public class AudioDevice {
                     break;
                         
                 }
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, "Create AEC %s when AudioMode =%s ", GetAudioProcessModeName(PhoneParam.aecMode),GetAudioModeName(audioMode));
             }
 
 
@@ -350,12 +350,14 @@ public class AudioDevice {
                         nsMode = 3;
                     break;
                 }
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, "Create NS %s when AudioMode =%s ", GetAudioProcessModeName(PhoneParam.aecMode),GetAudioModeName(audioMode));
                 nsUtils.nsxSetPolicy(nsHandle,nsMode);
             }
 
             if(PhoneParam.agcMode ==PhoneParam.AUDIO_PROCESS_ENABLE){
                 inputAgc = new AgcUtils();
                 inputAgc.setAgcConfig(3,20,1).prepare();
+                LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE, LogWork.LOG_DEBUG, "Create InputAGC when AudioMode =%s ", GetAudioModeName(audioMode));
             }
 
 //            outputAgc = new AgcUtils();
@@ -572,6 +574,7 @@ public class AudioDevice {
         if(nsUtils!=null){
             nsUtils.nsxFree(nsHandle);
             nsUtils = null;
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Close NS");
         }
 
         if(jb!=null) {
@@ -579,6 +582,18 @@ public class AudioDevice {
             jb.deInitJb();
             jb = null;
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Close JB");
+        }
+
+        if(inputAgc!=null){
+            inputAgc.close();
+            inputAgc = null;
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Close input AGC");
+        }
+
+        if(outputAgc!=null){
+            outputAgc.close();
+            outputAgc = null;
+            LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Close output AGC");
         }
 
         audioOpenCount--;
@@ -943,5 +958,38 @@ public class AudioDevice {
         }
 
         return audioModeName;
+    }
+
+    private String GetAudioProcessModeName(int mode){
+        String audioprocessModeName = "Unknow Mode";
+
+        switch(mode){
+            case PhoneParam.AUDIO_PROCESS_AGGRESSIVE:
+                audioprocessModeName = "AGGRESSIV MODE";
+                break;
+            case PhoneParam.AUDIO_PROCESS_MOST_AGGRESSIVE:
+                audioprocessModeName = "MOST AGGRESSIV MODE";
+                break;
+            case PhoneParam.AUDIO_PROCESS_HIGH:
+                audioprocessModeName = "HIGH MODE";
+                break;
+            case PhoneParam.AUDIO_PROCESS_MEDIUM:
+                audioprocessModeName = "MEDIUM MODE";
+                break;
+            case PhoneParam.AUDIO_PROCESS_MILD:
+                audioprocessModeName = "MILD MODE";
+                break;
+        }
+
+        return audioprocessModeName;
+    }
+
+    public int RestartAudio(){
+        LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Restart Audio  !!!!!!!");
+        CloseSocket();
+        CloseAudio();
+        OpenSocket();
+        OpenAudio();
+        return 0;
     }
 }

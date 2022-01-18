@@ -46,6 +46,37 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    signingConfigs {
+        // ICU:[keyAlias:icu;file:icu.jks]
+        // BED:[keyAlias:bed;file:bed.jks]
+        release {
+            keyAlias 'bed'
+            keyPassword 'greenu2020'
+            storeFile file("../app/bed.jks")
+            storePassword 'greenu2020'
+        }
+
+        buildTypes {
+            debug {
+                signingConfig signingConfigs.release
+
+                minifyEnabled false // 混淆
+                zipAlignEnabled false // Zipalign优化
+                shrinkResources false  // 移除无用的resource文件
+                proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            }
+
+            release {
+                signingConfig signingConfigs.release
+
+                minifyEnabled false // 混淆
+                zipAlignEnabled false // Zipalign优化
+                shrinkResources false  // 移除无用的resource文件
+                proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            }
+        }
+    }
 }
 
 dependencies {
