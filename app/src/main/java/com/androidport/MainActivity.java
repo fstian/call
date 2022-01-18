@@ -231,7 +231,7 @@ public class    MainActivity extends AppCompatActivity {
                         tv.setText(String.format("B(C=%d,T=%d),T(C=%d,T=%d)", HandlerMgr.GetBackCallCount(), HandlerMgr.GetBackTransCount(), HandlerMgr.GetTermCallCount(), HandlerMgr.GetTermTransCount()));
                     });
 //                    System.out.println("qkq add TimeSyn Cur Time from TimeSyn is "+new Date(TimeSyn.GetSynTime()).toString());
-                    System.out.println("qkq add Audio Delay is "+ AudioMgr.GetAudioDelay()+"ms");
+//                    System.out.println("qkq add Audio Delay is "+ AudioMgr.GetAudioDelay()+"ms");
                 }
             }, 0, 1000);
 
@@ -389,7 +389,8 @@ public class    MainActivity extends AppCompatActivity {
 //            value = aecDelay.getText().toString();
 //            delay = Integer.parseInt(value);
 //            PhoneParam.aecDelay = delay;
-            AecmDelayTest.StartTest(8000, MediaRecorder.AudioSource.MIC, AudioManager.STREAM_MUSIC,160);
+//            AecmDelayTest.StartTest(8000, MediaRecorder.AudioSource.MIC, AudioManager.STREAM_MUSIC,160);
+            AudioMgr.RestartAudio();
         });
 
         IntentFilter filter = new IntentFilter();

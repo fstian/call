@@ -5,6 +5,13 @@ import com.example.nettytest.pub.LogWork;
 public class AudioMgr {
     static AudioDevice audio = null;
 
+    public static int RestartAudio(){
+        if(audio!=null){
+            audio.RestartAudio();
+        }
+        return 0;
+    }
+
     public static String OpenAudio(String devId,int src,int dst,String address,int sample,int ptime,int codec,int mode){
         synchronized (AudioMgr.class) {
             if (audio == null) {
