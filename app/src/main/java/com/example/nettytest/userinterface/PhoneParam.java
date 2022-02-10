@@ -123,7 +123,7 @@ public class PhoneParam {
     public static int aecMode = AUDIO_PROCESS_MEDIUM;
     public static int nsMode = AUDIO_PROCESS_MEDIUM;
     public static int nsThreshold =30;
-    public static int nsRange = 200;
+    public static int nsRange = 100;
     public static int nsTime = 100;
     public static int agcMode = AUDIO_PROCESS_DISABLE;
 
