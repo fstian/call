@@ -515,6 +515,34 @@ public class    MainActivity extends AppCompatActivity {
                 UserMessage terminalMsg = (UserMessage)message.obj;
                 boolean result;
 
+                if(msgType==UserMessage.MESSAGE_SNAP&&terminalMsg!=null){
+                    if(terminalMsg.type==UserMessage.SNAP_CONFIG) {
+                        AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                        switch(PhoneParam.audioMode){
+                            case PhoneParam.AUDIO_MODE_CALL:
+                                audioManager.setMode(AudioManager.MODE_IN_CALL);
+                                break;
+                            case PhoneParam.AUDIO_MODE_CALL_SCREENING:
+                                audioManager.setMode(AudioManager.MODE_CALL_SCREENING);
+                                break;
+                            case PhoneParam.AUDIO_MODE_NORMAL:
+                                audioManager.setMode(AudioManager.MODE_NORMAL);
+                                break;
+                            default:
+                                audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+                                break;
+                        }
+
+                        if(PhoneParam.audioSpeaker==1){
+//                            audioManager.setSpeakerphoneOn(true);
+                        }else{
+//                            audioManager.setSpeakerphoneOn(false);
+                        }
+
+                        return false;
+                    }
+                }
+
                 if(msgType==UserMessage.MESSAGE_INIT_FINISHED&& !isGuiInit) {
                     InitGui();
                     isGuiInit = true;
@@ -533,6 +561,7 @@ public class    MainActivity extends AppCompatActivity {
                     else
                         UpdateHMI();
                 }
+                
                 return false;
             });
 

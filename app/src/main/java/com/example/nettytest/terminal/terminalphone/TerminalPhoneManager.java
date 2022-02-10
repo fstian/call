@@ -38,6 +38,7 @@ import com.example.nettytest.pub.protocol.TransferResPack;
 import com.example.nettytest.pub.protocol.UpdateResPack;
 import com.example.nettytest.userinterface.PhoneParam;
 import com.example.nettytest.userinterface.TerminalDeviceInfo;
+import com.example.nettytest.userinterface.UserCallMessage;
 import com.example.nettytest.userinterface.UserInterface;
 import com.example.nettytest.userinterface.UserMessage;
 
@@ -137,6 +138,7 @@ public class TerminalPhoneManager {
                     byte[] snapResult;
                     testSocket = SystemSnap.OpenSnapSocket(port,PhoneParam.SNAP_TERMINAL_GROUP);
                     DatagramPacket resPack;
+                    int value;
                     if (testSocket != null) {
                         while (!testSocket.isClosed()) {
                             java.util.Arrays.fill(recvBuf,(byte)0);
@@ -166,7 +168,6 @@ public class TerminalPhoneManager {
 //                                                    testSocket.send(resPack);
 //                                                }
                                         } else if (type == SystemSnap.LOG_CONFIG_REQ_CMD) {
-                                            int value;
 
                                             LogWork.terminalNetModuleLogEnable = json.getIntValue(SystemSnap.LOG_TERMINAL_NET_NAME) == 1;
 
@@ -199,11 +200,32 @@ public class TerminalPhoneManager {
                                             PhoneParam.aecDelay = json.getIntValue(SystemSnap.AUDIO_AEC_DELAY_NAME);
                                             PhoneParam.aecMode = json.getIntValue(SystemSnap.AUDIO_AEC_MODE_NAME);
                                             PhoneParam.nsMode = json.getIntValue(SystemSnap.AUDIO_NS_MODE_NAME);
+                                            
+                                            value = json.getIntValue(SystemSnap.AUDIO_NS_RANGE_NAME);
+                                            if(value/100*100<value){
+                                                value=(value+100)/100*100;
+                                            }
+                                            PhoneParam.nsRange= value;
+                                            
+                                            value = json.getIntValue(SystemSnap.AUDIO_NS_TIME_NAME);
+                                            if(value/200*20<value){
+                                                value=(value+20)/20*20;
+                                            }
+                                            if(value==1)
+                                                value = 1;
+                                            PhoneParam.nsTime = value;
+
+                                            PhoneParam.nsThreshold = json.getIntValue(SystemSnap.AUDIO_NS_THRESHOLD_NAME);
                                             PhoneParam.agcMode = json.getIntValue(SystemSnap.AUDIO_AGC_MODE_NAME);
                                             PhoneParam.inputMode = json.getIntValue(SystemSnap.AUDIO_INPUT_MODE_NAME);
                                             PhoneParam.inputGain = json.getIntValue(SystemSnap.AUDIO_INPUT_GAIN_NAME);
                                             PhoneParam.outputMode = json.getIntValue(SystemSnap.AUDIO_OUTPUT_MODE_NAME);
                                             PhoneParam.outputGain = json.getIntValue(SystemSnap.AUDIO_OUTPUT_GAIN_NAME);
+                                            PhoneParam.audioMode= json.getIntValue(SystemSnap.AUDIO_MODE_NAME);
+                                            PhoneParam.audioSpeaker = json.getIntValue(SystemSnap.AUDIO_SPEAKER_NAME);
+                                            UserMessage msg = new UserMessage();
+                                            msg.type = UserMessage.SNAP_CONFIG;
+                                            HandlerMgr.SendMessageToUser(UserCallMessage.MESSAGE_SNAP,msg);
                                         }else if(type == SystemSnap.AUDIO_CONFIG_READ_REQ_CMD){
                                             snapResult = MakeAudioConfig();
                                             if (snapResult != null) {
@@ -682,11 +704,16 @@ public class TerminalPhoneManager {
             json.put(SystemSnap.AUDIO_AEC_DELAY_NAME, PhoneParam.aecDelay);
             json.put(SystemSnap.AUDIO_AEC_MODE_NAME, PhoneParam.aecMode);
             json.put(SystemSnap.AUDIO_NS_MODE_NAME, PhoneParam.nsMode);
+            json.put(SystemSnap.AUDIO_NS_THRESHOLD_NAME, PhoneParam.nsThreshold);
+            json.put(SystemSnap.AUDIO_NS_RANGE_NAME, PhoneParam.nsRange);
+            json.put(SystemSnap.AUDIO_NS_TIME_NAME, PhoneParam.nsTime);
             json.put(SystemSnap.AUDIO_AGC_MODE_NAME, PhoneParam.agcMode);
             json.put(SystemSnap.AUDIO_INPUT_MODE_NAME, PhoneParam.inputMode);
             json.put(SystemSnap.AUDIO_INPUT_GAIN_NAME, PhoneParam.inputGain);
             json.put(SystemSnap.AUDIO_OUTPUT_MODE_NAME, PhoneParam.outputMode);
             json.put(SystemSnap.AUDIO_OUTPUT_GAIN_NAME, PhoneParam.outputGain);
+            json.put(SystemSnap.AUDIO_MODE_NAME, PhoneParam.audioMode);
+            json.put(SystemSnap.AUDIO_SPEAKER_NAME, PhoneParam.audioSpeaker);
             json.put(SystemSnap.AUDIO_AEC_DELAY_ESTIMATOR_NAME, AudioMgr.GetAudioDelay());
         } catch (JSONException e) {
             e.printStackTrace();

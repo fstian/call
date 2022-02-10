@@ -167,6 +167,9 @@ public class HandlerMgr {
         }else if(type == UserMessage.MESSAGE_VIDEO_INFO){
             UserVideoMessage videoMsg = (UserVideoMessage)obj;
             LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Send Msg %s to dev %s", UserMessage.GetMsgName(videoMsg.type),videoMsg.devId);
+        }else if(type == UserMessage.MESSAGE_SNAP){
+            UserMessage  msg = (UserMessage)obj;
+            LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_INFO,"Send Msg %s to User", UserMessage.GetMsgName(msg.type));
         }
         terminalPhoneMgr.SendUserMessage(type,obj);
     }

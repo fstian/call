@@ -1,5 +1,6 @@
 package com.androidport.port.audio;
 
+import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
@@ -79,12 +80,20 @@ public class AudioDevice {
 
     int audioMode;
 
+    final int PLAY_KARRAY_SIZE_MAX = 100;
+
+    int[] karray ;
+    int kpos = 0;
+
     static{
         System.loadLibrary("JitterBuffer");
     }
 
     public AudioDevice(String devId,int src,int dst,String address,int sample,int ptime,int codec,int mode){
 
+        karray=new int[PLAY_KARRAY_SIZE_MAX];
+        for(int iTmp=0;iTmp<PLAY_KARRAY_SIZE_MAX;iTmp++)
+            karray[iTmp] = 100;
         dstPort = dst;
         srcPort = src;
         dstAddress = address;
@@ -690,6 +699,157 @@ public class AudioDevice {
 
 
     // get data from JB and notify play thread; read date from audio , AEC and send .
+
+    private short[] AecProcess(short[] farData,short[] nearData){
+        int size = nearData.length;
+        short[] aecData;
+        if(aec==null){
+            aecData = nearData;
+        }else {
+            aecData =new short[size];
+            try {
+                aec.farendBuffer(farData, farData.length);
+                aec.echoCancellation(nearData, null, aecData, (short) packSize, (short) PhoneParam.aecDelay);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return aecData;
+    }
+
+    private short[] InputAgcProcess(short[] data){
+        int size = data.length;
+        short[] agcData;
+
+        if(inputAgc==null){
+            agcData = data;
+        }else{
+            agcData = new short[size];
+            inputAgc.agcProcess(data, 0, size, agcData, 0, 0, 0, 0);
+        }
+        return agcData;
+    }
+
+    private short[] OutputAgcProcess(short[] data){
+        int size = data.length;
+        short[] agcData;
+
+        if(outputAgc==null){
+            agcData = data;
+        }else{
+            agcData = new short[size];
+            outputAgc.agcProcess(data, 0, size, agcData, 0, 0, 0, 0);
+        }
+        return agcData;
+    }
+
+    private int VolumeControl(short[] data,int gain){
+        int size =data.length;
+        int iTmp;
+
+        if(gain<=0||gain>7)
+            return -1;
+        for(iTmp=0;iTmp<size;iTmp++) {
+            switch (gain) {
+                case 1:
+                    data[iTmp] = (short) (data[iTmp] / 3 * 2);
+                    break;
+                case 2:
+                    data[iTmp] = (short) (data[iTmp] / 2);
+                    break;
+                case 3:
+                    data[iTmp] = (short) (data[iTmp] / 3);
+                    break;
+                case 4:
+                    data[iTmp] = (short) (data[iTmp] / 4);
+                    break;
+                case 5:
+                    data[iTmp] = (short) (data[iTmp] / 6);
+                    break;
+                case 6:
+                    data[iTmp] = (short) (data[iTmp] / 8);
+                    break;
+                case 7:
+                    data[iTmp] = (short) (data[iTmp] / 10);
+                    break;
+            }
+        }
+        return 0;
+    }
+
+    short[] NSProcess(short[] data){
+        int size = data.length;
+        int iTmp;
+        short[] nsData;
+        if(nsUtils!=null) {
+            short[] blockSrc = new short[80];
+            short[] blockDst = new short[80];
+            nsData = new short[size];
+            for(iTmp=0;iTmp<size;iTmp+=80){
+                System.arraycopy(data,iTmp,blockSrc,0,80);
+                nsUtils.nsxProcess(nsHandle,blockSrc, null, blockDst, null);
+                System.arraycopy(blockDst,0,nsData,iTmp,80);
+            }
+        }else{
+            nsData = data;
+        }
+        return nsData;
+    }
+
+    int CutNoiseProcess(short[] data){
+        int totalValue;
+        int iTmp;
+        int k;
+        int curK;
+        int valueTmp;
+        int avgR;
+        int size;
+
+        size = data.length;
+        if (PhoneParam.nsThreshold > 0) {
+            int kCount = PhoneParam.nsTime / 20;
+            if (kCount < 1)
+                kCount = 1;
+            totalValue = 0;
+            for (iTmp = 0; iTmp < size; iTmp++) {
+                if (data[iTmp] >= 0)
+                    totalValue += data[iTmp];
+                else
+                    totalValue += -data[iTmp];
+            }
+
+            avgR = totalValue / size;
+
+            if (avgR < PhoneParam.nsThreshold) {
+                k = 0;
+            } else if (avgR < PhoneParam.nsThreshold + PhoneParam.nsRange) {
+                int kTmp = PhoneParam.nsRange / 100;
+                if (kTmp < 1)
+                    kTmp = 1;
+                k = (avgR - PhoneParam.nsThreshold) / kTmp + 1;
+            } else {
+                k = 100;
+            }
+            karray[kpos] = k;
+            kpos++;
+            if (kpos >= kCount) {
+                kpos = 0;
+            }
+            curK = 0;
+            for (iTmp = 0; iTmp < kCount; iTmp++) {
+                curK += karray[iTmp];
+            }
+            curK = curK / kCount;
+
+            for (iTmp = 0; iTmp < size; iTmp++) {
+                valueTmp = data[iTmp] * curK;
+                valueTmp = valueTmp / 100;
+                data[iTmp] = (short) valueTmp;
+            }
+        }
+        return 0;
+    }
+
     class AudioReadThread extends Thread{
         public AudioReadThread(){
             super("AudioRead");
@@ -699,124 +859,49 @@ public class AudioDevice {
         public void run() {
             byte[] jbData = new byte[packSize];
             int jbDataLen;
-            int iTmp;
             short[] pcmData;
             byte[] rtpData;
             short[] audioReadData = new short[packSize];
-            short[] audioInputAgcData = new short[packSize];
-            short[] audioOutputAgcData = new short[packSize];
-            short[] nsData = new short[packSize];
-            short[] aecData ;
 
             LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Begin Audio AudioReadThread");
 
             isAudioReadRuning = true;
-            
-            aecData = new short[packSize];
 
             while (!isInterrupted()) {
                 jbDataLen = jb.getPackage(jbIndex, jbData, packSize);
                 if (jbDataLen > 0) {
                     pcmData = Rtp.UnenclosureRtp(jbData, jbDataLen, codec);
-                    for(iTmp=0;iTmp<pcmData.length;iTmp++) {
-                        switch(PhoneParam.outputGain){
-                            case 1:
-                                pcmData[iTmp] = (short)(pcmData[iTmp]/3*2);
-                                break;
-                            case 2:
-                                pcmData[iTmp] = (short)(pcmData[iTmp]/2);
-                                break;
-                            case 3:
-                                pcmData[iTmp] = (short)(pcmData[iTmp]/3);
-                                break;
-                            case 4:
-                                pcmData[iTmp] = (short)(pcmData[iTmp]/4);
-                                break;
-                            case 5:
-                                pcmData[iTmp] = (short)(pcmData[iTmp]/6);
-                                break;
-                            case 6:
-                                pcmData[iTmp] = (short)(pcmData[iTmp]/8);
-                                break;
-                            case 7:
-                                pcmData[iTmp] = (short)(pcmData[iTmp]/10);
-                                break;
-                        }
-                    }
-                    if(outputAgc!=null)
-                        outputAgc.agcProcess(pcmData,0,packSize,audioOutputAgcData,0,0,0,0);
-                    else
-                        audioOutputAgcData = pcmData;
+
+                    pcmData = OutputAgcProcess(pcmData);
+
+                    CutNoiseProcess(pcmData);
+
+                    VolumeControl(pcmData,PhoneParam.outputGain);
 
                     // notify play thread;
                     if (audioMode == AudioMode.RECV_ONLY_MODE || audioMode == AudioMode.SEND_RECV_MODE) {
                         if (audioWriteHandlerEnabled && audioWriteHandler != null) {
                             Message playMsg = audioWriteHandler.obtainMessage();
                             playMsg.arg1 = AUDIO_PLAY_MSG;
-                            playMsg.obj = audioOutputAgcData;
+                            playMsg.obj = pcmData;
                             audioWriteHandler.sendMessage(playMsg);
                         }
                     }
 
                     //read ;
                     int readNum = recorder.read(audioReadData, 0, packSize);
-                    for(iTmp=0;iTmp<packSize;iTmp++){
-                        switch (PhoneParam.inputGain){
-                            case 1:
-                                audioReadData[iTmp] = (short)(audioReadData[iTmp]/3*2);
-                                break;
-                            case 2:
-                                audioReadData[iTmp] = (short)(audioReadData[iTmp]/2);
-                                break;
-                            case 3:
-                                audioReadData[iTmp] = (short)(audioReadData[iTmp]/3);
-                                break;
-                            case 4:
-                                audioReadData[iTmp] = (short)(audioReadData[iTmp]/4);
-                                break;
-                            case 5:
-                                audioReadData[iTmp] = (short)(audioReadData[iTmp]/6);
-                                break;
-                            case 6:
-                                audioReadData[iTmp] = (short)(audioReadData[iTmp]/8);
-                                break;
-                            case 7:
-                                audioReadData[iTmp] = (short)(audioReadData[iTmp]/10);
-                                break;
-                        }
-                    }
-//                    LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Read %d sample from Audio device, Return =%d",packSize,readNum)
-                    if(nsUtils!=null) {
-                        short[] blockSrc = new short[80];
-                        short[] blockDst = new short[80];
-                        for(iTmp=0;iTmp<packSize;iTmp+=80){
-                            System.arraycopy(audioReadData,iTmp,blockSrc,0,80);
-                            nsUtils.nsxProcess(nsHandle,blockSrc, null, blockDst, null);
-                            System.arraycopy(blockDst,0,nsData,iTmp,80);
-                        }
-                    }else{
-                        nsData = audioReadData;
-                    }
-                    if (inputAgc != null) {
-                        inputAgc.agcProcess(nsData, 0, packSize, audioInputAgcData, 0, 0, 0, 0);
-                    } else {
-                        audioInputAgcData = nsData;
-                    }
 
-                    //aec process
-                    if (aec != null){
-                        try {
-                            aec.farendBuffer(audioOutputAgcData, audioOutputAgcData.length);
-                            aec.echoCancellation(audioInputAgcData, null, aecData, (short) packSize, (short) PhoneParam.aecDelay);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }else{
-                        aecData = audioInputAgcData;
-                    }
+                    audioReadData = InputAgcProcess(audioReadData);
+
+                    audioReadData = AecProcess(pcmData,audioReadData);
+
+                    audioReadData = NSProcess(audioReadData);
+
+                    VolumeControl(audioReadData,PhoneParam.inputGain);
+
                     // rtp packet and send
                     if((audioMode==AudioMode.SEND_ONLY_MODE||audioMode==AudioMode.SEND_RECV_MODE)&&audioSocket!=null){
-                        rtpData = Rtp.EncloureRtp(aecData, codec);
+                        rtpData = Rtp.EncloureRtp(audioReadData, codec);
                         DatagramPacket dp = new DatagramPacket(rtpData, rtpData.length);
                         try {
                             dp.setAddress(InetAddress.getByName(dstAddress));
@@ -867,24 +952,9 @@ public class AudioDevice {
             audioWriteHandler = new Handler(message -> {
                 if (message.arg1 == AUDIO_PLAY_MSG) {
                     short[] rtpData = (short[]) message.obj;
-                    if(nsUtils!=null) {
-//                        short[] nsData = new short[rtpData.length];
-//                        short[] blockSrc = new short[80];
-//                        short[] blockDst = new short[80];
-//                        for(int iTmp=0;iTmp<rtpData.length;iTmp+=80){
-//                            System.arraycopy(rtpData,iTmp,blockSrc,0,80);
-//                            nsUtils.nsxProcess(nsHandle,blockSrc, null, blockDst, null);
-//                            System.arraycopy(blockDst,0,nsData,iTmp,80);
-//                        }
-//                        if (player != null)
-//                            player.write(nsData , 0, nsData.length);
-                        if (player != null)
-                            player.write(rtpData, 0, rtpData.length);
-                    }else {
-                        //LogWork.Print(LogWork.TERMINAL_AUDIO_MODULE,LogWork.LOG_DEBUG,"Recv Play Msg with %d Byte Data",rtpData.length);
-                        if (player != null)
-                            player.write(rtpData, 0, rtpData.length);
-                    }
+
+                    if (player != null)
+                        player.write(rtpData, 0, rtpData.length);
                 }
                 return false;
             });
