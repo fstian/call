@@ -61,7 +61,7 @@ public class PhoneParam {
     final public static int ANSWER_CALL_RTP_PORT = 9092;
     final public static int BROADCAST_CALL_RTP_PORT = 9094;
 
-    final public static int DEFAULT_AEC_DELAY = 205;
+    final public static int DEFAULT_AEC_DELAY = 40;
 
     final public static int BROADCALL_ANSWER_WAIT = 3;
     
@@ -93,6 +93,11 @@ public class PhoneParam {
     public final static int AUDIO_OUTPUT_MUSIC = 0;
     public final static int AUDIO_OUTPUT_CALL = 1;
     public final static int AUDIO_OUTPUT_SYSTEM = 2;
+
+    public final static int AUDIO_MODE_NORMAL = 0;
+    public final static int AUDIO_MODE_COMMUNICATION = 1;
+    public final static int AUDIO_MODE_CALL = 2;
+    public final static int AUDIO_MODE_CALL_SCREENING = 3;
     
 
     public static int callRtpCodec = AudioMode.RTP_CODEC_711A;
@@ -117,12 +122,18 @@ public class PhoneParam {
     public static int aecDelay = DEFAULT_AEC_DELAY;
     public static int aecMode = AUDIO_PROCESS_MEDIUM;
     public static int nsMode = AUDIO_PROCESS_MEDIUM;
+    public static int nsThreshold =30;
+    public static int nsRange = 100;
+    public static int nsTime = 100;
     public static int agcMode = AUDIO_PROCESS_DISABLE;
 
     public static int inputMode = AUDIO_INPUT_COMMUNICATION;
     public static int inputGain = 0;
     public static int outputMode = AUDIO_OUTPUT_MUSIC;
     public static int outputGain = 0;
+
+    public static int audioMode = AUDIO_MODE_NORMAL;
+    public static int audioSpeaker = 1;
     
     public static int callRtpPTime = 20;
     public static int callRtpDataRate = 8000;

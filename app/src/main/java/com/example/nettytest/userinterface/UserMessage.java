@@ -13,6 +13,7 @@ public class UserMessage {
     public final static int MESSAGE_TRANSFER_INFO=8;
     public final static int MESSAGE_LISTEN_CALL_INFO = 9;
     public final static int MESSAGE_VIDEO_INFO = 10;
+    public final static int MESSAGE_SNAP = 11;
     public final static int MESSAGE_INIT_FINISHED = 60;
     public final static int MESSAGE_UNKNOW = 100;
 
@@ -47,6 +48,8 @@ public class UserMessage {
 
     public final static int DEV_MESSAGE_LIST =200;
     public final static int CONFIG_MESSAGE_LIST = 201;
+
+    public final static int SNAP_CONFIG = 221;
 
     public final static int CALL_MESSAGE_UNKONWQ = 0xffff;
 
@@ -145,6 +148,9 @@ public class UserMessage {
                 break;
             case CALL_TRANSFER_CHANGE:
                 msgName = "Transfer_Change";
+                break;
+            case SNAP_CONFIG:
+                msgName = "Snap_Config";
                 break;
 
             default:

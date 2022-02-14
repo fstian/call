@@ -101,12 +101,18 @@ public class SystemSnap {
     public static final String AUDIO_AEC_DELAY_NAME = "aecDelay";
     public static final String AUDIO_AEC_MODE_NAME = "aecMode";
     public static final String AUDIO_NS_MODE_NAME = "nsMode";
+    public static final String AUDIO_NS_THRESHOLD_NAME = "noiseThreshold";
+    public static final String AUDIO_NS_RANGE_NAME = "noiseRange";
+    public static final String AUDIO_NS_TIME_NAME = "noiseTime";
     public static final String AUDIO_AGC_MODE_NAME = "agcMode";
     public static final String AUDIO_AEC_DELAY_ESTIMATOR_NAME = "aecDelayEstimator";
     public static final String AUDIO_INPUT_MODE_NAME = "inputMode";
     public static final String AUDIO_INPUT_GAIN_NAME = "inputGain";
     public static final String AUDIO_OUTPUT_MODE_NAME = "outputMode";
     public static final String AUDIO_OUTPUT_GAIN_NAME = "outputGain";
+
+    public static final String AUDIO_MODE_NAME = "audioMode";
+    public static final String AUDIO_SPEAKER_NAME = "audioSpeaker";
 
     public static final String SNAP_INFO_CALLCONVERGENCE_NUM_NAME = "callConvergenceNum";
     public static final String SNAP_INFO_CALL_NUM_NAME = "callNum";
