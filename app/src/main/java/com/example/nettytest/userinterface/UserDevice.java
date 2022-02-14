@@ -6,6 +6,7 @@ public class    UserDevice {
     public String areaId;
     public String bedName;
     public String roomId;
+    public String roomName;
     public boolean isRegOk;
     public int netMode;
 
@@ -14,6 +15,7 @@ public class    UserDevice {
         areaId = "";
         bedName = "";
         roomId = "";
+        roomName = "";
         isRegOk = false;
     }
 }

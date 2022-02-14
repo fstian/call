@@ -36,6 +36,7 @@ public class ProtocolPacket {
     public final static String PACKET_PATIENT_NAME_NAME = "patientName";
     public final static String PACKET_PATIENT_AGE_NAME = "patientAge";
     public final static String PACKET_ROOMID_NAME = "roomId";
+    public final static String PACKET_ROOMNAME_NAME = "roomName";
     public final static String PACKET_DEVICE_NAME_NAME = "deviceName";
     public final static String PACKET_CALLERIP_MAME = "callerIP";
     public final static String PACKET_CALLERPORT_NAME = "callerPort";

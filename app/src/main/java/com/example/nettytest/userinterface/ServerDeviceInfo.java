@@ -4,6 +4,7 @@ public class ServerDeviceInfo {
     public String deviceName;
     public String bedName;
     public String roomId;
+    public String roomName;
     public String areaId;
     public String areaName;
 
@@ -11,6 +12,7 @@ public class ServerDeviceInfo {
         deviceName = "";
         bedName = "";
         roomId = "";
+        roomName = "";
         areaId = "";
         areaName = "";
     }
@@ -19,6 +21,7 @@ public class ServerDeviceInfo {
         deviceName = old.deviceName;
         bedName = old.bedName;
         roomId = old.roomId;
+        roomName = old.roomName;
         areaId = old.areaId;
         areaName = old.areaName;
     }
@@ -35,6 +38,10 @@ public class ServerDeviceInfo {
             return rtn;
 
         rtn = roomId.compareToIgnoreCase(info.roomId);
+        if(rtn!=0)
+            return rtn;
+
+        rtn = roomName.compareToIgnoreCase(info.roomName);
         if(rtn!=0)
             return rtn;
 

@@ -272,6 +272,7 @@ public class BackEndCallConvergenceManager {
                 if(CheckInviteEnable(caller)) {
 
                     inviteReqPack.roomId = caller.devInfo.roomId;
+                    inviteReqPack.roomName = caller.devInfo.roomName;
                     inviteReqPack.bedName = caller.devInfo.bedName;
                     inviteReqPack.deviceName = caller.devInfo.deviceName;
                     inviteReqPack.areaId = caller.devInfo.areaId;

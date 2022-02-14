@@ -40,6 +40,7 @@ public class UserCallMessage extends UserMessage {
     public String patientAge;
     public String bedName;
     public String roomId;
+    public String roomName;
 
     public String areaId;
     public String areaName;
@@ -75,6 +76,7 @@ public class UserCallMessage extends UserMessage {
         patientAge = "";
         bedName = "";
         roomId = "";
+        roomName="";
 
         areaId = "";
         areaName = "";
