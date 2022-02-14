@@ -95,6 +95,7 @@ public class ProtocolFactory {
 
                         inviteReqPack.deviceName = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_DEVICE_NAME_NAME);
                         inviteReqPack.roomId = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_ROOMID_NAME);
+                        inviteReqPack.roomName = JsonPort.GetJsonString(context,ProtocolPacket.PACKET_ROOMNAME_NAME);
 
                         inviteReqPack.pTime = context.getIntValue(ProtocolPacket.PACKET_PTIME_NAME);
                         inviteReqPack.codec = context.getIntValue(ProtocolPacket.PACKET_CODEC_NAME);
@@ -536,6 +537,7 @@ public class ProtocolFactory {
                     context.put(ProtocolPacket.PACKET_PATIENT_NAME_NAME,inviteReqP.patientName);
                     context.put(ProtocolPacket.PACKET_PATIENT_AGE_NAME,inviteReqP.patientAge);
                     context.put(ProtocolPacket.PACKET_ROOMID_NAME,inviteReqP.roomId);
+                    context.put(ProtocolPacket.PACKET_ROOMNAME_NAME,inviteReqP.roomName);
                     context.put(ProtocolPacket.PACKET_BEDID_NAME,inviteReqP.bedName);
                     context.put(ProtocolPacket.PACKET_DEVICE_NAME_NAME,inviteReqP.deviceName);
                     context.put(ProtocolPacket.PACKET_AREAID_NAME,inviteReqP.areaId);

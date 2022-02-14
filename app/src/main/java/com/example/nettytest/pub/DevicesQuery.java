@@ -36,6 +36,7 @@ public class DevicesQuery {
 
     final static String JSON_DEVICE_NAME_NAME = "deviceName";
     final static String JSON_ROOM_ID_NAME = "roomID";
+    final static String JSON_ROOM_NAME_NAME = "roomName";
 
     final static String JSON_PARAM_NORMALCALLTOBED = "normalCallToBed";
     final static String JSON_PARAM_NORMALCALLTOROOM = "normalCallToRoom";
@@ -257,7 +258,7 @@ public class DevicesQuery {
             }else if(msg.type == QUERY_DEVICES_RES) {
                 tickCount = 0;
 
-//                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Recv Devices Res For %d Area %s",areaPos+1,msg.areaId);               
+//                LogWork.Print(LogWork.DEBUG_MODULE,LogWork.LOG_DEBUG,"Recv Devices Res For %d Area %s",areaPos+1,msg.areaId);
                 int deviceNum = UpdateDevices(msg.areaId,msg.areaName,msg.res);
                 retryCount = 0;
                 if(deviceNum>=0) {
@@ -572,6 +573,7 @@ public class DevicesQuery {
                     device.devid = JsonPort.GetJsonString(jsonDevice,JSON_DEVICE_ID_NAME);
                     device.bedName = JsonPort.GetJsonString(jsonDevice,JSON_BED_NAME_NAME);
                     device.roomId =JsonPort.GetJsonString(jsonDevice,JSON_ROOM_ID_NAME);
+                    device.roomName = JsonPort.GetJsonString(jsonDevice,JSON_ROOM_NAME_NAME);
 
                     if(device.type == UserInterface.CALL_BED_DEVICE){
                         bedNum++;
@@ -609,6 +611,7 @@ public class DevicesQuery {
                     deviceInfo.bedName = JsonPort.GetJsonString(jsonDevice,JSON_BED_NAME_NAME);
                     deviceInfo.deviceName = JsonPort.GetJsonString(jsonDevice,JSON_DEVICE_NAME_NAME);
                     deviceInfo.roomId = JsonPort.GetJsonString(jsonDevice,JSON_ROOM_ID_NAME);
+                    deviceInfo.roomName = JsonPort.GetJsonString(jsonDevice,JSON_ROOM_NAME_NAME);
                     deviceInfoList.add(deviceInfo);
 
                 }

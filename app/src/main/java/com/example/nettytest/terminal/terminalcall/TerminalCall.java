@@ -101,6 +101,7 @@ public class TerminalCall extends CommonCall {
         callMsg.patientName = pack.patientName;
         callMsg.patientAge = pack.patientAge;
         callMsg.roomId = pack.roomId;
+        callMsg.roomName = pack.roomName;
         callMsg.bedName = pack.bedName;
         callMsg.deviceName = pack.deviceName;
 

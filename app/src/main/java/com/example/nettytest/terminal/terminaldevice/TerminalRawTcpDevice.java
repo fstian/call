@@ -69,7 +69,11 @@ public class TerminalRawTcpDevice extends RawTcpNetDevice {
                                     }else if(key.isReadable()){
                                         SocketChannel channel = (SocketChannel)key.channel();
                                         ByteBuffer buffer = ByteBuffer.allocate(4096);
-                                        channel.read(buffer);
+                                        int readRtn = channel.read(buffer);
+                                        if(readRtn<=0) {
+                                            isReset = true;
+                                            LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_ERROR,"Raw-TCP Client %s Read Return %d, Reset Socket",id,readRtn);
+                                        }else {                                     
                                         ((Buffer)buffer).flip();
                                         byte[] bytes = new byte[buffer.limit()-buffer.position()];
                                         buffer.get(bytes);
@@ -102,6 +106,9 @@ public class TerminalRawTcpDevice extends RawTcpNetDevice {
                                         }
                                     }
                                 }
+                            }
+                            }else{
+                                LogWork.Print(LogWork.TERMINAL_NET_MODULE,LogWork.LOG_DEBUG,"Raw-TCP Dev %s Select Fail, Return is %d",id,events);
                             }
                         } catch (IOException e) {
 //                            e.printStackTrace();

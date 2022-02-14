@@ -14,6 +14,7 @@ public class InviteReqPack extends ProtocolPacket{
     // add by server    
     public String bedName;
     public String roomId;
+    public String roomName;
     public String deviceName;
     public String areaId;
     public String areaName;
@@ -44,6 +45,7 @@ public class InviteReqPack extends ProtocolPacket{
         patientAge = invitePack.patientAge;
         patientName = invitePack.patientName;
         roomId = invitePack.roomId;
+        roomName = invitePack.roomName;
 
         areaId = invitePack.areaId;
         areaName = invitePack.areaName;
